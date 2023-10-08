@@ -5,6 +5,86 @@ import (
 	"testing"
 )
 
+func TestMemRead(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		mem1 uint8
+		want uint16
+	}{
+		{0xFF, 0xFF},
+		{0x11, 0x11},
+	}
+
+	for i, tc := range cases {
+		cpu.memory[i] = tc.mem1
+		cpu.pc = uint16(i)
+		if got := cpu.memRead16(cpu.pc); got != tc.want {
+			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
+		}
+	}
+}
+
+func TestMemWrite(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		mem1 uint8
+		want uint8
+	}{
+		{0xFF, 0xFF},
+		{0x11, 0x11},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = uint16(i)
+		cpu.writeMem(cpu.pc, tc.mem1)
+		if got := cpu.memRead(cpu.pc); got != tc.want {
+			t.Errorf("%d: Got 0x%02x, want 0x%02x", i, got, tc.want)
+		}
+	}
+}
+
+func TestMemRead16(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		mem1, mem2 uint8
+		want       uint16
+	}{
+		{0xFF, 0x11, 0x11FF},
+		{0xFF, 0x11, 0x11FF},
+	}
+
+	for i, tc := range cases {
+		cpu.memory[i] = tc.mem1
+		cpu.memory[i+1] = tc.mem2
+		cpu.pc = uint16(i)
+		if got := cpu.memRead16(cpu.pc); got != tc.want {
+			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
+		}
+	}
+}
+
+func TestMemWrite16(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		val        uint16
+		mem1, mem2 uint8
+	}{
+		{0x11FF, 0xFF, 0x11},
+		{0x5566, 0x66, 0x55},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = uint16(i)
+		cpu.writeMem16(cpu.pc, tc.val)
+		cpu.memory[i] = tc.mem1
+		cpu.memory[i+1] = tc.mem2
+
+		if cpu.memory[i] != tc.mem1 || cpu.memory[i+1] != tc.mem2 {
+			t.Errorf("%d: Got (0x%02x, 0x%02x), want (0x%02x, 0x%02x)", i, cpu.memory[i], cpu.memory[i+1], tc.mem1, tc.mem2)
+		}
+	}
+}
+
 func TestGetInst(t *testing.T) {
 	cpu := New()
 	cases := []struct {

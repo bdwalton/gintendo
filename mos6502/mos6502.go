@@ -350,13 +350,37 @@ func New() *cpu {
 var invalidInstruction = errors.New("invalid instruction")
 
 func (c *cpu) getInst() (opcode, error) {
-	m := c.memory[c.pc]
+	m := c.memRead(c.pc)
 	op, ok := opcodes[m]
 	if !ok {
 		return opcodes[0x00], fmt.Errorf("pc: %d, inst: 0x%02x - %w", c.pc, m, invalidInstruction)
 	}
 
 	return op, nil
+}
+
+// memRead returns the byte from memory at addr
+func (c *cpu) memRead(addr uint16) uint8 {
+	return c.memory[addr]
+}
+
+// writeMem writes val to memory at addr
+func (c *cpu) writeMem(addr uint16, val uint8) {
+	c.memory[addr] = val
+}
+
+// memRead16 returns the two bytes from memory at addr (lower byte is
+// first).
+func (c *cpu) memRead16(addr uint16) uint16 {
+	lsb := uint16(c.memRead(addr))
+	msb := uint16(c.memRead(addr + 1))
+
+	return (msb << 8) | lsb
+}
+
+func (c *cpu) writeMem16(addr, val uint16) {
+	c.writeMem(addr, uint8(val&0x00FF))
+	c.writeMem(addr+1, uint8(val>>8))
 }
 
 func (c *cpu) step() {
