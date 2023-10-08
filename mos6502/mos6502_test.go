@@ -49,6 +49,28 @@ func TestOpSEC(t *testing.T) {
 	}
 }
 
+func TestOpSED(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x00, 0x08},
+		{0xF0, 0xF8},
+		{0xFF, 0xFF},
+		{0xF9, 0xF9},
+		{0xFF, 0xFF}, // Make sure it doesn't unset
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		cpu.opSED(IMPLICIT)
+		if cpu.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		}
+	}
+}
+
 func TestOpCLC(t *testing.T) {
 	cpu := New()
 	cases := []struct {
@@ -64,6 +86,27 @@ func TestOpCLC(t *testing.T) {
 	for i, tc := range cases {
 		cpu.status = tc.status
 		cpu.opCLC(IMPLICIT)
+		if cpu.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		}
+	}
+}
+
+func TestOpCLD(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x08, 0x00},
+		{0xF8, 0xF0},
+		{0xFF, 0xF7},
+		{0xF0, 0xF0}, // Make sure it never sets instead
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		cpu.opCLD(IMPLICIT)
 		if cpu.status != tc.want {
 			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
 		}

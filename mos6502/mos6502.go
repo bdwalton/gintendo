@@ -366,21 +366,41 @@ func (c *cpu) step() {
 	switch op.inst {
 	case SEC:
 		c.opSEC(op.mode)
+	case SED:
+		c.opSED(op.mode)
 	case CLC:
 		c.opCLC(op.mode)
+	case CLD:
+		c.opCLD(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
 }
 
+func (c *cpu) flagOn(flag uint8) {
+	c.status = c.status | uint8(1<<flag)
+}
+
+func (c *cpu) flagOff(flag uint8) {
+	c.status = c.status &^ uint8(1<<flag)
+}
+
 // opSEC implements the SEC instruction.
 func (c *cpu) opSEC(mode uint8) {
-	flag := uint8(1 << STATUS_FLAG_CARRY)
-	c.status = c.status | flag
+	c.flagOn(STATUS_FLAG_CARRY)
+}
+
+// opSED implements the SED instruction.
+func (c *cpu) opSED(mode uint8) {
+	c.flagOn(STATUS_FLAG_DECIMAL)
 }
 
 // opCLC implements the CLC instruction.
 func (c *cpu) opCLC(mode uint8) {
-	flag := uint8(1 << STATUS_FLAG_CARRY)
-	c.status = c.status &^ flag
+	c.flagOff(STATUS_FLAG_CARRY)
+}
+
+// opCLD implements the CLD instruction.
+func (c *cpu) opCLD(mode uint8) {
+	c.flagOff(STATUS_FLAG_DECIMAL)
 }
