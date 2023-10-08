@@ -174,3 +174,99 @@ func TestOpCLV(t *testing.T) {
 		}
 	}
 }
+
+func TestOpDEX(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		x          uint8
+		status     uint8
+		wantX      uint8
+		wantStatus uint8
+	}{
+		{1, 0x00, 0, 0x02},
+		{0, 0x00, 255, 0x80},
+		{128, 0x00, 127, 0x00},
+		{255, 0x00, 254, 0x80},
+	}
+
+	for i, tc := range cases {
+		cpu.x = tc.x
+		cpu.status = tc.status
+		cpu.opDEX(IMPLICIT)
+		if cpu.x != tc.wantX || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantX, tc.wantStatus, cpu.x, cpu.status)
+		}
+	}
+}
+
+func TestOpINX(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		x          uint8
+		status     uint8
+		wantX      uint8
+		wantStatus uint8
+	}{
+		{1, 0x00, 2, 0x00},
+		{126, 0x00, 127, 0x00},
+		{127, 0x00, 128, 0x80},
+		{255, 0x00, 0, 0x02},
+	}
+
+	for i, tc := range cases {
+		cpu.x = tc.x
+		cpu.status = tc.status
+		cpu.opINX(IMPLICIT)
+		if cpu.x != tc.wantX || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantX, tc.wantStatus, cpu.x, cpu.status)
+		}
+	}
+}
+
+func TestOpDEY(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		y          uint8
+		status     uint8
+		wantY      uint8
+		wantStatus uint8
+	}{
+		{1, 0x00, 0, 0x02},
+		{0, 0x00, 255, 0x80},
+		{255, 0x00, 254, 0x80},
+		{128, 0x00, 127, 0x00},
+	}
+
+	for i, tc := range cases {
+		cpu.y = tc.y
+		cpu.status = tc.status
+		cpu.opDEY(IMPLICIT)
+		if cpu.y != tc.wantY || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantY, tc.wantStatus, cpu.y, cpu.status)
+		}
+	}
+}
+
+func TestOpINY(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		y          uint8
+		status     uint8
+		wantY      uint8
+		wantStatus uint8
+	}{
+		{1, 0x00, 2, 0x00},
+		{255, 0x00, 0, 0x02},
+		{127, 0x00, 128, 0x80},
+		{254, 0x00, 255, 0x80},
+	}
+
+	for i, tc := range cases {
+		cpu.y = tc.y
+		cpu.status = tc.status
+		cpu.opINY(IMPLICIT)
+		if cpu.y != tc.wantY || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantY, tc.wantStatus, cpu.y, cpu.status)
+		}
+	}
+}

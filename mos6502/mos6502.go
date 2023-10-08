@@ -378,6 +378,14 @@ func (c *cpu) step() {
 		c.opCLI(op.mode)
 	case CLV:
 		c.opCLV(op.mode)
+	case DEX:
+		c.opDEX(op.mode)
+	case INX:
+		c.opINX(op.mode)
+	case DEY:
+		c.opDEY(op.mode)
+	case INY:
+		c.opINY(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -421,4 +429,41 @@ func (c *cpu) opCLI(mode uint8) {
 
 func (c *cpu) opCLV(mode uint8) {
 	c.flagOff(STATUS_FLAG_OVERFLOW)
+}
+
+// setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
+// STATUS_FLAG_ZERO bits of the status register accordingly for the
+// value specified in n.
+func (c *cpu) setNegativeAndZeroFlags(n uint8) {
+	if n == 0 {
+		c.flagOn(STATUS_FLAG_ZERO)
+	} else {
+		c.flagOff(STATUS_FLAG_ZERO)
+	}
+
+	if n&0b1000_0000 != 0 {
+		c.flagOn(STATUS_FLAG_NEGATIVE)
+	} else {
+		c.flagOff(STATUS_FLAG_NEGATIVE)
+	}
+}
+
+func (c *cpu) opDEX(mode uint8) {
+	c.x -= 1
+	c.setNegativeAndZeroFlags(c.x)
+}
+
+func (c *cpu) opINX(mode uint8) {
+	c.x += 1
+	c.setNegativeAndZeroFlags(c.x)
+}
+
+func (c *cpu) opDEY(mode uint8) {
+	c.y -= 1
+	c.setNegativeAndZeroFlags(c.y)
+}
+
+func (c *cpu) opINY(mode uint8) {
+	c.y += 1
+	c.setNegativeAndZeroFlags(c.y)
 }
