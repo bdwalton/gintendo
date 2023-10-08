@@ -270,3 +270,33 @@ func TestOpINY(t *testing.T) {
 		}
 	}
 }
+
+func memInit(val uint8) (mem [MEM_SIZE]uint8) {
+	for i := 0; i < MEM_SIZE; i++ {
+		mem[i] = val
+	}
+	return
+}
+func TestOpNOP(t *testing.T) {
+	cpu := New()
+	cpu.memory = memInit(0xEA) // NOP
+
+	cases := []struct {
+		pc         uint16
+		status     uint8
+		wantPC     uint16
+		wantStatus uint8
+	}{
+		{0, 0xFF, 1, 0xFF},
+		{10, 0x00, 11, 0x00},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = tc.pc
+		cpu.status = tc.status
+		cpu.step()
+		if cpu.pc != tc.wantPC || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status 0x%02x), got %d (status: 0x%02x)", i, tc.wantPC, tc.wantStatus, cpu.pc, cpu.status)
+		}
+	}
+}

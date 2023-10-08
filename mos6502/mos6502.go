@@ -357,6 +357,11 @@ func (c *cpu) getInst() (opcode, error) {
 	return op, nil
 }
 
+func (c *cpu) nonBranchingOp(op func(*cpu, uint8), mode uint8) {
+	op(c, mode)
+	c.pc += 1
+}
+
 func (c *cpu) step() {
 	op, err := c.getInst()
 	if err != nil {
@@ -365,27 +370,29 @@ func (c *cpu) step() {
 
 	switch op.inst {
 	case SEC:
-		c.opSEC(op.mode)
+		c.nonBranchingOp((*cpu).opSEC, op.mode)
 	case SED:
-		c.opSED(op.mode)
+		c.nonBranchingOp((*cpu).opSED, op.mode)
 	case SEI:
-		c.opSEI(op.mode)
+		c.nonBranchingOp((*cpu).opSEI, op.mode)
 	case CLC:
-		c.opCLC(op.mode)
+		c.nonBranchingOp((*cpu).opCLC, op.mode)
 	case CLD:
-		c.opCLD(op.mode)
+		c.nonBranchingOp((*cpu).opCLD, op.mode)
 	case CLI:
-		c.opCLI(op.mode)
+		c.nonBranchingOp((*cpu).opCLI, op.mode)
 	case CLV:
-		c.opCLV(op.mode)
+		c.nonBranchingOp((*cpu).opCLV, op.mode)
 	case DEX:
-		c.opDEX(op.mode)
+		c.nonBranchingOp((*cpu).opDEX, op.mode)
 	case INX:
-		c.opINX(op.mode)
+		c.nonBranchingOp((*cpu).opINX, op.mode)
 	case DEY:
-		c.opDEY(op.mode)
+		c.nonBranchingOp((*cpu).opDEY, op.mode)
 	case INY:
-		c.opINY(op.mode)
+		c.nonBranchingOp((*cpu).opINY, op.mode)
+	case NOP:
+		c.nonBranchingOp((*cpu).opNOP, op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -466,4 +473,8 @@ func (c *cpu) opDEY(mode uint8) {
 func (c *cpu) opINY(mode uint8) {
 	c.y += 1
 	c.setNegativeAndZeroFlags(c.y)
+}
+
+func (c *cpu) opNOP(mode uint8) {
+	return
 }
