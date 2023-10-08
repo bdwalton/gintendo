@@ -366,6 +366,8 @@ func (c *cpu) step() {
 	switch op.inst {
 	case SEC:
 		c.opSEC(op.mode)
+	case CLC:
+		c.opCLC(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -375,4 +377,10 @@ func (c *cpu) step() {
 func (c *cpu) opSEC(mode uint8) {
 	flag := uint8(1 << STATUS_FLAG_CARRY)
 	c.status = c.status | flag
+}
+
+// opCLC implements the CLC instruction.
+func (c *cpu) opCLC(mode uint8) {
+	flag := uint8(1 << STATUS_FLAG_CARRY)
+	c.status = c.status &^ flag
 }

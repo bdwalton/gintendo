@@ -48,3 +48,24 @@ func TestOpSEC(t *testing.T) {
 		}
 	}
 }
+
+func TestOpCLC(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x01, 0x00},
+		{0xF1, 0xF0},
+		{0xFF, 0xFE},
+		{0xF0, 0xF0}, // Make sure it never sets instead
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		cpu.opCLC(IMPLICIT)
+		if cpu.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		}
+	}
+}
