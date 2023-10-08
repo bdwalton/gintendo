@@ -3,6 +3,7 @@
 package mos6502
 
 import (
+	"errors"
 	"fmt"
 	"math"
 )
@@ -342,4 +343,36 @@ func (c *cpu) String() string {
 
 func New() *cpu {
 	return &cpu{sp: 0xFF}
+}
+
+var invalidInstruction = errors.New("invalid instruction")
+
+func (c *cpu) getInst() (opcode, error) {
+	m := c.memory[c.pc]
+	op, ok := opcodes[m]
+	if !ok {
+		return opcodes[0x00], fmt.Errorf("pc: %d, inst: 0x%02x - %w", c.pc, m, invalidInstruction)
+	}
+
+	return op, nil
+}
+
+func (c *cpu) step() {
+	op, err := c.getInst()
+	if err != nil {
+		panic(err)
+	}
+
+	switch op.inst {
+	case SEC:
+		c.opSEC(op.mode)
+	default:
+		panic(fmt.Errorf("unimplemented instruction %s", op))
+	}
+}
+
+// opSEC implements the SEC instruction.
+func (c *cpu) opSEC(mode uint8) {
+	flag := uint8(1 << STATUS_FLAG_CARRY)
+	c.status = c.status | flag
 }
