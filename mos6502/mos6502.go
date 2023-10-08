@@ -383,45 +383,42 @@ func (c *cpu) step() {
 	}
 }
 
+// flagOn forces the STATUS_FLAG_??? passed as flag on in the status
+// register.
 func (c *cpu) flagOn(flag uint8) {
 	c.status = c.status | uint8(1<<flag)
 }
 
+// flagOff forces the STATUS_FLAG_??? passed as flag off in the status
+// register.
 func (c *cpu) flagOff(flag uint8) {
 	c.status = c.status &^ uint8(1<<flag)
 }
 
-// opSEC implements the SEC instruction.
 func (c *cpu) opSEC(mode uint8) {
 	c.flagOn(STATUS_FLAG_CARRY)
 }
 
-// opSED implements the SED instruction.
 func (c *cpu) opSED(mode uint8) {
 	c.flagOn(STATUS_FLAG_DECIMAL)
 }
 
-// opSEI implements the SEI instruction.
 func (c *cpu) opSEI(mode uint8) {
 	c.flagOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-// opCLC implements the CLC instruction.
 func (c *cpu) opCLC(mode uint8) {
 	c.flagOff(STATUS_FLAG_CARRY)
 }
 
-// opCLD implements the CLD instruction.
 func (c *cpu) opCLD(mode uint8) {
 	c.flagOff(STATUS_FLAG_DECIMAL)
 }
 
-// opCLI implements the CLI instruction.
 func (c *cpu) opCLI(mode uint8) {
 	c.flagOff(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-// opCLV implements the CLV instruction.
 func (c *cpu) opCLV(mode uint8) {
 	c.flagOff(STATUS_FLAG_OVERFLOW)
 }
