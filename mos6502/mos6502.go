@@ -38,6 +38,8 @@ const (
 	INDIRECT_Y // Indirect Indexed
 )
 
+var modenames map[uint8]string = map[uint8]string{IMPLICIT: "IMPLICIT", ACCUMULATOR: "ACCUMULATOR", IMMEDIATE: "IMMEDIATE", ZERO_PAGE: "ZERO_PAGE", ZERO_PAGE_X: "ZERO_PAGE_X", ZERO_PAGE_Y: "ZERO_PAGE_Y", RELATIVE: "RELATIVE", ABSOLUTE: "ABSOLUTE", ABSOLUTE_X: "ABSOLUTE_X", ABSOLUTE_Y: "ABSOLUTE_Y", INDIRECT: "INDIRECT", INDIRECT_X: "INDIRECT_X", INDIRECT_Y: "INDIRECT_Y"}
+
 // 6502 Instructions
 // https://www.nesdev.org/obelisk-6502-guide/instructions.html
 // https://www.nesdev.org/obelisk-6502-guide/reference.html
@@ -100,9 +102,15 @@ const (
 	TYA        // Transfer Y to Accumulator
 )
 
+var opnames map[uint8]string = map[uint8]string{ADC: "ADC", AND: "AND", ASL: "ASL", BCC: "BCC", BCS: "BCS", BEQ: "BEQ", BIT: "BIT", BMI: "BMI", BNE: "BNE", BPL: "BPL", BRK: "BRK", BVC: "BVC", BVS: "BVS", CLC: "CLC", CLD: "CLD", CLI: "CLI", CLV: "CLV", CMP: "CMP", CPX: "CPX", CPY: "CPY", DEC: "DEC", DEX: "DEX", DEY: "DEY", EOR: "EOR", INC: "INC", INX: "INX", INY: "INY", JMP: "JMP", JSR: "JSR", LDA: "LDA", LDX: "LDX", LDY: "LDY", LSR: "LSR", NOP: "NOP", ORA: "ORA", PHA: "PHA", PHP: "PHP", PLA: "PLA", PLP: "PLP", ROL: "ROL", ROR: "ROR", RTI: "RTI", RTS: "RTS", SBC: "SBC", SEC: "SEC", SED: "SED", SEI: "SEI", STA: "STA", STX: "STX", STY: "STY", TAX: "TAX", TAY: "TAY", TSX: "TSX", TXA: "TXA", TXS: "TXS", TYA: "TYA"}
+
 type opcode struct {
 	inst uint8 // The instruction
 	mode uint8 // The memory addressing mode to use
+}
+
+func (o opcode) String() string {
+	return fmt.Sprintf("{%s, %s}", opnames[o.inst], modenames[o.mode])
 }
 
 var opcodes map[uint8]opcode = map[uint8]opcode{
