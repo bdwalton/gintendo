@@ -368,10 +368,16 @@ func (c *cpu) step() {
 		c.opSEC(op.mode)
 	case SED:
 		c.opSED(op.mode)
+	case SEI:
+		c.opSEI(op.mode)
 	case CLC:
 		c.opCLC(op.mode)
 	case CLD:
 		c.opCLD(op.mode)
+	case CLI:
+		c.opCLI(op.mode)
+	case CLV:
+		c.opCLV(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -395,6 +401,11 @@ func (c *cpu) opSED(mode uint8) {
 	c.flagOn(STATUS_FLAG_DECIMAL)
 }
 
+// opSEI implements the SEI instruction.
+func (c *cpu) opSEI(mode uint8) {
+	c.flagOn(STATUS_FLAG_INTERRUPT_DISABLE)
+}
+
 // opCLC implements the CLC instruction.
 func (c *cpu) opCLC(mode uint8) {
 	c.flagOff(STATUS_FLAG_CARRY)
@@ -403,4 +414,14 @@ func (c *cpu) opCLC(mode uint8) {
 // opCLD implements the CLD instruction.
 func (c *cpu) opCLD(mode uint8) {
 	c.flagOff(STATUS_FLAG_DECIMAL)
+}
+
+// opCLI implements the CLI instruction.
+func (c *cpu) opCLI(mode uint8) {
+	c.flagOff(STATUS_FLAG_INTERRUPT_DISABLE)
+}
+
+// opCLV implements the CLV instruction.
+func (c *cpu) opCLV(mode uint8) {
+	c.flagOff(STATUS_FLAG_OVERFLOW)
 }

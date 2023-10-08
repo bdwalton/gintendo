@@ -35,9 +35,8 @@ func TestOpSEC(t *testing.T) {
 	}{
 		{0x00, 0x01},
 		{0xF0, 0xF1},
-		{0xFF, 0xFF},
 		{0xFE, 0xFF},
-		{0xFF, 0xFF}, // Make sure it doesn't unset
+		{0xFF, 0xFF},
 	}
 
 	for i, tc := range cases {
@@ -57,9 +56,8 @@ func TestOpSED(t *testing.T) {
 	}{
 		{0x00, 0x08},
 		{0xF0, 0xF8},
-		{0xFF, 0xFF},
 		{0xF9, 0xF9},
-		{0xFF, 0xFF}, // Make sure it doesn't unset
+		{0xFF, 0xFF},
 	}
 
 	for i, tc := range cases {
@@ -67,6 +65,28 @@ func TestOpSED(t *testing.T) {
 		cpu.opSED(IMPLICIT)
 		if cpu.status != tc.want {
 			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		}
+	}
+}
+
+func TestOpSEI(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x00, 0x04},
+		{0xF0, 0xF4},
+		{0xFF, 0xFF},
+		{0xF3, 0xF7},
+		{0xFF, 0xFF},
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		cpu.opSEI(IMPLICIT)
+		if cpu.status != tc.want {
+			t.Errorf("%d: Wanted 0x%02x, got 0x%02x", i, tc.want, cpu.status)
 		}
 	}
 }
@@ -80,7 +100,7 @@ func TestOpCLC(t *testing.T) {
 		{0x01, 0x00},
 		{0xF1, 0xF0},
 		{0xFF, 0xFE},
-		{0xF0, 0xF0}, // Make sure it never sets instead
+		{0xF0, 0xF0},
 	}
 
 	for i, tc := range cases {
@@ -101,12 +121,54 @@ func TestOpCLD(t *testing.T) {
 		{0x08, 0x00},
 		{0xF8, 0xF0},
 		{0xFF, 0xF7},
-		{0xF0, 0xF0}, // Make sure it never sets instead
+		{0xF0, 0xF0},
 	}
 
 	for i, tc := range cases {
 		cpu.status = tc.status
 		cpu.opCLD(IMPLICIT)
+		if cpu.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		}
+	}
+}
+
+func TestOpCLI(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x04, 0x00},
+		{0xF4, 0xF0},
+		{0xFF, 0xFB},
+		{0xF0, 0xF0},
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		cpu.opCLI(IMPLICIT)
+		if cpu.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		}
+	}
+}
+
+func TestOpCLV(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x40, 0x00},
+		{0x4F, 0x0F},
+		{0xFF, 0xBF},
+		{0x0F, 0x0F},
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		cpu.opCLV(IMPLICIT)
 		if cpu.status != tc.want {
 			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
 		}
