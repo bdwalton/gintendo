@@ -383,6 +383,43 @@ func (c *cpu) writeMem16(addr, val uint16) {
 	c.writeMem(addr+1, uint8(val>>8))
 }
 
+// getOperandAddr takes a mode and returns an address for the operand
+// referenced by the program counter. It assumes that the counter was
+// incremented past the actual instruction itself.
+func (c *cpu) getOperandAddr(mode uint8) uint16 {
+	switch mode {
+	case ACCUMULATOR:
+		panic("ACCUMULATOR Address mode should never use this method")
+	case IMPLICIT:
+		panic("IMPLICIT Address mode should never use this method")
+	case IMMEDIATE:
+		return c.pc
+	case ZERO_PAGE:
+		return uint16(c.memRead(c.pc))
+	case ZERO_PAGE_X:
+		return uint16(c.memRead(c.pc) + c.x)
+	case ZERO_PAGE_Y:
+		return uint16(c.memRead(c.pc) + c.y)
+	case ABSOLUTE:
+		return c.memRead16(c.pc)
+	case ABSOLUTE_X:
+		return c.memRead16(c.pc) + uint16(c.x)
+	case ABSOLUTE_Y:
+		return c.memRead16(c.pc) + uint16(c.y)
+	case INDIRECT:
+		return c.memRead16(c.memRead16(c.pc))
+	case INDIRECT_X:
+		return c.memRead16(uint16(c.memRead(c.pc) + c.x))
+	case INDIRECT_Y:
+		return c.memRead16(uint16(c.memRead(c.pc))) + uint16(c.y)
+	case RELATIVE:
+		return uint16(int16(c.pc) + int16(int8(c.memRead(c.pc))))
+	default:
+		panic("Invalid addressing mode")
+
+	}
+}
+
 func (c *cpu) step() {
 	op, err := c.getInst()
 

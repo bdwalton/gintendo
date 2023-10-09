@@ -85,6 +85,43 @@ func TestMemWrite16(t *testing.T) {
 	}
 }
 
+func TestGetOperandAddr(t *testing.T) {
+	cpu := New()
+	cpu.pc = 0x64
+	cpu.memory[0x0F] = 0x44
+	cpu.memory[0x10] = 0x55
+	cpu.memory[cpu.pc] = 0x0F
+	cpu.memory[cpu.pc+1] = 0x11
+	cpu.memory[0x001F] = 0x55
+	cpu.memory[0x110F] = 0xFA
+	cpu.memory[0x1110] = 0xBB
+	cpu.x = 0x10
+	cpu.y = 0xAC
+
+	cases := []struct {
+		mode uint8
+		want uint16
+	}{
+		{IMMEDIATE, 0x64},     // Should just return program counter
+		{ZERO_PAGE, 0x000F},   // mem[pc]
+		{ZERO_PAGE_X, 0x001F}, // mem[pc] + x
+		{ZERO_PAGE_Y, 0x00BB}, // mem[pc] + y
+		{RELATIVE, 0x73},      // pc + int8(mem[pc])
+		{ABSOLUTE, 0x110F},    // mem[pc+1] << 8 + mem[pc]
+		{ABSOLUTE_X, 0x111F},  // (mem[pc+1] << 8 + mem[pc]) + x
+		{ABSOLUTE_Y, 0x11BB},  // (mem[pc+1] << 8 + mem[pc]) + y
+		{INDIRECT, 0xBBFA},    // a = (mem[pc+1] << 8 + mem[pc]); (mem[a+1] + mem[a])
+		{INDIRECT_X, 0x0055},  // mem[mem[pc] + x] (mem[pc] + x is wrapped in uint8)
+		{INDIRECT_Y, 0x55F0},  // m = mem[pc]; (mem[m+1] << 8 + mem[m]) + y
+	}
+
+	for i, tc := range cases {
+		if got := cpu.getOperandAddr(tc.mode); got != tc.want {
+			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
+		}
+	}
+}
+
 func TestGetInst(t *testing.T) {
 	cpu := New()
 	cases := []struct {
