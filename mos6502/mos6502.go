@@ -11,14 +11,13 @@ import (
 // 6502 Processor Status Flags
 // https://www.nesdev.org/obelisk-6502-guide/registers.html
 const (
-	STATUS_FLAG_CARRY             = iota // C
-	STATUS_FLAG_ZERO                     // Z
-	STATUS_FLAG_INTERRUPT_DISABLE        // I
-	STATUS_FLAG_DECIMAL                  // D
-	STATUS_FLAG_BREAK                    // B
-	STATUS_FLAG_UNUSED                   // -
-	STATUS_FLAG_OVERFLOW                 // V
-	STATUS_FLAG_NEGATIVE                 // N
+	STATUS_FLAG_CARRY             = 1 << 0 // C
+	STATUS_FLAG_ZERO              = 1 << 1 // Z
+	STATUS_FLAG_INTERRUPT_DISABLE = 1 << 2 // I
+	STATUS_FLAG_DECIMAL           = 1 << 3 // D
+	STATUS_FLAG_BREAK             = 1 << 4 // B
+	STATUS_FLAG_OVERFLOW          = 1 << 6 // V
+	STATUS_FLAG_NEGATIVE          = 1 << 7 // N
 )
 
 // 6502 Addressing Modes
@@ -459,44 +458,45 @@ func (c *cpu) step() {
 	}
 }
 
-// flagOn forces the STATUS_FLAG_??? passed as flag on in the status
-// register.
-func (c *cpu) flagOn(flag uint8) {
-	c.status = c.status | uint8(1<<flag)
+
+// flagsOn forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
+// on in the status register.
+func (c *cpu) flagsOn(mask uint8) {
+	c.status = c.status | mask
 }
 
-// flagOff forces the STATUS_FLAG_??? passed as flag off in the status
-// register.
-func (c *cpu) flagOff(flag uint8) {
-	c.status = c.status &^ uint8(1<<flag)
+// flagsOff forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
+// off in the status register.
+func (c *cpu) flagsOff(mask uint8) {
+	c.status = c.status &^ mask
 }
 
 func (c *cpu) opSEC(mode uint8) {
-	c.flagOn(STATUS_FLAG_CARRY)
+	c.flagsOn(STATUS_FLAG_CARRY)
 }
 
 func (c *cpu) opSED(mode uint8) {
-	c.flagOn(STATUS_FLAG_DECIMAL)
+	c.flagsOn(STATUS_FLAG_DECIMAL)
 }
 
 func (c *cpu) opSEI(mode uint8) {
-	c.flagOn(STATUS_FLAG_INTERRUPT_DISABLE)
+	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
 func (c *cpu) opCLC(mode uint8) {
-	c.flagOff(STATUS_FLAG_CARRY)
+	c.flagsOff(STATUS_FLAG_CARRY)
 }
 
 func (c *cpu) opCLD(mode uint8) {
-	c.flagOff(STATUS_FLAG_DECIMAL)
+	c.flagsOff(STATUS_FLAG_DECIMAL)
 }
 
 func (c *cpu) opCLI(mode uint8) {
-	c.flagOff(STATUS_FLAG_INTERRUPT_DISABLE)
+	c.flagsOff(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
 func (c *cpu) opCLV(mode uint8) {
-	c.flagOff(STATUS_FLAG_OVERFLOW)
+	c.flagsOff(STATUS_FLAG_OVERFLOW)
 }
 
 // setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
@@ -504,15 +504,15 @@ func (c *cpu) opCLV(mode uint8) {
 // value specified in n.
 func (c *cpu) setNegativeAndZeroFlags(n uint8) {
 	if n == 0 {
-		c.flagOn(STATUS_FLAG_ZERO)
+		c.flagsOn(STATUS_FLAG_ZERO)
 	} else {
-		c.flagOff(STATUS_FLAG_ZERO)
+		c.flagsOff(STATUS_FLAG_ZERO)
 	}
 
 	if n&0b1000_0000 != 0 {
-		c.flagOn(STATUS_FLAG_NEGATIVE)
+		c.flagsOn(STATUS_FLAG_NEGATIVE)
 	} else {
-		c.flagOff(STATUS_FLAG_NEGATIVE)
+		c.flagsOff(STATUS_FLAG_NEGATIVE)
 	}
 }
 
