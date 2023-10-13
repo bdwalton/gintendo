@@ -457,6 +457,8 @@ func (c *cpu) step() {
 		c.opAND(op.mode)
 	case EOR:
 		c.opEOR(op.mode)
+	case DEC:
+		c.opDEC(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -551,4 +553,10 @@ func (c *cpu) opAND(mode uint8) {
 func (c *cpu) opEOR(mode uint8) {
 	c.acc = c.acc ^ c.memory[c.getOperandAddr(mode)]
 	c.setNegativeAndZeroFlags(c.acc)
+}
+
+func (c *cpu) opDEC(mode uint8) {
+	a := c.getOperandAddr(mode)
+	c.memory[a] -= 1
+	c.setNegativeAndZeroFlags(c.memory[a])
 }

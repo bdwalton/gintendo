@@ -468,3 +468,27 @@ func TestOpEOR(t *testing.T) {
 		}
 	}
 }
+
+func TestOpDEC(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		op1        uint8
+		want       uint8
+		wantStatus uint8
+	}{
+		{0x00, 0xFF, 0x80},
+		{0x01, 0x00, 0x02},
+		{0xFF, 0xFE, 0x80},
+		{0x02, 0x01, 0x00},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = 0
+		cpu.status = 0
+		cpu.memory[cpu.pc] = tc.op1
+
+		if cpu.opDEC(IMMEDIATE); cpu.memory[cpu.pc] != tc.want || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		}
+	}
+}
