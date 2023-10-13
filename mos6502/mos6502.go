@@ -457,6 +457,8 @@ func (c *cpu) step() {
 		c.opAND(op.mode)
 	case EOR:
 		c.opEOR(op.mode)
+	case ORA:
+		c.opORA(op.mode)
 	case DEC:
 		c.opDEC(op.mode)
 	case INC:
@@ -558,6 +560,11 @@ func (c *cpu) opAND(mode uint8) {
 
 func (c *cpu) opEOR(mode uint8) {
 	c.acc = c.acc ^ c.memory[c.getOperandAddr(mode)]
+	c.setNegativeAndZeroFlags(c.acc)
+}
+
+func (c *cpu) opORA(mode uint8) {
+	c.acc = c.acc | c.memory[c.getOperandAddr(mode)]
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
