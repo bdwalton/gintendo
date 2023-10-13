@@ -461,6 +461,8 @@ func (c *cpu) step() {
 		c.opDEC(op.mode)
 	case INC:
 		c.opINC(op.mode)
+	case LDX:
+		c.opLDX(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -567,4 +569,9 @@ func (c *cpu) opINC(mode uint8) {
 	a := c.getOperandAddr(mode)
 	c.memory[a] += 1
 	c.setNegativeAndZeroFlags(c.memory[a])
+}
+
+func (c *cpu) opLDX(mode uint8) {
+	c.x = c.memory[c.getOperandAddr(mode)]
+	c.setNegativeAndZeroFlags(c.x)
 }
