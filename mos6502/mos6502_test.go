@@ -539,3 +539,27 @@ func TestOpLDX(t *testing.T) {
 		}
 	}
 }
+
+func TestOpLDY(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		op1        uint8
+		want       uint8
+		wantStatus uint8
+	}{
+		{0x00, 0x00, 0x02},
+		{0x01, 0x01, 0x00},
+		{0xFF, 0xFF, 0x80},
+		{0x8F, 0x8F, 0x80},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = 0
+		cpu.status = 0
+		cpu.memory[cpu.pc] = tc.op1
+
+		if cpu.opLDY(IMMEDIATE); cpu.y != tc.want || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.y, cpu.status, tc.want, tc.wantStatus)
+		}
+	}
+}
