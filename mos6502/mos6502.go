@@ -455,6 +455,8 @@ func (c *cpu) step() {
 		c.opNOP(op.mode)
 	case AND:
 		c.opAND(op.mode)
+	case EOR:
+		c.opEOR(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -543,5 +545,10 @@ func (c *cpu) opNOP(mode uint8) {
 
 func (c *cpu) opAND(mode uint8) {
 	c.acc = c.acc & c.memory[c.getOperandAddr(mode)]
+	c.setNegativeAndZeroFlags(c.acc)
+}
+
+func (c *cpu) opEOR(mode uint8) {
+	c.acc = c.acc ^ c.memory[c.getOperandAddr(mode)]
 	c.setNegativeAndZeroFlags(c.acc)
 }
