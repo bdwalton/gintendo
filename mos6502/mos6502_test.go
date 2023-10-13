@@ -417,3 +417,28 @@ func TestOpNOP(t *testing.T) {
 		}
 	}
 }
+
+func TestOpAND(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		acc        uint8
+		op1        uint8
+		want       uint8
+		wantStatus uint8
+	}{
+		{0x00, 0x01, 0x00, 0x02},
+		{0x01, 0x01, 0x01, 0x00},
+		{0xFF, 0xF0, 0xF0, 0x80},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = 0
+		cpu.status = 0
+		cpu.memory[cpu.pc] = tc.op1
+		cpu.acc = tc.acc
+
+		if cpu.opAND(IMMEDIATE); cpu.acc != tc.want || cpu.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		}
+	}
+}

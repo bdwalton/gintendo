@@ -453,11 +453,12 @@ func (c *cpu) step() {
 		c.opINY(op.mode)
 	case NOP:
 		c.opNOP(op.mode)
+	case AND:
+		c.opAND(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
 }
-
 
 // flagsOn forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
 // on in the status register.
@@ -538,4 +539,9 @@ func (c *cpu) opINY(mode uint8) {
 
 func (c *cpu) opNOP(mode uint8) {
 	return
+}
+
+func (c *cpu) opAND(mode uint8) {
+	c.acc = c.acc & c.memory[c.getOperandAddr(mode)]
+	c.setNegativeAndZeroFlags(c.acc)
 }
