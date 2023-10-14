@@ -471,6 +471,8 @@ func (c *cpu) step() {
 		c.opLDY(op.mode)
 	case PHA:
 		c.opPHA(op.mode)
+	case PLA:
+		c.opPLA(op.mode)
 	case PHP:
 		c.opPHP(op.mode)
 	default:
@@ -603,6 +605,12 @@ func (c *cpu) getStackAddr() uint16 {
 func (c *cpu) opPHA(mode uint8) {
 	c.memory[c.getStackAddr()] = c.acc
 	c.sp -= 1
+}
+
+func (c *cpu) opPLA(mode uint8) {
+	c.sp += 1
+	c.acc = c.memory[c.getStackAddr()]
+	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opPHP(mode uint8) {

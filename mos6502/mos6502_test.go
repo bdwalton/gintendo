@@ -604,8 +604,37 @@ func TestOpPHA(t *testing.T) {
 
 	for i, tc := range cases {
 		cpu.acc = tc.acc
-		if cpu.opPHA(IMPLICIT); cpu.memory[cpu.sp+1] != tc.acc || cpu.sp != tc.wantSP {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.sp-1], tc.acc)
+		if cpu.opPHA(IMPLICIT); cpu.memory[cpu.getStackAddr()+1] != tc.acc || cpu.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.getStackAddr()-1], tc.acc)
+		}
+	}
+}
+
+func TestOpPLA(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		acc        uint8
+		wantSP     uint8
+		wantStatus uint8
+	}{
+		{0xFE, 0xFC, 0x80},
+		{0x82, 0xFD, 0x80},
+		{0x00, 0xFE, 0x02},
+		{0x01, 0xFF, 0x00},
+	}
+
+	// Adjust cpu.sp with these calls, in reverse from the cases
+	// we'll compare as we pop.
+	for i := len(cases); i > 0; i -= 1 {
+		cpu.acc = cases[i-1].acc
+		cpu.opPHA(IMPLICIT)
+	}
+
+	for i, tc := range cases {
+		cpu.acc = 0
+		cpu.status = 0
+		if cpu.opPLA(IMPLICIT); cpu.sp != tc.wantSP || cpu.acc != tc.acc || cpu.status != tc.wantStatus {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; ACC = 0x%02x, want 0x%02x; Status = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.acc, tc.acc, cpu.status, tc.wantStatus)
 		}
 	}
 }
