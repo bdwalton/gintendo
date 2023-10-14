@@ -657,3 +657,31 @@ func TestOpPHP(t *testing.T) {
 		}
 	}
 }
+
+func TestOpPLP(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status     uint8
+		wantSP     uint8
+		wantStatus uint8
+	}{
+		{0x80, 0xFC, 0x80},
+		{0x81, 0xFD, 0x81},
+		{0x00, 0xFE, 0x00},
+		{0x01, 0xFF, 0x01},
+	}
+
+	// Adjust cpu.sp with these calls, in reverse from the cases
+	// we'll compare as we pop.
+	for i := len(cases); i > 0; i -= 1 {
+		cpu.status = cases[i-1].status
+		cpu.opPHP(IMPLICIT)
+	}
+
+	for i, tc := range cases {
+		cpu.status = 0
+		if cpu.opPLP(IMPLICIT); cpu.sp != tc.wantSP || cpu.status != tc.wantStatus {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Status = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.status, tc.wantStatus)
+		}
+	}
+}

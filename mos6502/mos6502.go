@@ -475,6 +475,8 @@ func (c *cpu) step() {
 		c.opPLA(op.mode)
 	case PHP:
 		c.opPHP(op.mode)
+	case PLP:
+		c.opPLP(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -616,4 +618,9 @@ func (c *cpu) opPLA(mode uint8) {
 func (c *cpu) opPHP(mode uint8) {
 	c.memory[c.getStackAddr()] = c.status
 	c.sp -= 1
+}
+
+func (c *cpu) opPLP(mode uint8) {
+	c.sp += 1
+	c.status = c.memory[c.getStackAddr()]
 }
