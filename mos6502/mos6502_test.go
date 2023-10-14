@@ -590,3 +590,22 @@ func TestOpLDY(t *testing.T) {
 		}
 	}
 }
+
+func TestOpPHA(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		acc    uint8
+		wantSP uint8
+	}{
+		{0x01, 0xFE},
+		{0x02, 0xFD},
+		{0xFF, 0xFC},
+	}
+
+	for i, tc := range cases {
+		cpu.acc = tc.acc
+		if cpu.opPHA(IMPLICIT); cpu.memory[cpu.sp+1] != tc.acc || cpu.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.sp-1], tc.acc)
+		}
+	}
+}
