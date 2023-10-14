@@ -623,7 +623,7 @@ func TestOpPHP(t *testing.T) {
 
 	for i, tc := range cases {
 		cpu.status = tc.status
-		if cpu.opPHP(IMPLICIT); cpu.memory[cpu.sp+1] != tc.status || cpu.sp != tc.wantSP {
+		if cpu.opPHP(IMPLICIT); cpu.memory[cpu.getStackAddr()+1] != tc.status || cpu.sp != tc.wantSP {
 			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.sp-1], tc.status)
 		}
 	}

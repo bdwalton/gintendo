@@ -38,6 +38,8 @@ const (
 	INDIRECT_Y // Indirect Indexed
 )
 
+const STACK_PAGE = 0x0100
+
 var modenames map[uint8]string = map[uint8]string{IMPLICIT: "IMPLICIT", ACCUMULATOR: "ACCUMULATOR", IMMEDIATE: "IMMEDIATE", ZERO_PAGE: "ZERO_PAGE", ZERO_PAGE_X: "ZERO_PAGE_X", ZERO_PAGE_Y: "ZERO_PAGE_Y", RELATIVE: "RELATIVE", ABSOLUTE: "ABSOLUTE", ABSOLUTE_X: "ABSOLUTE_X", ABSOLUTE_Y: "ABSOLUTE_Y", INDIRECT: "INDIRECT", INDIRECT_X: "INDIRECT_X", INDIRECT_Y: "INDIRECT_Y"}
 
 // 6502 Instructions
@@ -594,12 +596,16 @@ func (c *cpu) opLDY(mode uint8) {
 	c.setNegativeAndZeroFlags(c.y)
 }
 
+func (c *cpu) getStackAddr() uint16 {
+	return STACK_PAGE + uint16(c.sp)
+}
+
 func (c *cpu) opPHA(mode uint8) {
-	c.memory[c.sp] = c.acc
+	c.memory[c.getStackAddr()] = c.acc
 	c.sp -= 1
 }
 
 func (c *cpu) opPHP(mode uint8) {
-	c.memory[c.sp] = c.status
+	c.memory[c.getStackAddr()] = c.status
 	c.sp -= 1
 }
