@@ -609,3 +609,22 @@ func TestOpPHA(t *testing.T) {
 		}
 	}
 }
+
+func TestOpPHP(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		status uint8
+		wantSP uint8
+	}{
+		{0x01, 0xFE},
+		{0x02, 0xFD},
+		{0x80, 0xFC},
+	}
+
+	for i, tc := range cases {
+		cpu.status = tc.status
+		if cpu.opPHP(IMPLICIT); cpu.memory[cpu.sp+1] != tc.status || cpu.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.sp-1], tc.status)
+		}
+	}
+}

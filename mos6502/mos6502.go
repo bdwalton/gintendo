@@ -469,6 +469,8 @@ func (c *cpu) step() {
 		c.opLDY(op.mode)
 	case PHA:
 		c.opPHA(op.mode)
+	case PHP:
+		c.opPHP(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -594,5 +596,10 @@ func (c *cpu) opLDY(mode uint8) {
 
 func (c *cpu) opPHA(mode uint8) {
 	c.memory[c.sp] = c.acc
+	c.sp -= 1
+}
+
+func (c *cpu) opPHP(mode uint8) {
+	c.memory[c.sp] = c.status
 	c.sp -= 1
 }
