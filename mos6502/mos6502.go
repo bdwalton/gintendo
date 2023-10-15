@@ -442,10 +442,14 @@ func (c *cpu) step() {
 		c.opAND(op.mode)
 	case ASL:
 		c.opASL(op.mode)
+	case BEQ:
+		c.opBEQ(op.mode)
 	case BIT:
 		c.opBIT(op.mode)
 	case BMI:
 		c.opBMI(op.mode)
+	case BNE:
+		c.opBNE(op.mode)
 	case BPL:
 		c.opBPL(op.mode)
 	case BVC:
@@ -622,6 +626,10 @@ func (c *cpu) opASL(mode uint8) {
 	}
 }
 
+func (c *cpu) opBEQ(mode uint8) {
+	c.branch(STATUS_FLAG_ZERO, true)
+}
+
 func (c *cpu) opBIT(mode uint8) {
 	o := c.memRead(c.getOperandAddr(mode))
 
@@ -637,6 +645,10 @@ func (c *cpu) opBIT(mode uint8) {
 
 func (c *cpu) opBMI(mode uint8) {
 	c.branch(STATUS_FLAG_NEGATIVE, true)
+}
+
+func (c *cpu) opBNE(mode uint8) {
+	c.branch(STATUS_FLAG_ZERO, false)
 }
 
 func (c *cpu) opBPL(mode uint8) {
