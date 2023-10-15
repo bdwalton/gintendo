@@ -564,39 +564,39 @@ func (c *cpu) opNOP(mode uint8) {
 }
 
 func (c *cpu) opAND(mode uint8) {
-	c.acc = c.acc & c.memory[c.getOperandAddr(mode)]
+	c.acc = c.acc & c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opEOR(mode uint8) {
-	c.acc = c.acc ^ c.memory[c.getOperandAddr(mode)]
+	c.acc = c.acc ^ c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opORA(mode uint8) {
-	c.acc = c.acc | c.memory[c.getOperandAddr(mode)]
+	c.acc = c.acc | c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opDEC(mode uint8) {
 	a := c.getOperandAddr(mode)
-	c.memory[a] -= 1
-	c.setNegativeAndZeroFlags(c.memory[a])
+	c.writeMem(a, c.memRead(a)-1)
+	c.setNegativeAndZeroFlags(c.memRead(a))
 }
 
 func (c *cpu) opINC(mode uint8) {
 	a := c.getOperandAddr(mode)
-	c.memory[a] += 1
-	c.setNegativeAndZeroFlags(c.memory[a])
+	c.writeMem(a, c.memRead(a)+1)
+	c.setNegativeAndZeroFlags(c.memRead(a))
 }
 
 func (c *cpu) opLDX(mode uint8) {
-	c.x = c.memory[c.getOperandAddr(mode)]
+	c.x = c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.x)
 }
 
 func (c *cpu) opLDY(mode uint8) {
-	c.y = c.memory[c.getOperandAddr(mode)]
+	c.y = c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.y)
 }
 
@@ -605,22 +605,22 @@ func (c *cpu) getStackAddr() uint16 {
 }
 
 func (c *cpu) opPHA(mode uint8) {
-	c.memory[c.getStackAddr()] = c.acc
+	c.writeMem(c.getStackAddr(), c.acc)
 	c.sp -= 1
 }
 
 func (c *cpu) opPLA(mode uint8) {
 	c.sp += 1
-	c.acc = c.memory[c.getStackAddr()]
+	c.acc = c.memRead(c.getStackAddr())
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opPHP(mode uint8) {
-	c.memory[c.getStackAddr()] = c.status
+	c.writeMem(c.getStackAddr(), c.status)
 	c.sp -= 1
 }
 
 func (c *cpu) opPLP(mode uint8) {
 	c.sp += 1
-	c.status = c.memory[c.getStackAddr()]
+	c.status = c.memRead(c.getStackAddr())
 }
