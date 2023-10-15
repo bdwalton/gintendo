@@ -16,16 +16,16 @@ func TestMemRead(t *testing.T) {
 	c := New()
 	cases := []struct {
 		mem1 uint8
-		want uint16
+		want uint8
 	}{
 		{0xFF, 0xFF},
 		{0x11, 0x11},
 	}
 
 	for i, tc := range cases {
-		c.memory[i] = tc.mem1
+		c.writeMem(uint16(i), tc.mem1)
 		c.pc = uint16(i)
-		if got := c.memRead16(c.pc); got != tc.want {
+		if got := c.memRead(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
