@@ -462,6 +462,8 @@ func (c *cpu) step() {
 		c.opINX(op.mode)
 	case INY:
 		c.opINY(op.mode)
+	case JSR:
+		c.opJSR(op.mode)
 	case LDA:
 		c.opLDA(op.mode)
 	case LDX:
@@ -621,6 +623,11 @@ func (c *cpu) opINX(mode uint8) {
 func (c *cpu) opINY(mode uint8) {
 	c.y += 1
 	c.setNegativeAndZeroFlags(c.y)
+}
+
+func (c *cpu) opJSR(mode uint8) {
+	c.pushAddress(c.pc - 1)
+	c.pc = c.getOperandAddr(mode)
 }
 
 func (c *cpu) opLDA(mode uint8) {

@@ -476,6 +476,31 @@ func TestOpINC(t *testing.T) {
 	}
 }
 
+func TestOpJSR(t *testing.T) {
+	c := New()
+	cases := []struct {
+		pc               uint16
+		target           uint16
+		sp               uint8
+		wantPC, wantAddr uint16
+	}{
+		{0x02FF, 0xAC01, 0xFF, 0xAC01, 0x02FE},
+		{0x03AB, 0xDD01, 0xFE, 0xDD01, 0x03AA},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+		c.writeMem16(c.pc, tc.target)
+		c.sp = tc.sp
+
+		c.opJSR(ABSOLUTE)
+
+		if addr := c.popAddress(); c.pc != tc.wantPC || addr != tc.wantAddr {
+			t.Errorf("%d: Got PC = 0x%04x, Addr = 0x%04x; Want PC = 0x%04x, Addr = 0x%04x", i, c.pc, addr, tc.wantPC, tc.wantAddr)
+		}
+	}
+}
+
 func TestOpLDA(t *testing.T) {
 	cpu := New()
 	cases := []struct {
