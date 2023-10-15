@@ -482,6 +482,8 @@ func (c *cpu) step() {
 		c.opROL(op.mode)
 	case ROR:
 		c.opROR(op.mode)
+	case STA:
+		c.opSTA(op.mode)
 	case STX:
 		c.opSTX(op.mode)
 	case STY:
@@ -686,6 +688,10 @@ func (c *cpu) opROR(mode uint8) {
 	if ov&STATUS_FLAG_CARRY != 0 { // was carry bit set in the old _value_?
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+}
+
+func (c *cpu) opSTA(mode uint8) {
+	c.writeMem(c.getOperandAddr(mode), c.acc)
 }
 
 func (c *cpu) opSTX(mode uint8) {
