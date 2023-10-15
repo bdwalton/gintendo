@@ -811,6 +811,30 @@ func TestOpROR(t *testing.T) {
 	}
 }
 
+func TestOpRTS(t *testing.T) {
+	c := New()
+	cases := []struct {
+		pc     uint16
+		target uint16
+		sp     uint8
+		wantPC uint16
+		wantSP uint8
+	}{
+		{0x02AA, 0x30F1, 0xFE, 0x30F2, 0xFE},
+		{0x03CA, 0x4155, 0xFF, 0x4156, 0xFF},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+		c.sp = tc.sp
+		c.pushAddress(tc.target)
+
+		if c.opRTS(IMPLICIT); c.pc != tc.wantPC || c.sp != tc.wantSP {
+			t.Errorf("%d: Got PC = 0x%04x, SP = 0x%02x, want PC = 0x%04x, SP = 0x%02x", i, c.pc, c.sp, tc.wantPC, tc.wantSP)
+		}
+	}
+}
+
 func TestOpSEC(t *testing.T) {
 	cpu := New()
 	cases := []struct {
