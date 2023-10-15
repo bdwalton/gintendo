@@ -444,6 +444,8 @@ func (c *cpu) step() {
 		c.opASL(op.mode)
 	case BIT:
 		c.opBIT(op.mode)
+	case BVS:
+		c.opBVS(op.mode)
 	case CLC:
 		c.opCLC(op.mode)
 	case CLD:
@@ -577,6 +579,17 @@ func (c *cpu) flagsOff(mask uint8) {
 	c.status = c.status &^ mask
 }
 
+// branch will adjust the PC conditionally based on whether the mask
+// bits are set and the resulting comparison is expected to be true or
+// false. This allows you to check for STATUS_FLAG being set or
+// cleared by: branch(STATUS_FLAG_OVERFLOW, RELATIVE, false) -> branch
+// when OVERFLOW not set.
+func (c *cpu) branch(mask uint8, predicate bool) {
+	if (c.status&mask > 0) == predicate {
+		c.pc = c.getOperandAddr(RELATIVE)
+	}
+}
+
 func (c *cpu) opAND(mode uint8) {
 	c.acc = c.acc & c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
@@ -614,6 +627,10 @@ func (c *cpu) opBIT(mode uint8) {
 	flags = flags | (o & (STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW))
 
 	c.flagsOn(flags)
+}
+
+func (c *cpu) opBVS(mode uint8) {
+	c.branch(STATUS_FLAG_OVERFLOW, true)
 }
 
 func (c *cpu) opCLC(mode uint8) {
