@@ -799,3 +799,25 @@ func TestOpTAX(t *testing.T) {
 		}
 	}
 }
+
+func TestOpTAY(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		acc, y     uint8
+		wantY      uint8
+		wantStatus uint8
+	}{
+		{0xFF, 0x01, 0xFF, 0x80 /* NEGATIVE */},
+		{0x00, 0x01, 0x00, 0x02 /* ZERO */},
+	}
+
+	for i, tc := range cases {
+		cpu.acc = tc.acc
+		cpu.y = tc.y
+		cpu.status = 0 // clear
+
+		if cpu.opTAY(IMPLICIT); cpu.y != tc.wantY || cpu.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.x, cpu.status, tc.wantY, tc.wantStatus)
+		}
+	}
+}

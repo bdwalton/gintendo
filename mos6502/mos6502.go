@@ -484,6 +484,8 @@ func (c *cpu) step() {
 		c.opROR(op.mode)
 	case TAX:
 		c.opTAX(op.mode)
+	case TAY:
+		c.opTAY(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -677,4 +679,9 @@ func (c *cpu) opROR(mode uint8) {
 func (c *cpu) opTAX(mode uint8) {
 	c.x = c.acc
 	c.setNegativeAndZeroFlags(c.x)
+}
+
+func (c *cpu) opTAY(mode uint8) {
+	c.y = c.acc
+	c.setNegativeAndZeroFlags(c.y)
 }
