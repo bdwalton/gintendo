@@ -223,6 +223,44 @@ func TestOpAND(t *testing.T) {
 	}
 }
 
+func TestOpASL(t *testing.T) {
+	c := New()
+	cases := []struct {
+		val, mode        uint8 // ACCUMULATOR and ZERO_PAGE are what we use for testing
+		want, wantStatus uint8
+	}{
+		{0x01, ACCUMULATOR, 0x02, 0x00},
+		{0x81, ACCUMULATOR, 0x02, 0x01 /* CARRY */},
+		{0xD1, ACCUMULATOR, 0xa2, 0x81 /* NEGATIVE, CARRY */},
+		{0x01, ZERO_PAGE, 0x02, 0x00},
+		{0x81, ZERO_PAGE, 0x02, 0x01 /* CARRY */},
+		{0xD1, ZERO_PAGE, 0xa2, 0x81 /* NEGATIVE, CARRY */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0x000F
+		switch tc.mode {
+		case ACCUMULATOR:
+			c.acc = tc.val
+		default:
+			c.writeMem(c.getOperandAddr(tc.mode), tc.val)
+		}
+
+		c.opASL(tc.mode)
+
+		var got uint8
+		switch tc.mode {
+		case ACCUMULATOR:
+			got = c.acc
+		default:
+			got = c.memRead(c.getOperandAddr(tc.mode))
+		}
+		if got != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x, status 0x%02x; Want 0x%02x, status 0x%02x", i, got, c.status, tc.want, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpCLC(t *testing.T) {
 	cpu := New()
 	cases := []struct {

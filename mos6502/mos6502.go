@@ -440,6 +440,8 @@ func (c *cpu) step() {
 	switch op.inst {
 	case AND:
 		c.opAND(op.mode)
+	case ASL:
+		c.opASL(op.mode)
 	case CLC:
 		c.opCLC(op.mode)
 	case CLD:
@@ -572,6 +574,27 @@ func (c *cpu) flagsOff(mask uint8) {
 func (c *cpu) opAND(mode uint8) {
 	c.acc = c.acc & c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
+}
+
+func (c *cpu) opASL(mode uint8) {
+	var ov, nv uint8 // old value, new value
+	switch mode {
+	case ACCUMULATOR:
+		ov = c.acc
+		c.acc = c.acc << 1
+		nv = c.acc
+	default:
+		addr := c.getOperandAddr(mode)
+		ov = c.memRead(addr)
+		nv = ov << 1
+		c.writeMem(addr, nv)
+	}
+
+	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
+	c.setNegativeAndZeroFlags(nv)
+	if ov&0x80 != 0 {
+		c.flagsOn(STATUS_FLAG_CARRY)
+	}
 }
 
 func (c *cpu) opCLC(mode uint8) {
