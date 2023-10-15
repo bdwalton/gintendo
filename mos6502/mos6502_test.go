@@ -778,6 +778,28 @@ func TestOpROR(t *testing.T) {
 	}
 }
 
+func TestOpSTX(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		x, status        uint8
+		want, wantStatus uint8
+	}{
+		{0x81, 0x80, 0x81, 0x80},
+	}
+
+	for i, tc := range cases {
+		cpu.x = tc.x
+		cpu.status = tc.status
+		cpu.pc = 0x10 // memory[0x10] should be 0 at init
+
+		cpu.opSTX(ZERO_PAGE)
+
+		if v := cpu.memRead(cpu.getOperandAddr(ZERO_PAGE)); v != tc.want || cpu.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpTAX(t *testing.T) {
 	cpu := New()
 	cases := []struct {
