@@ -474,6 +474,8 @@ func (c *cpu) step() {
 		c.opLDX(op.mode)
 	case LDY:
 		c.opLDY(op.mode)
+	case LSR:
+		c.opLSR(op.mode)
 	case NOP:
 		c.opNOP(op.mode)
 	case ORA:
@@ -683,6 +685,28 @@ func (c *cpu) opLDX(mode uint8) {
 func (c *cpu) opLDY(mode uint8) {
 	c.y = c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.y)
+}
+
+func (c *cpu) opLSR(mode uint8) {
+	var ov, nv uint8
+	switch mode {
+	case ACCUMULATOR:
+		ov = c.acc
+		c.acc = c.acc >> 1
+		nv = c.acc
+	default:
+		addr := c.getOperandAddr(mode)
+		ov = c.memRead(addr)
+		nv = ov >> 1
+		c.writeMem(addr, nv)
+	}
+
+	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
+	c.setNegativeAndZeroFlags(nv)
+	if ov&STATUS_FLAG_CARRY != 0 {
+		c.flagsOn(STATUS_FLAG_CARRY)
+	}
+
 }
 
 func (c *cpu) opNOP(mode uint8) {
