@@ -482,6 +482,8 @@ func (c *cpu) step() {
 		c.opROL(op.mode)
 	case ROR:
 		c.opROR(op.mode)
+	case TAX:
+		c.opTAX(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -670,4 +672,9 @@ func (c *cpu) opROR(mode uint8) {
 	if ov&STATUS_FLAG_CARRY != 0 { // was carry bit set in the old _value_?
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+}
+
+func (c *cpu) opTAX(mode uint8) {
+	c.x = c.acc
+	c.setNegativeAndZeroFlags(c.x)
 }
