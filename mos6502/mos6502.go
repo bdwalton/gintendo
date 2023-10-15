@@ -528,6 +528,16 @@ func (c *cpu) getStackAddr() uint16 {
 	return STACK_PAGE + uint16(c.sp)
 }
 
+func (c *cpu) pushStack(val uint8) {
+	c.writeMem(c.getStackAddr(), val)
+	c.sp -= 1
+}
+
+func (c *cpu) popStack() uint8 {
+	c.sp += 1
+	return c.memRead(c.getStackAddr())
+}
+
 // flagsOn forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
 // on in the status register.
 func (c *cpu) flagsOn(mask uint8) {
@@ -623,24 +633,20 @@ func (c *cpu) opORA(mode uint8) {
 }
 
 func (c *cpu) opPHA(mode uint8) {
-	c.writeMem(c.getStackAddr(), c.acc)
-	c.sp -= 1
+	c.pushStack(c.acc)
 }
 
 func (c *cpu) opPHP(mode uint8) {
-	c.writeMem(c.getStackAddr(), c.status)
-	c.sp -= 1
+	c.pushStack(c.status)
 }
 
 func (c *cpu) opPLA(mode uint8) {
-	c.sp += 1
-	c.acc = c.memRead(c.getStackAddr())
+	c.acc = c.popStack()
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opPLP(mode uint8) {
-	c.sp += 1
-	c.status = c.memRead(c.getStackAddr())
+	c.status = c.popStack()
 }
 
 func (c *cpu) opROL(mode uint8) {
