@@ -438,12 +438,8 @@ func (c *cpu) step() {
 	c.pc += 1
 
 	switch op.inst {
-	case SEC:
-		c.opSEC(op.mode)
-	case SED:
-		c.opSED(op.mode)
-	case SEI:
-		c.opSEI(op.mode)
+	case AND:
+		c.opAND(op.mode)
 	case CLC:
 		c.opCLC(op.mode)
 	case CLD:
@@ -452,44 +448,48 @@ func (c *cpu) step() {
 		c.opCLI(op.mode)
 	case CLV:
 		c.opCLV(op.mode)
-	case DEX:
-		c.opDEX(op.mode)
-	case INX:
-		c.opINX(op.mode)
-	case DEY:
-		c.opDEY(op.mode)
-	case INY:
-		c.opINY(op.mode)
-	case NOP:
-		c.opNOP(op.mode)
-	case AND:
-		c.opAND(op.mode)
-	case EOR:
-		c.opEOR(op.mode)
-	case ORA:
-		c.opORA(op.mode)
 	case DEC:
 		c.opDEC(op.mode)
+	case DEX:
+		c.opDEX(op.mode)
+	case DEY:
+		c.opDEY(op.mode)
+	case EOR:
+		c.opEOR(op.mode)
 	case INC:
 		c.opINC(op.mode)
+	case INX:
+		c.opINX(op.mode)
+	case INY:
+		c.opINY(op.mode)
 	case LDA:
 		c.opLDA(op.mode)
 	case LDX:
 		c.opLDX(op.mode)
 	case LDY:
 		c.opLDY(op.mode)
+	case NOP:
+		c.opNOP(op.mode)
+	case ORA:
+		c.opORA(op.mode)
 	case PHA:
 		c.opPHA(op.mode)
-	case PLA:
-		c.opPLA(op.mode)
 	case PHP:
 		c.opPHP(op.mode)
+	case PLA:
+		c.opPLA(op.mode)
 	case PLP:
 		c.opPLP(op.mode)
 	case ROL:
 		c.opROL(op.mode)
 	case ROR:
 		c.opROR(op.mode)
+	case SEC:
+		c.opSEC(op.mode)
+	case SED:
+		c.opSED(op.mode)
+	case SEI:
+		c.opSEI(op.mode)
 	case STA:
 		c.opSTA(op.mode)
 	case STX:
