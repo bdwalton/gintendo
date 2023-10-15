@@ -291,6 +291,56 @@ func TestOpBIT(t *testing.T) {
 	}
 }
 
+func TestOpBMI(t *testing.T) {
+	c := New()
+	cases := []struct {
+		pc     uint16
+		offset uint8
+		status uint8
+		wantPC uint16
+	}{
+		{0x6677, 0xF6 /* -10 */, 0x80 /* NEGATIVE */, 0x666D},
+		{0x6677, 0x0A /* +10 */, 0x80 /* NEGATIVE */, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x00, 0x6677},
+		{0x6677, 0x0A /* +10 */, 0x00, 0x6677},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+		c.status = tc.status
+		c.writeMem(c.pc, tc.offset)
+		c.opBMI(RELATIVE)
+		if c.pc != tc.wantPC {
+			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
+		}
+	}
+}
+
+func TestOpBPL(t *testing.T) {
+	c := New()
+	cases := []struct {
+		pc     uint16
+		offset uint8
+		status uint8
+		wantPC uint16
+	}{
+		{0x6677, 0xF6 /* -10 */, 0x80 /* NEGATIVE */, 0x6677},
+		{0x6677, 0x0A /* +10 */, 0x80 /* NEGATIVE */, 0x6677},
+		{0x6677, 0xF6 /* -10 */, 0x00, 0x666D},
+		{0x6677, 0x0A /* +10 */, 0x00, 0x6681},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+		c.status = tc.status
+		c.writeMem(c.pc, tc.offset)
+		c.opBPL(RELATIVE)
+		if c.pc != tc.wantPC {
+			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
+		}
+	}
+}
+
 func TestOpBVC(t *testing.T) {
 	c := New()
 	cases := []struct {

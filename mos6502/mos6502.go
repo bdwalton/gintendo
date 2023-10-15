@@ -444,6 +444,10 @@ func (c *cpu) step() {
 		c.opASL(op.mode)
 	case BIT:
 		c.opBIT(op.mode)
+	case BMI:
+		c.opBMI(op.mode)
+	case BPL:
+		c.opBPL(op.mode)
 	case BVC:
 		c.opBVC(op.mode)
 	case BVS:
@@ -629,6 +633,14 @@ func (c *cpu) opBIT(mode uint8) {
 	flags = flags | (o & (STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW))
 
 	c.flagsOn(flags)
+}
+
+func (c *cpu) opBMI(mode uint8) {
+	c.branch(STATUS_FLAG_NEGATIVE, true)
+}
+
+func (c *cpu) opBPL(mode uint8) {
+	c.branch(STATUS_FLAG_NEGATIVE, false)
 }
 
 func (c *cpu) opBVC(mode uint8) {
