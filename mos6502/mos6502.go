@@ -466,6 +466,8 @@ func (c *cpu) step() {
 		c.opDEC(op.mode)
 	case INC:
 		c.opINC(op.mode)
+	case LDA:
+		c.opLDA(op.mode)
 	case LDX:
 		c.opLDX(op.mode)
 	case LDY:
@@ -594,6 +596,11 @@ func (c *cpu) opINX(mode uint8) {
 func (c *cpu) opINY(mode uint8) {
 	c.y += 1
 	c.setNegativeAndZeroFlags(c.y)
+}
+
+func (c *cpu) opLDA(mode uint8) {
+	c.acc = c.memRead(c.getOperandAddr(mode))
+	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opLDX(mode uint8) {
