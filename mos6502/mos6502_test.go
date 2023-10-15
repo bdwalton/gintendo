@@ -141,35 +141,39 @@ func TestPopAddress(t *testing.T) {
 
 func TestGetOperandAddr(t *testing.T) {
 	cpu := New()
-	cpu.pc = 0x64
+
 	cpu.memory[0x0F] = 0x44
 	cpu.memory[0x10] = 0x55
-	cpu.memory[cpu.pc] = 0x0F
-	cpu.memory[cpu.pc+1] = 0x11
+	cpu.memory[0x64] = 0x0F
+	cpu.memory[0x65] = 0x11
 	cpu.memory[0x001F] = 0x55
 	cpu.memory[0x110F] = 0xFA
 	cpu.memory[0x1110] = 0xBB
+	cpu.memory[0xFF66] = 0x82
 	cpu.x = 0x10
 	cpu.y = 0xAC
 
 	cases := []struct {
+		pc   uint16
 		mode uint8
 		want uint16
 	}{
-		{IMMEDIATE, 0x64},     // Should just return program counter
-		{ZERO_PAGE, 0x000F},   // mem[pc]
-		{ZERO_PAGE_X, 0x001F}, // mem[pc] + x
-		{ZERO_PAGE_Y, 0x00BB}, // mem[pc] + y
-		{RELATIVE, 0x73},      // pc + int8(mem[pc])
-		{ABSOLUTE, 0x110F},    // mem[pc+1] << 8 + mem[pc]
-		{ABSOLUTE_X, 0x111F},  // (mem[pc+1] << 8 + mem[pc]) + x
-		{ABSOLUTE_Y, 0x11BB},  // (mem[pc+1] << 8 + mem[pc]) + y
-		{INDIRECT, 0xBBFA},    // a = (mem[pc+1] << 8 + mem[pc]); (mem[a+1] + mem[a])
-		{INDIRECT_X, 0x0055},  // mem[mem[pc] + x] (mem[pc] + x is wrapped in uint8)
-		{INDIRECT_Y, 0x55F0},  // m = mem[pc]; (mem[m+1] << 8 + mem[m]) + y
+		{0x0064, IMMEDIATE, 0x64},     // Should just return program counter
+		{0x0064, ZERO_PAGE, 0x000F},   // mem[pc]
+		{0x0064, ZERO_PAGE_X, 0x001F}, // mem[pc] + x
+		{0x0064, ZERO_PAGE_Y, 0x00BB}, // mem[pc] + y
+		{0x0064, RELATIVE, 0x73},      // pc + int8(mem[pc])
+		{0xFF66, RELATIVE, 0xFEE8},    // pc - int8(mem[pc])
+		{0x0064, ABSOLUTE, 0x110F},    // mem[pc+1] << 8 + mem[pc]
+		{0x0064, ABSOLUTE_X, 0x111F},  // (mem[pc+1] << 8 + mem[pc]) + x
+		{0x0064, ABSOLUTE_Y, 0x11BB},  // (mem[pc+1] << 8 + mem[pc]) + y
+		{0x0064, INDIRECT, 0xBBFA},    // a = (mem[pc+1] << 8 + mem[pc]); (mem[a+1] + mem[a])
+		{0x0064, INDIRECT_X, 0x0055},  // mem[mem[pc] + x] (mem[pc] + x is wrapped in uint8)
+		{0x0064, INDIRECT_Y, 0x55F0},  // m = mem[pc]; (mem[m+1] << 8 + mem[m]) + y
 	}
 
 	for i, tc := range cases {
+		cpu.pc = tc.pc
 		if got := cpu.getOperandAddr(tc.mode); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}

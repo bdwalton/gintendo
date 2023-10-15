@@ -421,7 +421,7 @@ func (c *cpu) getOperandAddr(mode uint8) uint16 {
 	case INDIRECT_Y:
 		return c.memRead16(uint16(c.memRead(c.pc))) + uint16(c.y)
 	case RELATIVE:
-		return uint16(int16(c.pc) + int16(int8(c.memRead(c.pc))))
+		return c.pc + uint16(int16(int8(c.memRead(c.pc))))
 	default:
 		panic("Invalid addressing mode")
 
