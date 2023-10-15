@@ -13,7 +13,7 @@ func memInit(val uint8) (mem [MEM_SIZE]uint8) {
 }
 
 func TestMemRead(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		mem1 uint8
 		want uint16
@@ -23,16 +23,16 @@ func TestMemRead(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.memory[i] = tc.mem1
-		cpu.pc = uint16(i)
-		if got := cpu.memRead16(cpu.pc); got != tc.want {
+		c.memory[i] = tc.mem1
+		c.pc = uint16(i)
+		if got := c.memRead16(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
 }
 
 func TestMemWrite(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		mem1 uint8
 		want uint8
@@ -42,16 +42,16 @@ func TestMemWrite(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = uint16(i)
-		cpu.writeMem(cpu.pc, tc.mem1)
-		if got := cpu.memRead(cpu.pc); got != tc.want {
+		c.pc = uint16(i)
+		c.writeMem(c.pc, tc.mem1)
+		if got := c.memRead(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%02x, want 0x%02x", i, got, tc.want)
 		}
 	}
 }
 
 func TestMemRead16(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		mem1, mem2 uint8
 		want       uint16
@@ -61,17 +61,17 @@ func TestMemRead16(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.memory[i] = tc.mem1
-		cpu.memory[i+1] = tc.mem2
-		cpu.pc = uint16(i)
-		if got := cpu.memRead16(cpu.pc); got != tc.want {
+		c.memory[i] = tc.mem1
+		c.memory[i+1] = tc.mem2
+		c.pc = uint16(i)
+		if got := c.memRead16(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
 }
 
 func TestMemWrite16(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		val        uint16
 		mem1, mem2 uint8
@@ -81,13 +81,13 @@ func TestMemWrite16(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = uint16(i)
-		cpu.writeMem16(cpu.pc, tc.val)
-		cpu.memory[i] = tc.mem1
-		cpu.memory[i+1] = tc.mem2
+		c.pc = uint16(i)
+		c.writeMem16(c.pc, tc.val)
+		c.memory[i] = tc.mem1
+		c.memory[i+1] = tc.mem2
 
-		if cpu.memory[i] != tc.mem1 || cpu.memory[i+1] != tc.mem2 {
-			t.Errorf("%d: Got (0x%02x, 0x%02x), want (0x%02x, 0x%02x)", i, cpu.memory[i], cpu.memory[i+1], tc.mem1, tc.mem2)
+		if c.memory[i] != tc.mem1 || c.memory[i+1] != tc.mem2 {
+			t.Errorf("%d: Got (0x%02x, 0x%02x), want (0x%02x, 0x%02x)", i, c.memory[i], c.memory[i+1], tc.mem1, tc.mem2)
 		}
 	}
 }
@@ -140,18 +140,18 @@ func TestPopAddress(t *testing.T) {
 }
 
 func TestGetOperandAddr(t *testing.T) {
-	cpu := New()
+	c := New()
 
-	cpu.memory[0x0F] = 0x44
-	cpu.memory[0x10] = 0x55
-	cpu.memory[0x64] = 0x0F
-	cpu.memory[0x65] = 0x11
-	cpu.memory[0x001F] = 0x55
-	cpu.memory[0x110F] = 0xFA
-	cpu.memory[0x1110] = 0xBB
-	cpu.memory[0xFF66] = 0x82
-	cpu.x = 0x10
-	cpu.y = 0xAC
+	c.memory[0x0F] = 0x44
+	c.memory[0x10] = 0x55
+	c.memory[0x64] = 0x0F
+	c.memory[0x65] = 0x11
+	c.memory[0x001F] = 0x55
+	c.memory[0x110F] = 0xFA
+	c.memory[0x1110] = 0xBB
+	c.memory[0xFF66] = 0x82
+	c.x = 0x10
+	c.y = 0xAC
 
 	cases := []struct {
 		pc   uint16
@@ -173,15 +173,15 @@ func TestGetOperandAddr(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = tc.pc
-		if got := cpu.getOperandAddr(tc.mode); got != tc.want {
+		c.pc = tc.pc
+		if got := c.getOperandAddr(tc.mode); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
 }
 
 func TestGetInst(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		val     uint8
 		want    opcode
@@ -193,8 +193,8 @@ func TestGetInst(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.memory[0] = tc.val
-		got, err := cpu.getInst()
+		c.memory[0] = tc.val
+		got, err := c.getInst()
 		if got != tc.want || (err != nil && tc.wantErr == nil) || !errors.Is(err, tc.wantErr) {
 			t.Errorf("%d: got %s, want %s; err %v, wantErr %v", i, got, tc.want, err, tc.wantErr)
 		}
@@ -203,7 +203,7 @@ func TestGetInst(t *testing.T) {
 }
 
 func TestOpAND(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -216,13 +216,13 @@ func TestOpAND(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
-		cpu.acc = tc.acc
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
+		c.acc = tc.acc
 
-		if cpu.opAND(IMMEDIATE); cpu.acc != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opAND(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
@@ -292,7 +292,7 @@ func TestOpBIT(t *testing.T) {
 }
 
 func TestOpCLC(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -304,16 +304,16 @@ func TestOpCLC(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opCLC(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opCLC(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpCLD(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -325,16 +325,16 @@ func TestOpCLD(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opCLD(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opCLD(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpCLI(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -346,16 +346,16 @@ func TestOpCLI(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opCLI(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opCLI(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpCLV(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -367,16 +367,16 @@ func TestOpCLV(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opCLV(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opCLV(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpDEC(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -389,18 +389,18 @@ func TestOpDEC(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
 
-		if cpu.opDEC(IMMEDIATE); cpu.memory[cpu.pc] != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opDEC(IMMEDIATE); c.memory[c.pc] != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpDEX(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		x          uint8
 		status     uint8
@@ -414,17 +414,17 @@ func TestOpDEX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.x = tc.x
-		cpu.status = tc.status
-		cpu.opDEX(IMPLICIT)
-		if cpu.x != tc.wantX || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantX, tc.wantStatus, cpu.x, cpu.status)
+		c.x = tc.x
+		c.status = tc.status
+		c.opDEX(IMPLICIT)
+		if c.x != tc.wantX || c.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantX, tc.wantStatus, c.x, c.status)
 		}
 	}
 }
 
 func TestOpDEY(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		y          uint8
 		status     uint8
@@ -438,17 +438,17 @@ func TestOpDEY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.y = tc.y
-		cpu.status = tc.status
-		cpu.opDEY(IMPLICIT)
-		if cpu.y != tc.wantY || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantY, tc.wantStatus, cpu.y, cpu.status)
+		c.y = tc.y
+		c.status = tc.status
+		c.opDEY(IMPLICIT)
+		if c.y != tc.wantY || c.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantY, tc.wantStatus, c.y, c.status)
 		}
 	}
 }
 
 func TestOpEOR(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -462,19 +462,19 @@ func TestOpEOR(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
-		cpu.acc = tc.acc
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
+		c.acc = tc.acc
 
-		if cpu.opEOR(IMMEDIATE); cpu.acc != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opEOR(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpINX(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		x          uint8
 		status     uint8
@@ -488,17 +488,17 @@ func TestOpINX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.x = tc.x
-		cpu.status = tc.status
-		cpu.opINX(IMPLICIT)
-		if cpu.x != tc.wantX || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantX, tc.wantStatus, cpu.x, cpu.status)
+		c.x = tc.x
+		c.status = tc.status
+		c.opINX(IMPLICIT)
+		if c.x != tc.wantX || c.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantX, tc.wantStatus, c.x, c.status)
 		}
 	}
 }
 
 func TestOpINY(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		y          uint8
 		status     uint8
@@ -512,17 +512,17 @@ func TestOpINY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.y = tc.y
-		cpu.status = tc.status
-		cpu.opINY(IMPLICIT)
-		if cpu.y != tc.wantY || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantY, tc.wantStatus, cpu.y, cpu.status)
+		c.y = tc.y
+		c.status = tc.status
+		c.opINY(IMPLICIT)
+		if c.y != tc.wantY || c.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status: 0x%02x), got %d (status 0x%02x)", i, tc.wantY, tc.wantStatus, c.y, c.status)
 		}
 	}
 }
 
 func TestOpINC(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -534,12 +534,12 @@ func TestOpINC(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
 
-		if cpu.opINC(IMMEDIATE); cpu.memory[cpu.pc] != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.memory[cpu.pc], cpu.status, tc.want, tc.wantStatus)
+		if c.opINC(IMMEDIATE); c.memory[c.pc] != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.memory[c.pc], c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
@@ -596,7 +596,7 @@ func TestOpJSR(t *testing.T) {
 }
 
 func TestOpLDA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -609,18 +609,18 @@ func TestOpLDA(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.writeMem(cpu.pc, tc.op1)
+		c.pc = 0
+		c.status = 0
+		c.writeMem(c.pc, tc.op1)
 
-		if cpu.opLDA(IMMEDIATE); cpu.acc != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opLDA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpLDX(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -633,18 +633,18 @@ func TestOpLDX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
 
-		if cpu.opLDX(IMMEDIATE); cpu.x != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.x, cpu.status, tc.want, tc.wantStatus)
+		if c.opLDX(IMMEDIATE); c.x != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.x, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpLDY(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -657,12 +657,12 @@ func TestOpLDY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
 
-		if cpu.opLDY(IMMEDIATE); cpu.y != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.y, cpu.status, tc.want, tc.wantStatus)
+		if c.opLDY(IMMEDIATE); c.y != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.y, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
@@ -706,8 +706,8 @@ func TestOpLSR(t *testing.T) {
 }
 
 func TestOpNOP(t *testing.T) {
-	cpu := New()
-	cpu.memory = memInit(0xEA) // NOP
+	c := New()
+	c.memory = memInit(0xEA) // NOP
 
 	cases := []struct {
 		pc         uint16
@@ -720,17 +720,17 @@ func TestOpNOP(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = tc.pc
-		cpu.status = tc.status
-		cpu.step()
-		if cpu.pc != tc.wantPC || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Wanted %d (status 0x%02x), got %d (status: 0x%02x)", i, tc.wantPC, tc.wantStatus, cpu.pc, cpu.status)
+		c.pc = tc.pc
+		c.status = tc.status
+		c.step()
+		if c.pc != tc.wantPC || c.status != tc.wantStatus {
+			t.Errorf("%d: Wanted %d (status 0x%02x), got %d (status: 0x%02x)", i, tc.wantPC, tc.wantStatus, c.pc, c.status)
 		}
 	}
 }
 
 func TestOpORA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -745,19 +745,19 @@ func TestOpORA(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0
-		cpu.status = 0
-		cpu.memory[cpu.pc] = tc.op1
-		cpu.acc = tc.acc
+		c.pc = 0
+		c.status = 0
+		c.memory[c.pc] = tc.op1
+		c.acc = tc.acc
 
-		if cpu.opORA(IMMEDIATE); cpu.acc != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opORA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpPHA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc    uint8
 		wantSP uint8
@@ -768,15 +768,15 @@ func TestOpPHA(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.acc = tc.acc
-		if cpu.opPHA(IMPLICIT); cpu.memory[cpu.getStackAddr()+1] != tc.acc || cpu.sp != tc.wantSP {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.getStackAddr()-1], tc.acc)
+		c.acc = tc.acc
+		if c.opPHA(IMPLICIT); c.memory[c.getStackAddr()+1] != tc.acc || c.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, c.memory[c.getStackAddr()-1], tc.acc)
 		}
 	}
 }
 
 func TestOpPHP(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		wantSP uint8
@@ -787,15 +787,15 @@ func TestOpPHP(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		if cpu.opPHP(IMPLICIT); cpu.memory[cpu.getStackAddr()+1] != tc.status || cpu.sp != tc.wantSP {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.memory[cpu.sp-1], tc.status)
+		c.status = tc.status
+		if c.opPHP(IMPLICIT); c.memory[c.getStackAddr()+1] != tc.status || c.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, c.memory[c.sp-1], tc.status)
 		}
 	}
 }
 
 func TestOpPLA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc        uint8
 		wantSP     uint8
@@ -807,24 +807,24 @@ func TestOpPLA(t *testing.T) {
 		{0x01, 0xFF, 0x00},
 	}
 
-	// Adjust cpu.sp with these calls, in reverse from the cases
+	// Adjust c.sp with these calls, in reverse from the cases
 	// we'll compare as we pop.
 	for i := len(cases); i > 0; i -= 1 {
-		cpu.acc = cases[i-1].acc
-		cpu.opPHA(IMPLICIT)
+		c.acc = cases[i-1].acc
+		c.opPHA(IMPLICIT)
 	}
 
 	for i, tc := range cases {
-		cpu.acc = 0
-		cpu.status = 0
-		if cpu.opPLA(IMPLICIT); cpu.sp != tc.wantSP || cpu.acc != tc.acc || cpu.status != tc.wantStatus {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; ACC = 0x%02x, want 0x%02x; Status = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.acc, tc.acc, cpu.status, tc.wantStatus)
+		c.acc = 0
+		c.status = 0
+		if c.opPLA(IMPLICIT); c.sp != tc.wantSP || c.acc != tc.acc || c.status != tc.wantStatus {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; ACC = 0x%02x, want 0x%02x; Status = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, c.acc, tc.acc, c.status, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpPLP(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status     uint8
 		wantSP     uint8
@@ -836,23 +836,23 @@ func TestOpPLP(t *testing.T) {
 		{0x01, 0xFF, 0x01},
 	}
 
-	// Adjust cpu.sp with these calls, in reverse from the cases
+	// Adjust c.sp with these calls, in reverse from the cases
 	// we'll compare as we pop.
 	for i := len(cases); i > 0; i -= 1 {
-		cpu.status = cases[i-1].status
-		cpu.opPHP(IMPLICIT)
+		c.status = cases[i-1].status
+		c.opPHP(IMPLICIT)
 	}
 
 	for i, tc := range cases {
-		cpu.status = 0
-		if cpu.opPLP(IMPLICIT); cpu.sp != tc.wantSP || cpu.status != tc.wantStatus {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; Status = 0x%02x, want 0x%02x", i, cpu.sp, tc.wantSP, cpu.status, tc.wantStatus)
+		c.status = 0
+		if c.opPLP(IMPLICIT); c.sp != tc.wantSP || c.status != tc.wantStatus {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Status = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, c.status, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpROL(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -878,28 +878,28 @@ func TestOpROL(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0x10 // memory addr 0x10 should always be 0 on init
-		cpu.acc = tc.acc
+		c.pc = 0x10 // memory addr 0x10 should always be 0 on init
+		c.acc = tc.acc
 		if tc.mode != ACCUMULATOR {
-			cpu.writeMem(cpu.getOperandAddr(tc.mode), tc.op1)
+			c.writeMem(c.getOperandAddr(tc.mode), tc.op1)
 		}
 
-		cpu.status = tc.status
+		c.status = tc.status
 
-		cpu.opROL(tc.mode)
-		v := cpu.acc
+		c.opROL(tc.mode)
+		v := c.acc
 		if tc.mode == ZERO_PAGE {
-			v = cpu.memRead(cpu.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
+			v = c.memRead(c.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
 		}
 
-		if v != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status = 0x%02x), want 0x%02x (status = 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		if v != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status = 0x%02x), want 0x%02x (status = 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpROR(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -924,21 +924,21 @@ func TestOpROR(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.pc = 0x10 // memory addr 0x10 should always be 0 on init
-		cpu.acc = tc.acc
+		c.pc = 0x10 // memory addr 0x10 should always be 0 on init
+		c.acc = tc.acc
 		if tc.mode != ACCUMULATOR {
-			cpu.writeMem(cpu.getOperandAddr(tc.mode), tc.op1)
+			c.writeMem(c.getOperandAddr(tc.mode), tc.op1)
 		}
-		cpu.status = tc.status
+		c.status = tc.status
 
-		cpu.opROR(tc.mode)
-		v := cpu.acc
+		c.opROR(tc.mode)
+		v := c.acc
 		if tc.mode == ZERO_PAGE {
-			v = cpu.memRead(cpu.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
+			v = c.memRead(c.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
 		}
 
-		if v != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status = 0x%02x), want 0x%02x (status = 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		if v != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status = 0x%02x), want 0x%02x (status = 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
@@ -968,7 +968,7 @@ func TestOpRTS(t *testing.T) {
 }
 
 func TestOpSEC(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -980,16 +980,16 @@ func TestOpSEC(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opSEC(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opSEC(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpSED(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1001,16 +1001,16 @@ func TestOpSED(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opSED(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opSED(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted %d, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpSEI(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1023,16 +1023,16 @@ func TestOpSEI(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.status = tc.status
-		cpu.opSEI(IMPLICIT)
-		if cpu.status != tc.want {
-			t.Errorf("%d: Wanted 0x%02x, got 0x%02x", i, tc.want, cpu.status)
+		c.status = tc.status
+		c.opSEI(IMPLICIT)
+		if c.status != tc.want {
+			t.Errorf("%d: Wanted 0x%02x, got 0x%02x", i, tc.want, c.status)
 		}
 	}
 }
 
 func TestOpSTA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, status      uint8
 		want, wantStatus uint8
@@ -1041,20 +1041,20 @@ func TestOpSTA(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.acc = tc.acc
-		cpu.status = tc.status
-		cpu.pc = 0x10 // memory[0x10] should be 0 at init
+		c.acc = tc.acc
+		c.status = tc.status
+		c.pc = 0x10 // memory[0x10] should be 0 at init
 
-		cpu.opSTA(ZERO_PAGE)
+		c.opSTA(ZERO_PAGE)
 
-		if v := cpu.memRead(cpu.getOperandAddr(ZERO_PAGE)); v != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		if v := c.memRead(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpSTX(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		x, status        uint8
 		want, wantStatus uint8
@@ -1063,20 +1063,20 @@ func TestOpSTX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.x = tc.x
-		cpu.status = tc.status
-		cpu.pc = 0x10 // memory[0x10] should be 0 at init
+		c.x = tc.x
+		c.status = tc.status
+		c.pc = 0x10 // memory[0x10] should be 0 at init
 
-		cpu.opSTX(ZERO_PAGE)
+		c.opSTX(ZERO_PAGE)
 
-		if v := cpu.memRead(cpu.getOperandAddr(ZERO_PAGE)); v != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		if v := c.memRead(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpSTY(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		y, status        uint8
 		want, wantStatus uint8
@@ -1085,20 +1085,20 @@ func TestOpSTY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.y = tc.y
-		cpu.status = tc.status
-		cpu.pc = 0x10 // memory[0x10] should be 0 at init
+		c.y = tc.y
+		c.status = tc.status
+		c.pc = 0x10 // memory[0x10] should be 0 at init
 
-		cpu.opSTY(ZERO_PAGE)
+		c.opSTY(ZERO_PAGE)
 
-		if v := cpu.memRead(cpu.getOperandAddr(ZERO_PAGE)); v != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		if v := c.memRead(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTAX(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, x     uint8
 		wantX      uint8
@@ -1109,18 +1109,18 @@ func TestOpTAX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.acc = tc.acc
-		cpu.x = tc.x
-		cpu.status = 0 // clear
+		c.acc = tc.acc
+		c.x = tc.x
+		c.status = 0 // clear
 
-		if cpu.opTAX(IMPLICIT); cpu.x != tc.wantX || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.x, cpu.status, tc.wantX, tc.wantStatus)
+		if c.opTAX(IMPLICIT); c.x != tc.wantX || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.x, c.status, tc.wantX, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTAY(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, y     uint8
 		wantY      uint8
@@ -1131,18 +1131,18 @@ func TestOpTAY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.acc = tc.acc
-		cpu.y = tc.y
-		cpu.status = 0 // clear
+		c.acc = tc.acc
+		c.y = tc.y
+		c.status = 0 // clear
 
-		if cpu.opTAY(IMPLICIT); cpu.y != tc.wantY || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.x, cpu.status, tc.wantY, tc.wantStatus)
+		if c.opTAY(IMPLICIT); c.y != tc.wantY || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.x, c.status, tc.wantY, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTSX(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		sp, x      uint8
 		wantX      uint8
@@ -1153,18 +1153,18 @@ func TestOpTSX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.sp = tc.sp
-		cpu.x = tc.x
-		cpu.status = 0 // clear
+		c.sp = tc.sp
+		c.x = tc.x
+		c.status = 0 // clear
 
-		if cpu.opTSX(IMPLICIT); cpu.x != tc.wantX || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.x, cpu.status, tc.wantX, tc.wantStatus)
+		if c.opTSX(IMPLICIT); c.x != tc.wantX || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.x, c.status, tc.wantX, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTXA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, x     uint8
 		want       uint8
@@ -1176,18 +1176,18 @@ func TestOpTXA(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.acc = tc.acc
-		cpu.x = tc.x
-		cpu.status = 0 // clear
+		c.acc = tc.acc
+		c.x = tc.x
+		c.status = 0 // clear
 
-		if cpu.opTXA(IMPLICIT); cpu.acc != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opTXA(IMPLICIT); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTXS(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		sp, x, status uint8
 		wantSP        uint8
@@ -1199,18 +1199,18 @@ func TestOpTXS(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.sp = tc.sp
-		cpu.x = tc.x
-		cpu.status = tc.status
+		c.sp = tc.sp
+		c.x = tc.x
+		c.status = tc.status
 
-		if cpu.opTXS(IMPLICIT); cpu.sp != tc.wantSP || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.sp, cpu.status, tc.wantSP, tc.wantStatus)
+		if c.opTXS(IMPLICIT); c.sp != tc.wantSP || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.sp, c.status, tc.wantSP, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTYA(t *testing.T) {
-	cpu := New()
+	c := New()
 	cases := []struct {
 		acc, y     uint8
 		want       uint8
@@ -1222,12 +1222,12 @@ func TestOpTYA(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		cpu.acc = tc.acc
-		cpu.y = tc.y
-		cpu.status = 0 // clear
+		c.acc = tc.acc
+		c.y = tc.y
+		c.status = 0 // clear
 
-		if cpu.opTYA(IMPLICIT); cpu.acc != tc.want || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
+		if c.opTYA(IMPLICIT); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
