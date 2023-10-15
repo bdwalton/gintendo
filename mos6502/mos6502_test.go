@@ -732,3 +732,48 @@ func TestOpROL(t *testing.T) {
 		}
 	}
 }
+
+func TestOpROR(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		acc, op1   uint8 // Seeded acc and memory location 0
+		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
+		status     uint8 // Current status
+		want       uint8 // Value of ACC or OP1 after ROR
+		wantStatus uint8 // Value of status after ROR
+	}{
+		{0x00, 0x00, ACCUMULATOR, 0x00, 0x00, 0x02 /* ZERO */},
+		{0x00, 0x00, ACCUMULATOR, 0x01 /* CARRY */, 0x80, 0x80 /* NEGATIVE */},
+		{0x40, 0x00, ACCUMULATOR, 0x01 /* CARRY */, 0xa0, 0x80 /* NEGATIVE */},
+		{0x01, 0x01, ACCUMULATOR, 0x01 /* CARRY */, 0x80, 0x81 /* NEGATIVE, CARRY */},
+		{0x01, 0x01, ACCUMULATOR, 0x00, 0x80, 0x81},
+		{0x80, 0x01, ACCUMULATOR, 0x00, 0x40, 0x00},
+		{0x81, 0x01, ACCUMULATOR, 0x00, 0xC0, 0x81 /* NEGATIVE, CARRY */},
+		{0xC1, 0x01, ACCUMULATOR, 0x00, 0xE0, 0x81 /* NEGATIVE, CARRY */},
+		{0x00, 0x00, ZERO_PAGE, 0x00, 0x00, 0x02 /* ZERO */},
+		{0x00, 0x01, ZERO_PAGE, 0x00, 0x80, 0x81 /* NEGATIVE, CARRY */},
+		{0x00, 0x02, ZERO_PAGE, 0x01, 0x81, 0x80 /* NEGATIVE */},
+		{0x00, 0x01, ZERO_PAGE, 0x01 /* CARRY */, 0x80, 0x81},
+		{0x00, 0x81, ZERO_PAGE, 0x00, 0xC0, 0x81 /* NEGATIVE, CARRY */},
+		{0x00, 0x82, ZERO_PAGE, 0x01, 0xC1, 0x80 /* NEGATIVE */},
+	}
+
+	for i, tc := range cases {
+		cpu.pc = 0x10 // memory addr 0x10 should always be 0 on init
+		cpu.acc = tc.acc
+		if tc.mode != ACCUMULATOR {
+			cpu.writeMem(cpu.getOperandAddr(tc.mode), tc.op1)
+		}
+		cpu.status = tc.status
+
+		cpu.opROR(tc.mode)
+		v := cpu.acc
+		if tc.mode == ZERO_PAGE {
+			v = cpu.memRead(cpu.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
+		}
+
+		if v != tc.want || cpu.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status = 0x%02x), want 0x%02x (status = 0x%02x)", i, v, cpu.status, tc.want, tc.wantStatus)
+		}
+	}
+}

@@ -480,6 +480,8 @@ func (c *cpu) step() {
 		c.opPLP(op.mode)
 	case ROL:
 		c.opROL(op.mode)
+	case ROR:
+		c.opROR(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -645,6 +647,27 @@ func (c *cpu) opROL(mode uint8) {
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
 	c.setNegativeAndZeroFlags(nv)
 	if ov&0x80 != 0 {
+		c.flagsOn(STATUS_FLAG_CARRY)
+	}
+}
+
+func (c *cpu) opROR(mode uint8) {
+	var ov, nv uint8 // old value, new value
+	switch mode {
+	case ACCUMULATOR:
+		ov = c.acc
+		c.acc = bits.RotateLeft8(ov, -1) | ((c.status & STATUS_FLAG_CARRY) << 7)
+		nv = c.acc
+	default:
+		addr := c.getOperandAddr(mode)
+		ov = c.memRead(addr)
+		c.writeMem(addr, bits.RotateLeft8(ov, -1)|((c.status&STATUS_FLAG_CARRY)<<7))
+		nv = c.memRead(addr)
+	}
+
+	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
+	c.setNegativeAndZeroFlags(nv)
+	if ov&STATUS_FLAG_CARRY != 0 { // was carry bit set in the old _value_?
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
 }
