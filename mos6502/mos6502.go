@@ -366,6 +366,12 @@ func (c *cpu) memRead(addr uint16) uint8 {
 	return c.memory[addr]
 }
 
+// memRange returns a slice of memory addresses from low to
+// high. Mostly useful for debugging.
+func (c *cpu) memRange(low, high uint16) []uint8 {
+	return c.memory[low : high+1]
+}
+
 // writeMem writes val to memory at addr
 func (c *cpu) writeMem(addr uint16, val uint8) {
 	c.memory[addr] = val
@@ -536,6 +542,15 @@ func (c *cpu) pushStack(val uint8) {
 func (c *cpu) popStack() uint8 {
 	c.sp += 1
 	return c.memRead(c.getStackAddr())
+}
+
+func (c *cpu) pushAddress(addr uint16) {
+	c.pushStack(uint8(addr >> 8))     // high
+	c.pushStack(uint8(addr & 0x00FF)) // low
+}
+
+func (c *cpu) popAddress() uint16 {
+	return uint16(c.popStack()) | (uint16(c.popStack()) << 8)
 }
 
 // flagsOn forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)

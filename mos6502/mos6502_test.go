@@ -92,6 +92,53 @@ func TestMemWrite16(t *testing.T) {
 	}
 }
 
+func TestPushAddress(t *testing.T) {
+	c := New()
+	cases := []struct {
+		addr                   uint16
+		sp                     uint8
+		wantLO, wantHI, wantSP uint8
+	}{
+		{0xF101, 0xFF, 0x01, 0xF1, 0xFD},
+		{0xAC08, 0x10, 0x08, 0xAC, 0x0E},
+	}
+
+	for i, tc := range cases {
+		c.sp = tc.sp
+		c.pushAddress(tc.addr)
+		if c.sp != tc.wantSP || c.memRead(c.getStackAddr()+2) != tc.wantHI || c.memRead(c.getStackAddr()+1) != tc.wantLO {
+			top := c.getStackAddr() + 2
+			bottom := top - 1
+			t.Errorf("%d: Got 0x%02x %v, want 0x%02x %v", i, c.sp, c.memRange(bottom, top), tc.wantSP, []uint8{tc.wantLO, tc.wantHI})
+		}
+
+	}
+}
+
+func TestPopAddress(t *testing.T) {
+	c := New()
+	cases := []struct {
+		addr     uint16
+		sp       uint8
+		wantSP   uint8
+		wantAddr uint16
+	}{
+		{0xFF01, 0xF3, 0xF3, 0xFF01},
+	}
+
+	for i, tc := range cases {
+		c.sp = tc.sp
+		c.pushAddress(tc.addr)
+
+		if addr := c.popAddress(); c.sp != tc.wantSP || addr != tc.wantAddr {
+
+			t.Errorf("%d: Got 0x%02x (sp 0x%02x), want 0x%02x (sp 0x%02x)", i, addr, c.sp, tc.wantAddr, tc.wantSP)
+
+		}
+
+	}
+}
+
 func TestGetOperandAddr(t *testing.T) {
 	cpu := New()
 	cpu.pc = 0x64
