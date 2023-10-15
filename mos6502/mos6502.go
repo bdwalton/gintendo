@@ -484,6 +484,8 @@ func (c *cpu) step() {
 		c.opROR(op.mode)
 	case STX:
 		c.opSTX(op.mode)
+	case STY:
+		c.opSTY(op.mode)
 	case TAX:
 		c.opTAX(op.mode)
 	case TAY:
@@ -688,6 +690,10 @@ func (c *cpu) opROR(mode uint8) {
 
 func (c *cpu) opSTX(mode uint8) {
 	c.writeMem(c.getOperandAddr(mode), c.x)
+}
+
+func (c *cpu) opSTY(mode uint8) {
+	c.writeMem(c.getOperandAddr(mode), c.y)
 }
 
 func (c *cpu) opTAX(mode uint8) {
