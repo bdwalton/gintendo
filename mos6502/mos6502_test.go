@@ -848,7 +848,7 @@ func TestOpTXA(t *testing.T) {
 	cpu := New()
 	cases := []struct {
 		acc, x     uint8
-		wantX      uint8
+		want       uint8
 		wantStatus uint8
 	}{
 		{0xFF, 0x01, 0x01, 0x00},
@@ -861,8 +861,8 @@ func TestOpTXA(t *testing.T) {
 		cpu.x = tc.x
 		cpu.status = 0 // clear
 
-		if cpu.opTXA(IMPLICIT); cpu.x != tc.wantX || cpu.status != tc.wantStatus {
-			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.x, cpu.status, tc.wantX, tc.wantStatus)
+		if cpu.opTXA(IMPLICIT); cpu.acc != tc.want || cpu.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.acc, cpu.status, tc.want, tc.wantStatus)
 		}
 	}
 }
