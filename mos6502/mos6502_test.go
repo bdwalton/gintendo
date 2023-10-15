@@ -866,3 +866,26 @@ func TestOpTXA(t *testing.T) {
 		}
 	}
 }
+
+func TestOpTXS(t *testing.T) {
+	cpu := New()
+	cases := []struct {
+		sp, x, status uint8
+		wantSP        uint8
+		wantStatus    uint8
+	}{
+		{0xFF, 0x01, 0x80, 0x01, 0x80},
+		{0x01, 0x00, 0x81, 0x00, 0x81},
+		{0x01, 0x81, 0x02, 0x81, 0x02},
+	}
+
+	for i, tc := range cases {
+		cpu.sp = tc.sp
+		cpu.x = tc.x
+		cpu.status = tc.status
+
+		if cpu.opTXS(IMPLICIT); cpu.sp != tc.wantSP || cpu.status != tc.wantStatus {
+			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, cpu.sp, cpu.status, tc.wantSP, tc.wantStatus)
+		}
+	}
+}

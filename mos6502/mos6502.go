@@ -490,6 +490,8 @@ func (c *cpu) step() {
 		c.opTSX(op.mode)
 	case TXA:
 		c.opTXA(op.mode)
+	case TXS:
+		c.opTXS(op.mode)
 	default:
 		panic(fmt.Errorf("unimplemented instruction %s", op))
 	}
@@ -698,4 +700,8 @@ func (c *cpu) opTSX(mode uint8) {
 func (c *cpu) opTXA(mode uint8) {
 	c.acc = c.x
 	c.setNegativeAndZeroFlags(c.acc)
+}
+
+func (c *cpu) opTXS(mode uint8) {
+	c.sp = c.x
 }
