@@ -261,6 +261,32 @@ func TestOpASL(t *testing.T) {
 	}
 }
 
+func TestOpBIT(t *testing.T) {
+	c := New()
+	cases := []struct {
+		acc, op    uint8
+		wantStatus uint8
+	}{
+		{0x01, 0x01, 0x00},
+		{0x81, 0x01, 0x00},
+		{0x00, 0x01, 0x02 /* ZERO */},
+		{0x00, 0x81, 0x82 /* NEGATIVE, ZERO */},
+		{0x00, 0xC1, 0xC2 /* NEGATIVE, OVERFLOW, ZERO */},
+		{0x00, 0xE1, 0xC2 /* NEGATIVE, OVERFLOW, ZERO */},
+		{0x01, 0xE1, 0xC0 /* NEGATIVE, OVERFLOW */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0x0300
+		c.acc = tc.acc
+		c.writeMem(c.getOperandAddr(ZERO_PAGE), tc.op)
+
+		if c.opBIT(ZERO_PAGE); c.status != tc.wantStatus {
+			t.Errorf("%d: Got status = 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpCLC(t *testing.T) {
 	cpu := New()
 	cases := []struct {

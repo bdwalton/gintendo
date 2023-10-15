@@ -442,6 +442,8 @@ func (c *cpu) step() {
 		c.opAND(op.mode)
 	case ASL:
 		c.opASL(op.mode)
+	case BIT:
+		c.opBIT(op.mode)
 	case CLC:
 		c.opCLC(op.mode)
 	case CLD:
@@ -595,6 +597,19 @@ func (c *cpu) opASL(mode uint8) {
 	if ov&0x80 != 0 {
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+}
+
+func (c *cpu) opBIT(mode uint8) {
+	o := c.memRead(c.getOperandAddr(mode))
+
+	c.flagsOff(STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW | STATUS_FLAG_ZERO)
+	var flags uint8
+	if (o & c.acc) == 0 {
+		flags = flags | STATUS_FLAG_ZERO
+	}
+	flags = flags | (o & (STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW))
+
+	c.flagsOn(flags)
 }
 
 func (c *cpu) opCLC(mode uint8) {
