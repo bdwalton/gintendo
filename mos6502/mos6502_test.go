@@ -540,6 +540,32 @@ func TestOpINC(t *testing.T) {
 	}
 }
 
+func TestOpJMP(t *testing.T) {
+	c := New()
+	cases := []struct {
+		pc              uint16
+		mode            uint8
+		target, target2 uint16
+		wantPC          uint16
+	}{
+		{0x02FF, ABSOLUTE, 0x03AC, 0x00F1, 0x03AC},
+		{0x03FF, ABSOLUTE, 0x03AC, 0x5566, 0x03AC},
+		{0x03FF, INDIRECT, 0x03AC, 0x6671, 0x6671},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+
+		c.writeMem16(c.getOperandAddr(ABSOLUTE), tc.target)
+		c.writeMem16(c.getOperandAddr(INDIRECT), tc.target2)
+
+		c.opJMP(tc.mode)
+		if c.pc != tc.wantPC {
+			t.Errorf("%d: PC = 0x%04x, wanted 0x%04x", i, c.pc, tc.wantPC)
+		}
+	}
+}
+
 func TestOpJSR(t *testing.T) {
 	c := New()
 	cases := []struct {
