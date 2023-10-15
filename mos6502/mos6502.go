@@ -505,6 +505,27 @@ func (c *cpu) step() {
 	}
 }
 
+// setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
+// STATUS_FLAG_ZERO bits of the status register accordingly for the
+// value specified in n.
+func (c *cpu) setNegativeAndZeroFlags(n uint8) {
+	if n == 0 {
+		c.flagsOn(STATUS_FLAG_ZERO)
+	} else {
+		c.flagsOff(STATUS_FLAG_ZERO)
+	}
+
+	if n&0b1000_0000 != 0 {
+		c.flagsOn(STATUS_FLAG_NEGATIVE)
+	} else {
+		c.flagsOff(STATUS_FLAG_NEGATIVE)
+	}
+}
+
+func (c *cpu) getStackAddr() uint16 {
+	return STACK_PAGE + uint16(c.sp)
+}
+
 // flagsOn forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
 // on in the status register.
 func (c *cpu) flagsOn(mask uint8) {
@@ -517,16 +538,9 @@ func (c *cpu) flagsOff(mask uint8) {
 	c.status = c.status &^ mask
 }
 
-func (c *cpu) opSEC(mode uint8) {
-	c.flagsOn(STATUS_FLAG_CARRY)
-}
-
-func (c *cpu) opSED(mode uint8) {
-	c.flagsOn(STATUS_FLAG_DECIMAL)
-}
-
-func (c *cpu) opSEI(mode uint8) {
-	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
+func (c *cpu) opAND(mode uint8) {
+	c.acc = c.acc & c.memRead(c.getOperandAddr(mode))
+	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opCLC(mode uint8) {
@@ -545,30 +559,14 @@ func (c *cpu) opCLV(mode uint8) {
 	c.flagsOff(STATUS_FLAG_OVERFLOW)
 }
 
-// setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
-// STATUS_FLAG_ZERO bits of the status register accordingly for the
-// value specified in n.
-func (c *cpu) setNegativeAndZeroFlags(n uint8) {
-	if n == 0 {
-		c.flagsOn(STATUS_FLAG_ZERO)
-	} else {
-		c.flagsOff(STATUS_FLAG_ZERO)
-	}
-
-	if n&0b1000_0000 != 0 {
-		c.flagsOn(STATUS_FLAG_NEGATIVE)
-	} else {
-		c.flagsOff(STATUS_FLAG_NEGATIVE)
-	}
+func (c *cpu) opDEC(mode uint8) {
+	a := c.getOperandAddr(mode)
+	c.writeMem(a, c.memRead(a)-1)
+	c.setNegativeAndZeroFlags(c.memRead(a))
 }
 
 func (c *cpu) opDEX(mode uint8) {
 	c.x -= 1
-	c.setNegativeAndZeroFlags(c.x)
-}
-
-func (c *cpu) opINX(mode uint8) {
-	c.x += 1
 	c.setNegativeAndZeroFlags(c.x)
 }
 
@@ -577,40 +575,25 @@ func (c *cpu) opDEY(mode uint8) {
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) opINY(mode uint8) {
-	c.y += 1
-	c.setNegativeAndZeroFlags(c.y)
-}
-
-func (c *cpu) opNOP(mode uint8) {
-	return
-}
-
-func (c *cpu) opAND(mode uint8) {
-	c.acc = c.acc & c.memRead(c.getOperandAddr(mode))
-	c.setNegativeAndZeroFlags(c.acc)
-}
-
 func (c *cpu) opEOR(mode uint8) {
 	c.acc = c.acc ^ c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
-}
-
-func (c *cpu) opORA(mode uint8) {
-	c.acc = c.acc | c.memRead(c.getOperandAddr(mode))
-	c.setNegativeAndZeroFlags(c.acc)
-}
-
-func (c *cpu) opDEC(mode uint8) {
-	a := c.getOperandAddr(mode)
-	c.writeMem(a, c.memRead(a)-1)
-	c.setNegativeAndZeroFlags(c.memRead(a))
 }
 
 func (c *cpu) opINC(mode uint8) {
 	a := c.getOperandAddr(mode)
 	c.writeMem(a, c.memRead(a)+1)
 	c.setNegativeAndZeroFlags(c.memRead(a))
+}
+
+func (c *cpu) opINX(mode uint8) {
+	c.x += 1
+	c.setNegativeAndZeroFlags(c.x)
+}
+
+func (c *cpu) opINY(mode uint8) {
+	c.y += 1
+	c.setNegativeAndZeroFlags(c.y)
 }
 
 func (c *cpu) opLDX(mode uint8) {
@@ -623,8 +606,13 @@ func (c *cpu) opLDY(mode uint8) {
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) getStackAddr() uint16 {
-	return STACK_PAGE + uint16(c.sp)
+func (c *cpu) opNOP(mode uint8) {
+	return
+}
+
+func (c *cpu) opORA(mode uint8) {
+	c.acc = c.acc | c.memRead(c.getOperandAddr(mode))
+	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opPHA(mode uint8) {
@@ -632,15 +620,15 @@ func (c *cpu) opPHA(mode uint8) {
 	c.sp -= 1
 }
 
+func (c *cpu) opPHP(mode uint8) {
+	c.writeMem(c.getStackAddr(), c.status)
+	c.sp -= 1
+}
+
 func (c *cpu) opPLA(mode uint8) {
 	c.sp += 1
 	c.acc = c.memRead(c.getStackAddr())
 	c.setNegativeAndZeroFlags(c.acc)
-}
-
-func (c *cpu) opPHP(mode uint8) {
-	c.writeMem(c.getStackAddr(), c.status)
-	c.sp -= 1
 }
 
 func (c *cpu) opPLP(mode uint8) {
@@ -688,6 +676,18 @@ func (c *cpu) opROR(mode uint8) {
 	if ov&STATUS_FLAG_CARRY != 0 { // was carry bit set in the old _value_?
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+}
+
+func (c *cpu) opSEC(mode uint8) {
+	c.flagsOn(STATUS_FLAG_CARRY)
+}
+
+func (c *cpu) opSED(mode uint8) {
+	c.flagsOn(STATUS_FLAG_DECIMAL)
+}
+
+func (c *cpu) opSEI(mode uint8) {
+	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
 func (c *cpu) opSTA(mode uint8) {
