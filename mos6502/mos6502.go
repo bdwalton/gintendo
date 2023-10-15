@@ -442,6 +442,10 @@ func (c *cpu) step() {
 		c.opAND(op.mode)
 	case ASL:
 		c.opASL(op.mode)
+	case BCC:
+		c.opBCC(op.mode)
+	case BCS:
+		c.opBCS(op.mode)
 	case BEQ:
 		c.opBEQ(op.mode)
 	case BIT:
@@ -624,6 +628,14 @@ func (c *cpu) opASL(mode uint8) {
 	if ov&0x80 != 0 {
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+}
+
+func (c *cpu) opBCC(mode uint8) {
+	c.branch(STATUS_FLAG_CARRY, false)
+}
+
+func (c *cpu) opBCS(mode uint8) {
+	c.branch(STATUS_FLAG_CARRY, true)
 }
 
 func (c *cpu) opBEQ(mode uint8) {
