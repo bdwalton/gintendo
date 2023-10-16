@@ -483,6 +483,10 @@ func (c *cpu) step() {
 		c.opCLV(op.mode)
 	case CMP:
 		c.opCMP(op.mode)
+	case CPX:
+		c.opCPX(op.mode)
+	case CPY:
+		c.opCPY(op.mode)
 	case DEC:
 		c.opDEC(op.mode)
 	case DEX:
@@ -642,6 +646,15 @@ func (c *cpu) addWithOverflow(b uint8) {
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
+// baseCMP does comparison operations on a and b, setting flags
+// accordingly.
+func (c *cpu) baseCMP(a, b uint8) {
+	c.setNegativeAndZeroFlags(a - b)
+	if a >= b {
+		c.flagsOn(STATUS_FLAG_CARRY)
+	}
+}
+
 func (c *cpu) opADC(mode uint8) {
 	c.addWithOverflow(c.memRead(c.getOperandAddr(mode)))
 }
@@ -741,11 +754,15 @@ func (c *cpu) opCLV(mode uint8) {
 }
 
 func (c *cpu) opCMP(mode uint8) {
-	m := c.memRead(c.getOperandAddr(mode))
-	c.setNegativeAndZeroFlags(c.acc - m)
-	if c.acc >= m {
-		c.flagsOn(STATUS_FLAG_CARRY)
-	}
+	c.baseCMP(c.acc, c.memRead(c.getOperandAddr(mode)))
+}
+
+func (c *cpu) opCPX(mode uint8) {
+	c.baseCMP(c.x, c.memRead(c.getOperandAddr(mode)))
+}
+
+func (c *cpu) opCPY(mode uint8) {
+	c.baseCMP(c.y, c.memRead(c.getOperandAddr(mode)))
 }
 
 func (c *cpu) opDEC(mode uint8) {

@@ -649,6 +649,48 @@ func TestOpCMP(t *testing.T) {
 	}
 }
 
+func TestOpCPX(t *testing.T) {
+	c := New()
+	cases := []struct {
+		x, m       uint8
+		wantStatus uint8
+	}{
+		{0x42, 0x42, 0x03 /* ZERO, CARRY */},
+		{0x42, 0x43, 0x81 /* NEGATIVE, CARRY */},
+		{0x11, 0x02, 0x01 /* CARRY */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0
+		c.x = tc.x
+		c.writeMem(c.pc, tc.m)
+		if c.opCPX(IMMEDIATE); c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
+		}
+	}
+}
+
+func TestOpCPY(t *testing.T) {
+	c := New()
+	cases := []struct {
+		y, m       uint8
+		wantStatus uint8
+	}{
+		{0x43, 0x43, 0x03 /* ZERO, CARRY */},
+		{0x43, 0x44, 0x81 /* NEGATIVE, CARRY */},
+		{0x12, 0x03, 0x01 /* CARRY */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0
+		c.y = tc.y
+		c.writeMem(c.pc, tc.m)
+		if c.opCPY(IMMEDIATE); c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpDEC(t *testing.T) {
 	c := New()
 	cases := []struct {
