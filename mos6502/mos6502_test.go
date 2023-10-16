@@ -1196,6 +1196,32 @@ func TestOpROR(t *testing.T) {
 	}
 }
 
+func TestOpRTI(t *testing.T) {
+	c := New()
+	cases := []struct {
+		stack      []uint8 // pc and status as 3 uint8 values
+		wantPC     uint16
+		wantStatus uint8
+	}{
+		{[]uint8{0xFF, 0x15, 0x81}, 0xFF15, 0x81},
+		{[]uint8{0xAC, 0x77, 0x02}, 0xAC77, 0x02},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0
+		c.status = 0
+		for _, x := range tc.stack {
+			c.pushStack(x)
+		}
+
+		c.opRTI(IMPLICIT)
+		if c.pc != tc.wantPC || c.status != tc.wantStatus {
+			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, tc.wantStatus)
+
+		}
+	}
+}
+
 func TestOpRTS(t *testing.T) {
 	c := New()
 	cases := []struct {

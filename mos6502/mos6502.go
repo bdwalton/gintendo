@@ -523,6 +523,8 @@ func (c *cpu) step() {
 		c.opROL(op.mode)
 	case ROR:
 		c.opROR(op.mode)
+	case RTI:
+		c.opRTI(op.mode)
 	case RTS:
 		c.opRTS(op.mode)
 	case SEC:
@@ -885,6 +887,11 @@ func (c *cpu) opROR(mode uint8) {
 	if ov&STATUS_FLAG_CARRY != 0 { // was carry bit set in the old _value_?
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+}
+
+func (c *cpu) opRTI(mode uint8) {
+	c.status = c.popStack()
+	c.pc = c.popAddress()
 }
 
 func (c *cpu) opRTS(mode uint8) {
