@@ -1196,6 +1196,30 @@ func TestOpRTS(t *testing.T) {
 	}
 }
 
+func TestOpSBC(t *testing.T) {
+	c := New()
+	cases := []struct {
+		acc, op1, status uint8
+		want, wantStatus uint8
+	}{
+		{0xFF, 0x01, 0x01, 0xFE, 0x81},
+		{0x42, 0x01, 0x01, 0x41, 0x01},
+		{0x42, 0x42, 0x01, 0x00, 0x03 /* ZERO, CARRY */},
+		{0xD0, 0x70, 0x01, 0x60, 0x41 /* OVERFLOW, CARRY */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0x7780
+		c.acc = tc.acc
+		c.status = tc.status
+		c.writeMem(c.pc, tc.op1)
+
+		if c.opSBC(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (status 0x%02x), wanted 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpSEC(t *testing.T) {
 	c := New()
 	cases := []struct {

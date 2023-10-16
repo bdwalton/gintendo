@@ -606,16 +606,17 @@ func (c *cpu) branch(mask uint8, predicate bool) {
 	}
 }
 
-func (c *cpu) opADC(mode uint8) {
-	m := c.memRead(c.getOperandAddr(mode))
-	res16 := uint16(c.acc) + uint16(m) + uint16(c.status&STATUS_FLAG_CARRY)
+// addWithOverflow adds b to c.acc handling overflow, carry and ZN
+// flag setting as appropriate.
+func (c *cpu) addWithOverflow(b uint8) {
+	res16 := uint16(c.acc) + uint16(b) + uint16(c.status&STATUS_FLAG_CARRY)
 	res := uint8(res16)
 
 	var mask uint8
 	if (res16 & 0x100) != 0 {
 		mask = mask | STATUS_FLAG_CARRY
 	}
-	if (c.acc^res)&(m^res)&0x80 != 0 {
+	if (c.acc^res)&(b^res)&0x80 != 0 {
 		mask = mask | STATUS_FLAG_OVERFLOW
 	}
 
@@ -624,6 +625,10 @@ func (c *cpu) opADC(mode uint8) {
 
 	c.acc = res
 	c.setNegativeAndZeroFlags(c.acc)
+}
+
+func (c *cpu) opADC(mode uint8) {
+	c.addWithOverflow(c.memRead(c.getOperandAddr(mode)))
 }
 
 func (c *cpu) opAND(mode uint8) {
@@ -866,6 +871,10 @@ func (c *cpu) opROR(mode uint8) {
 
 func (c *cpu) opRTS(mode uint8) {
 	c.pc = c.popAddress() + 1
+}
+
+func (c *cpu) opSBC(mode uint8) {
+	c.addWithOverflow(^c.memRead(c.getOperandAddr(mode)))
 }
 
 func (c *cpu) opSEC(mode uint8) {
