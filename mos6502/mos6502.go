@@ -481,6 +481,8 @@ func (c *cpu) step() {
 		c.opCLI(op.mode)
 	case CLV:
 		c.opCLV(op.mode)
+	case CMP:
+		c.opCMP(op.mode)
 	case DEC:
 		c.opDEC(op.mode)
 	case DEX:
@@ -736,6 +738,14 @@ func (c *cpu) opCLI(mode uint8) {
 
 func (c *cpu) opCLV(mode uint8) {
 	c.flagsOff(STATUS_FLAG_OVERFLOW)
+}
+
+func (c *cpu) opCMP(mode uint8) {
+	m := c.memRead(c.getOperandAddr(mode))
+	c.setNegativeAndZeroFlags(c.acc - m)
+	if c.acc >= m {
+		c.flagsOn(STATUS_FLAG_CARRY)
+	}
 }
 
 func (c *cpu) opDEC(mode uint8) {

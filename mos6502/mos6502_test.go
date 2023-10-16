@@ -628,6 +628,27 @@ func TestOpCLV(t *testing.T) {
 	}
 }
 
+func TestOpCMP(t *testing.T) {
+	c := New()
+	cases := []struct {
+		acc, m     uint8
+		wantStatus uint8
+	}{
+		{0x41, 0x41, 0x03 /* ZERO, CARRY */},
+		{0x41, 0x42, 0x81 /* NEGATIVE, CARRY */},
+		{0x10, 0x01, 0x01 /* CARRY */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0
+		c.acc = tc.acc
+		c.writeMem(c.pc, tc.m)
+		if c.opCMP(IMMEDIATE); c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpDEC(t *testing.T) {
 	c := New()
 	cases := []struct {
