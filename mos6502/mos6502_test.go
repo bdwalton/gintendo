@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func memInit(val uint8) (mem [MEM_SIZE]uint8) {
-	for i := 0; i < MEM_SIZE; i++ {
+func memInit(val uint8) (mem [MEM_SIZE + 1]uint8) {
+	for i := 0; i <= MEM_SIZE; i++ {
 		mem[i] = val
 	}
 	return
