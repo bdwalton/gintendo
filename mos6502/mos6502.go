@@ -9,6 +9,15 @@ import (
 	"math/bits"
 )
 
+// 6502 Interrupt Vectors
+// https://en.wikipedia.org/wiki/Interrupts_in_65xx_processors
+const (
+	INT_IRQ   = 0xFFFE
+	INT_BRK   = INT_IRQ
+	INT_RESET = 0xFFFC
+	INT_NMI   = 0xFFFA
+)
+
 // 6502 Processor Status Flags
 // https://www.nesdev.org/obelisk-6502-guide/registers.html
 const (
@@ -458,6 +467,8 @@ func (c *cpu) step() {
 		c.opBNE(op.mode)
 	case BPL:
 		c.opBPL(op.mode)
+	case BRK:
+		c.opBRK(op.mode)
 	case BVC:
 		c.opBVC(op.mode)
 	case BVS:
@@ -692,6 +703,13 @@ func (c *cpu) opBNE(mode uint8) {
 
 func (c *cpu) opBPL(mode uint8) {
 	c.branch(STATUS_FLAG_NEGATIVE, false)
+}
+
+func (c *cpu) opBRK(mode uint8) {
+	c.pushAddress(c.pc)
+	c.pushStack(c.status)
+	c.flagsOn(STATUS_FLAG_BREAK)
+	c.pc = c.memRead16(INT_BRK)
 }
 
 func (c *cpu) opBVC(mode uint8) {

@@ -471,6 +471,30 @@ func TestOpBPL(t *testing.T) {
 	}
 }
 
+func TestOpBRK(t *testing.T) {
+	c := New()
+	cases := []struct {
+		pc         uint16
+		brk        uint16
+		status     uint8
+		wantPC     uint16
+		wantStatus uint8
+	}{
+		{0xFF15, 0xAC69, 0x00, 0xAC69, 0x10 /* BRK set */},
+		{0xAAAA, 0x1167, 0x81, 0x1167, 0x91 /* BRK set */},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+		c.status = tc.status
+		c.writeMem16(INT_BRK, tc.brk)
+		c.opBRK(IMPLICIT)
+		if c.pc != tc.wantPC || c.status != tc.wantStatus {
+			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpBVC(t *testing.T) {
 	c := New()
 	cases := []struct {
