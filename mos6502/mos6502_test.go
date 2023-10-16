@@ -202,6 +202,32 @@ func TestGetInst(t *testing.T) {
 
 }
 
+func TestOpADC(t *testing.T) {
+	c := New()
+	cases := []struct {
+		acc, op1, status uint8
+		want, wantStatus uint8
+	}{
+		{0xFF, 0x01, 0x00, 0x00, 0x03 /* ZERO, CARRY */},
+		{0xF1, 0x01, 0x00, 0xF2, 0x80 /* NEGATIVE */},
+		{0x00, 0x00, 0x00, 0x00, 0x02 /* ZERO */},
+		{0xF0, 0x0F, 0x00, 0xFF, 0x80 /* NEGATIVE */},
+		{0xFF, 0xF0, 0x01 /* CARRY */, 0xF0, 0x81 /* NEGATIVE, CARRY */},
+		{0xEF, 0xE1, 0x00, 0xD0, 0x81 /* NEGATIVE, CARRY */},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0x7780
+		c.acc = tc.acc
+		c.status = tc.status
+		c.writeMem(c.pc, tc.op1)
+
+		if c.opADC(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (status 0x%02x), wanted 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
+		}
+	}
+}
+
 func TestOpAND(t *testing.T) {
 	c := New()
 	cases := []struct {

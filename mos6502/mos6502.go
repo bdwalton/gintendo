@@ -438,6 +438,8 @@ func (c *cpu) step() {
 	c.pc += 1
 
 	switch op.inst {
+	case ADC:
+		c.opADC(op.mode)
 	case AND:
 		c.opAND(op.mode)
 	case ASL:
@@ -602,6 +604,26 @@ func (c *cpu) branch(mask uint8, predicate bool) {
 	if (c.status&mask > 0) == predicate {
 		c.pc = c.getOperandAddr(RELATIVE)
 	}
+}
+
+func (c *cpu) opADC(mode uint8) {
+	m := c.memRead(c.getOperandAddr(mode))
+	res16 := uint16(c.acc) + uint16(m) + uint16(c.status&STATUS_FLAG_CARRY)
+	res := uint8(res16)
+
+	var mask uint8
+	if (res16 & 0x100) != 0 {
+		mask = mask | STATUS_FLAG_CARRY
+	}
+	if (c.acc^res)&(m^res)&0x80 != 0 {
+		mask = mask | STATUS_FLAG_OVERFLOW
+	}
+
+	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_OVERFLOW | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
+	c.flagsOn(mask)
+
+	c.acc = res
+	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *cpu) opAND(mode uint8) {
