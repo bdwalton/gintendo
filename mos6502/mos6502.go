@@ -114,227 +114,171 @@ const (
 	TYA        // Transfer Y to Accumulator
 )
 
-var opnames map[uint8]string = map[uint8]string{ADC: "ADC", AND: "AND", ASL: "ASL", BCC: "BCC", BCS: "BCS", BEQ: "BEQ", BIT: "BIT", BMI: "BMI", BNE: "BNE", BPL: "BPL", BRK: "BRK", BVC: "BVC", BVS: "BVS", CLC: "CLC", CLD: "CLD", CLI: "CLI", CLV: "CLV", CMP: "CMP", CPX: "CPX", CPY: "CPY", DEC: "DEC", DEX: "DEX", DEY: "DEY", EOR: "EOR", INC: "INC", INX: "INX", INY: "INY", JMP: "JMP", JSR: "JSR", LDA: "LDA", LDX: "LDX", LDY: "LDY", LSR: "LSR", NOP: "NOP", ORA: "ORA", PHA: "PHA", PHP: "PHP", PLA: "PLA", PLP: "PLP", ROL: "ROL", ROR: "ROR", RTI: "RTI", RTS: "RTS", SBC: "SBC", SEC: "SEC", SED: "SED", SEI: "SEI", STA: "STA", STX: "STX", STY: "STY", TAX: "TAX", TAY: "TAY", TSX: "TSX", TXA: "TXA", TXS: "TXS", TYA: "TYA"}
-
 type opcode struct {
-	inst    uint8 // The instruction
+	inst    uint8 // The instruction id
+	name    string
 	mode    uint8 // The memory addressing mode to use
 	bytes   uint8 // The number of bytes consumed by operands
 	_cycles uint8 // The number of cycles consumed by the instruction
 }
 
 func (o opcode) String() string {
-	return fmt.Sprintf("{%s, %s}", opnames[o.inst], modenames[o.mode])
+	return fmt.Sprintf("{%s, %s}", o.name, modenames[o.mode])
 }
 
 var opcodes map[uint8]opcode = map[uint8]opcode{
 	// ADC
-	0x69: opcode{ADC, IMMEDIATE, 2, 2},
-	0x65: opcode{ADC, ZERO_PAGE, 2, 3},
-	0x75: opcode{ADC, ZERO_PAGE_X, 2, 4},
-	0x6D: opcode{ADC, ABSOLUTE, 3, 4},
-	0x7D: opcode{ADC, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	0x79: opcode{ADC, ABSOLUTE_Y, 3, 4 /* +1 if page crossed*/},
-	0x61: opcode{ADC, INDIRECT_X, 2, 6},
-	0x71: opcode{ADC, INDIRECT_Y, 2, 5 /* +1 if page crossed*/},
-	// AND
-	0x29: opcode{AND, IMMEDIATE, 2, 2},
-	0x25: opcode{AND, ZERO_PAGE, 2, 3},
-	0x35: opcode{AND, ZERO_PAGE_X, 2, 4},
-	0x2D: opcode{AND, ABSOLUTE, 3, 4},
-	0x3D: opcode{AND, ABSOLUTE_X, 3, 4 /* + 1 if page crossed*/},
-	0x39: opcode{AND, ABSOLUTE_Y, 3, 4 /* +1 if page crossed*/},
-	0x21: opcode{AND, INDIRECT_X, 2, 6},
-	0x31: opcode{AND, INDIRECT_Y, 2, 5 /* +1 if page crossed*/},
-	// ASL
-	0x0A: opcode{ASL, ACCUMULATOR, 1, 2},
-	0x06: opcode{ASL, ZERO_PAGE, 2, 5},
-	0x16: opcode{ASL, ZERO_PAGE_X, 2, 6},
-	0x0E: opcode{ASL, ABSOLUTE, 3, 6},
-	0x1E: opcode{ASL, ABSOLUTE_X, 3, 7},
-	// BCC
-	0x90: opcode{BCC, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BCS
-	0xB0: opcode{BCS, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BEQ
-	0xF0: opcode{BEQ, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BIT
-	0x24: opcode{BIT, ZERO_PAGE, 2, 3},
-	0x2C: opcode{BIT, ABSOLUTE, 3, 4},
-	// BMI
-	0x30: opcode{BMI, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BNE
-	0xD0: opcode{BNE, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BPL
-	0x10: opcode{BPL, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BRK
-	0x00: opcode{BRK, IMPLICIT, 1, 7},
-	// BVC
-	0x50: opcode{BVC, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// BVS
-	0x70: opcode{BVS, RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
-	// CLC
-	0x18: opcode{CLC, IMPLICIT, 1, 2},
-	// CLD
-	0xD8: opcode{CLD, IMPLICIT, 1, 2},
-	// CLI
-	0x58: opcode{CLI, IMPLICIT, 1, 2},
-	// CLV
-	0xB8: opcode{CLV, IMPLICIT, 1, 2},
-	// CMP
-	0xC9: opcode{CMP, IMMEDIATE, 2, 2},
-	0xC5: opcode{CMP, ZERO_PAGE, 2, 3},
-	0xD5: opcode{CMP, ZERO_PAGE_X, 2, 4},
-	0xCD: opcode{CMP, ABSOLUTE, 3, 4},
-	0xDD: opcode{CMP, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	0xD9: opcode{CMP, ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
-	0xC1: opcode{CMP, INDIRECT_X, 2, 6},
-	0xD1: opcode{CMP, INDIRECT_Y, 2, 5 /* +1 if page crossed */},
-	// CPX
-	0xE0: opcode{CPX, IMMEDIATE, 2, 2},
-	0xE4: opcode{CPX, ZERO_PAGE, 2, 3},
-	0xEC: opcode{CPX, ABSOLUTE, 3, 4},
-	// CPY
-	0xC0: opcode{CPY, IMMEDIATE, 2, 2},
-	0xC4: opcode{CPY, ZERO_PAGE, 2, 3},
-	0xCC: opcode{CPY, ABSOLUTE, 3, 4},
-	// DEC
-	0xC6: opcode{DEC, ZERO_PAGE, 2, 5},
-	0xD6: opcode{DEC, ZERO_PAGE_X, 2, 6},
-	0xCE: opcode{DEC, ABSOLUTE, 3, 6},
-	0xDE: opcode{DEC, ABSOLUTE_X, 3, 7},
-	// DEX
-	0xCA: opcode{DEX, IMPLICIT, 1, 2},
-	// DEY
-	0x88: opcode{DEY, IMPLICIT, 1, 2},
-	// EOR
-	0x49: opcode{EOR, IMMEDIATE, 2, 2},
-	0x45: opcode{EOR, ZERO_PAGE, 2, 3},
-	0x55: opcode{EOR, ZERO_PAGE_X, 2, 4},
-	0x4D: opcode{EOR, ABSOLUTE, 3, 4},
-	0x5D: opcode{EOR, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	0x59: opcode{EOR, ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
-	0x41: opcode{EOR, INDIRECT_X, 2, 6},
-	0x51: opcode{EOR, INDIRECT_Y, 2, 5 /* +1 if page crossed */},
-	// INC
-	0xE6: opcode{INC, ZERO_PAGE, 2, 5},
-	0xF6: opcode{INC, ZERO_PAGE_X, 2, 6},
-	0xEE: opcode{INC, ABSOLUTE, 3, 6},
-	0xFE: opcode{INC, ABSOLUTE_X, 3, 7},
-	// INX
-	0xE8: opcode{INX, IMPLICIT, 1, 2},
-	// INY
-	0xC8: opcode{INY, IMPLICIT, 1, 2},
-	// JMP
-	0x4C: opcode{JMP, ABSOLUTE, 3, 3},
-	0x6C: opcode{JMP, INDIRECT, 3, 5},
-	// JSR
-	0x20: opcode{JSR, ABSOLUTE, 3, 6},
-	// LDA
-	0xA9: opcode{LDA, IMMEDIATE, 2, 2},
-	0xA5: opcode{LDA, ZERO_PAGE, 2, 3},
-	0xB5: opcode{LDA, ZERO_PAGE_X, 2, 4},
-	0xAD: opcode{LDA, ABSOLUTE, 3, 4},
-	0xBD: opcode{LDA, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	0xB9: opcode{LDA, ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
-	0xA1: opcode{LDA, INDIRECT_X, 2, 6},
-	0xB1: opcode{LDA, INDIRECT_Y, 2, 5 /* +1 if page crossed */},
-	// LDX
-	0xA2: opcode{LDX, IMMEDIATE, 2, 2},
-	0xA6: opcode{LDX, ZERO_PAGE, 2, 3},
-	0xB6: opcode{LDX, ZERO_PAGE_Y, 2, 4},
-	0xAE: opcode{LDX, ABSOLUTE, 3, 4},
-	0xBE: opcode{LDX, ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
-	// LDY
-	0xA0: opcode{LDY, IMMEDIATE, 2, 2},
-	0xA4: opcode{LDY, ZERO_PAGE, 2, 3},
-	0xB4: opcode{LDY, ZERO_PAGE_X, 2, 4},
-	0xAC: opcode{LDY, ABSOLUTE, 3, 4},
-	0xBC: opcode{LDY, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	// LSR
-	0x4A: opcode{LSR, ACCUMULATOR, 1, 2},
-	0x46: opcode{LSR, ZERO_PAGE, 2, 5},
-	0x56: opcode{LSR, ZERO_PAGE_X, 2, 6},
-	0x4E: opcode{LSR, ABSOLUTE, 3, 6},
-	0x5E: opcode{LSR, ABSOLUTE_X, 3, 7},
-	// NOP
-	0xEA: opcode{NOP, IMPLICIT, 1, 2},
-	// ORA
-	0x09: opcode{ORA, IMMEDIATE, 2, 2},
-	0x05: opcode{ORA, ZERO_PAGE, 2, 3},
-	0x15: opcode{ORA, ZERO_PAGE_X, 3, 4},
-	0x0D: opcode{ORA, ABSOLUTE, 3, 4},
-	0x1D: opcode{ORA, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	0x19: opcode{ORA, ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
-	0x01: opcode{ORA, INDIRECT_X, 2, 6},
-	0x11: opcode{ORA, INDIRECT_Y, 2, 5 /* +1 if page crossed */},
-	// PHA
-	0x48: opcode{PHA, IMPLICIT, 1, 3},
-	// PHP
-	0x08: opcode{PHP, IMPLICIT, 1, 3},
-	// PLA
-	0x68: opcode{PLA, IMPLICIT, 1, 4},
-	// PLP
-	0x28: opcode{PLP, IMPLICIT, 1, 4},
-	// ROL
-	0x2A: opcode{ROL, ACCUMULATOR, 1, 2},
-	0x26: opcode{ROL, ZERO_PAGE, 2, 5},
-	0x36: opcode{ROL, ZERO_PAGE_X, 2, 6},
-	0x2E: opcode{ROL, ABSOLUTE, 3, 6},
-	0x3E: opcode{ROL, ABSOLUTE_X, 3, 7},
-	// ROR
-	0x6A: opcode{ROR, ACCUMULATOR, 1, 2},
-	0x66: opcode{ROR, ZERO_PAGE, 2, 5},
-	0x76: opcode{ROR, ZERO_PAGE_X, 2, 6},
-	0x6E: opcode{ROR, ABSOLUTE, 3, 6},
-	0x7E: opcode{ROR, ABSOLUTE_X, 3, 7},
-	// RTI
-	0x40: opcode{RTI, IMPLICIT, 1, 6},
-	// RTS
-	0x60: opcode{RTS, IMPLICIT, 1, 6},
-	// SBC
-	0xE9: opcode{SBC, IMMEDIATE, 2, 2},
-	0xE5: opcode{SBC, ZERO_PAGE, 2, 3},
-	0xF5: opcode{SBC, ZERO_PAGE_X, 2, 4},
-	0xED: opcode{SBC, ABSOLUTE, 3, 4},
-	0xFD: opcode{SBC, ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
-	0xF9: opcode{SBC, ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
-	0xE1: opcode{SBC, INDIRECT_X, 2, 6},
-	0xF1: opcode{SBC, INDIRECT_Y, 2, 5 /* +1 if page crossed */},
-	// SEC
-	0x38: opcode{SEC, IMPLICIT, 1, 2},
-	// SED
-	0xF8: opcode{SED, IMPLICIT, 1, 2},
-	// SEI
-	0x78: opcode{SEI, IMPLICIT, 1, 2},
-	// STA
-	0x85: opcode{STA, ZERO_PAGE, 2, 3},
-	0x95: opcode{STA, ZERO_PAGE_X, 2, 4},
-	0x8D: opcode{STA, ABSOLUTE, 3, 4},
-	0x9D: opcode{STA, ABSOLUTE_X, 3, 5},
-	0x99: opcode{STA, ABSOLUTE_Y, 3, 5},
-	0x81: opcode{STA, INDIRECT_X, 2, 6},
-	0x91: opcode{STA, INDIRECT_Y, 2, 6},
-	// STX
-	0x86: opcode{STX, ZERO_PAGE, 2, 3},
-	0x96: opcode{STX, ZERO_PAGE_Y, 2, 4},
-	0x8E: opcode{STX, ABSOLUTE, 3, 4},
-	// STY
-	0x84: opcode{STY, ZERO_PAGE, 2, 3},
-	0x94: opcode{STY, ZERO_PAGE_X, 2, 4},
-	0x8C: opcode{STY, ABSOLUTE, 3, 4},
-	// TAX
-	0xAA: opcode{TAX, IMPLICIT, 1, 2},
-	// TAY
-	0xA8: opcode{TAY, IMPLICIT, 1, 2},
-	// TSX
-	0xBA: opcode{TSX, IMPLICIT, 1, 2},
-	// TXA
-	0x8A: opcode{TXA, IMPLICIT, 1, 2},
-	// TXS:
-	0x9A: opcode{TXS, IMPLICIT, 1, 2},
-	// TYA
-	0x98: opcode{TYA, IMPLICIT, 1, 2},
+	0x69: opcode{ADC, "ADC", IMMEDIATE, 2, 2},
+	0x65: opcode{ADC, "ADC", ZERO_PAGE, 2, 3},
+	0x75: opcode{ADC, "ADC", ZERO_PAGE_X, 2, 4},
+	0x6D: opcode{ADC, "ADC", ABSOLUTE, 3, 4},
+	0x7D: opcode{ADC, "ADC", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0x79: opcode{ADC, "ADC", ABSOLUTE_Y, 3, 4 /* +1 if page crossed*/},
+	0x61: opcode{ADC, "ADC", INDIRECT_X, 2, 6},
+	0x71: opcode{ADC, "ADC", INDIRECT_Y, 2, 5 /* +1 if page crossed*/},
+	0x29: opcode{AND, "AND", IMMEDIATE, 2, 2},
+	0x25: opcode{AND, "AND", ZERO_PAGE, 2, 3},
+	0x35: opcode{AND, "AND", ZERO_PAGE_X, 2, 4},
+	0x2D: opcode{AND, "AND", ABSOLUTE, 3, 4},
+	0x3D: opcode{AND, "AND", ABSOLUTE_X, 3, 4 /* + 1 if page crossed*/},
+	0x39: opcode{AND, "AND", ABSOLUTE_Y, 3, 4 /* +1 if page crossed*/},
+	0x21: opcode{AND, "AND", INDIRECT_X, 2, 6},
+	0x31: opcode{AND, "AND", INDIRECT_Y, 2, 5 /* +1 if page crossed*/},
+	0x0A: opcode{ASL, "ASL", ACCUMULATOR, 1, 2},
+	0x06: opcode{ASL, "ASL", ZERO_PAGE, 2, 5},
+	0x16: opcode{ASL, "ASL", ZERO_PAGE_X, 2, 6},
+	0x0E: opcode{ASL, "ASL", ABSOLUTE, 3, 6},
+	0x1E: opcode{ASL, "ASL", ABSOLUTE_X, 3, 7},
+	0x90: opcode{BCC, "BCC", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0xB0: opcode{BCS, "BCS", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0xF0: opcode{BEQ, "BEQ", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0x24: opcode{BIT, "BIT", ZERO_PAGE, 2, 3},
+	0x2C: opcode{BIT, "BIT", ABSOLUTE, 3, 4},
+	0x30: opcode{BMI, "BMI", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0xD0: opcode{BNE, "BNE", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0x10: opcode{BPL, "BPL", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0x00: opcode{BRK, "BRK", IMPLICIT, 1, 7},
+	0x50: opcode{BVC, "BVC", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0x70: opcode{BVS, "BVS", RELATIVE, 2, 2 /* +1 if branch successes +2 if to a new page */},
+	0x18: opcode{CLC, "CLC", IMPLICIT, 1, 2},
+	0xD8: opcode{CLD, "CLD", IMPLICIT, 1, 2},
+	0x58: opcode{CLI, "CLI", IMPLICIT, 1, 2},
+	0xB8: opcode{CLV, "CLV", IMPLICIT, 1, 2},
+	0xC9: opcode{CMP, "CMP", IMMEDIATE, 2, 2},
+	0xC5: opcode{CMP, "CMP", ZERO_PAGE, 2, 3},
+	0xD5: opcode{CMP, "CMP", ZERO_PAGE_X, 2, 4},
+	0xCD: opcode{CMP, "CMP", ABSOLUTE, 3, 4},
+	0xDD: opcode{CMP, "CMP", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0xD9: opcode{CMP, "CMP", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
+	0xC1: opcode{CMP, "CMP", INDIRECT_X, 2, 6},
+	0xD1: opcode{CMP, "CMP", INDIRECT_Y, 2, 5 /* +1 if page crossed */},
+	0xE0: opcode{CPX, "CPX", IMMEDIATE, 2, 2},
+	0xE4: opcode{CPX, "CPX", ZERO_PAGE, 2, 3},
+	0xEC: opcode{CPX, "CPX", ABSOLUTE, 3, 4},
+	0xC0: opcode{CPY, "CPY", IMMEDIATE, 2, 2},
+	0xC4: opcode{CPY, "CPY", ZERO_PAGE, 2, 3},
+	0xCC: opcode{CPY, "CPY", ABSOLUTE, 3, 4},
+	0xC6: opcode{DEC, "DEC", ZERO_PAGE, 2, 5},
+	0xD6: opcode{DEC, "DEC", ZERO_PAGE_X, 2, 6},
+	0xCE: opcode{DEC, "DEC", ABSOLUTE, 3, 6},
+	0xDE: opcode{DEC, "DEC", ABSOLUTE_X, 3, 7},
+	0xCA: opcode{DEX, "DEX", IMPLICIT, 1, 2},
+	0x88: opcode{DEY, "DEY", IMPLICIT, 1, 2},
+	0x49: opcode{EOR, "EOR", IMMEDIATE, 2, 2},
+	0x45: opcode{EOR, "EOR", ZERO_PAGE, 2, 3},
+	0x55: opcode{EOR, "EOR", ZERO_PAGE_X, 2, 4},
+	0x4D: opcode{EOR, "EOR", ABSOLUTE, 3, 4},
+	0x5D: opcode{EOR, "EOR", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0x59: opcode{EOR, "EOR", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
+	0x41: opcode{EOR, "EOR", INDIRECT_X, 2, 6},
+	0x51: opcode{EOR, "EOR", INDIRECT_Y, 2, 5 /* +1 if page crossed */},
+	0xE6: opcode{INC, "INC", ZERO_PAGE, 2, 5},
+	0xF6: opcode{INC, "INC", ZERO_PAGE_X, 2, 6},
+	0xEE: opcode{INC, "INC", ABSOLUTE, 3, 6},
+	0xFE: opcode{INC, "INC", ABSOLUTE_X, 3, 7},
+	0xE8: opcode{INX, "INX", IMPLICIT, 1, 2},
+	0xC8: opcode{INY, "INY", IMPLICIT, 1, 2},
+	0x4C: opcode{JMP, "JMP", ABSOLUTE, 3, 3},
+	0x6C: opcode{JMP, "JMP", INDIRECT, 3, 5},
+	0x20: opcode{JSR, "JSR", ABSOLUTE, 3, 6},
+	0xA9: opcode{LDA, "LDA", IMMEDIATE, 2, 2},
+	0xA5: opcode{LDA, "LDA", ZERO_PAGE, 2, 3},
+	0xB5: opcode{LDA, "LDA", ZERO_PAGE_X, 2, 4},
+	0xAD: opcode{LDA, "LDA", ABSOLUTE, 3, 4},
+	0xBD: opcode{LDA, "LDA", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0xB9: opcode{LDA, "LDA", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
+	0xA1: opcode{LDA, "LDA", INDIRECT_X, 2, 6},
+	0xB1: opcode{LDA, "LDA", INDIRECT_Y, 2, 5 /* +1 if page crossed */},
+	0xA2: opcode{LDX, "LDX", IMMEDIATE, 2, 2},
+	0xA6: opcode{LDX, "LDX", ZERO_PAGE, 2, 3},
+	0xB6: opcode{LDX, "LDX", ZERO_PAGE_Y, 2, 4},
+	0xAE: opcode{LDX, "LDX", ABSOLUTE, 3, 4},
+	0xBE: opcode{LDX, "LDX", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
+	0xA0: opcode{LDY, "LDY", IMMEDIATE, 2, 2},
+	0xA4: opcode{LDY, "LDY", ZERO_PAGE, 2, 3},
+	0xB4: opcode{LDY, "LDY", ZERO_PAGE_X, 2, 4},
+	0xAC: opcode{LDY, "LDY", ABSOLUTE, 3, 4},
+	0xBC: opcode{LDY, "LDY", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0x4A: opcode{LSR, "LSR", ACCUMULATOR, 1, 2},
+	0x46: opcode{LSR, "LSR", ZERO_PAGE, 2, 5},
+	0x56: opcode{LSR, "LSR", ZERO_PAGE_X, 2, 6},
+	0x4E: opcode{LSR, "LSR", ABSOLUTE, 3, 6},
+	0x5E: opcode{LSR, "LSR", ABSOLUTE_X, 3, 7},
+	0xEA: opcode{NOP, "NOP", IMPLICIT, 1, 2},
+	0x09: opcode{ORA, "ORA", IMMEDIATE, 2, 2},
+	0x05: opcode{ORA, "ORA", ZERO_PAGE, 2, 3},
+	0x15: opcode{ORA, "ORA", ZERO_PAGE_X, 3, 4},
+	0x0D: opcode{ORA, "ORA", ABSOLUTE, 3, 4},
+	0x1D: opcode{ORA, "ORA", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0x19: opcode{ORA, "ORA", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
+	0x01: opcode{ORA, "ORA", INDIRECT_X, 2, 6},
+	0x11: opcode{ORA, "ORA", INDIRECT_Y, 2, 5 /* +1 if page crossed */},
+	0x48: opcode{PHA, "PHA", IMPLICIT, 1, 3},
+	0x08: opcode{PHP, "PHP", IMPLICIT, 1, 3},
+	0x68: opcode{PLA, "PLA", IMPLICIT, 1, 4},
+	0x28: opcode{PLP, "PLP", IMPLICIT, 1, 4},
+	0x2A: opcode{ROL, "ROL", ACCUMULATOR, 1, 2},
+	0x26: opcode{ROL, "ROL", ZERO_PAGE, 2, 5},
+	0x36: opcode{ROL, "ROL", ZERO_PAGE_X, 2, 6},
+	0x2E: opcode{ROL, "ROL", ABSOLUTE, 3, 6},
+	0x3E: opcode{ROL, "ROL", ABSOLUTE_X, 3, 7},
+	0x6A: opcode{ROR, "ROR", ACCUMULATOR, 1, 2},
+	0x66: opcode{ROR, "ROR", ZERO_PAGE, 2, 5},
+	0x76: opcode{ROR, "ROR", ZERO_PAGE_X, 2, 6},
+	0x6E: opcode{ROR, "ROR", ABSOLUTE, 3, 6},
+	0x7E: opcode{ROR, "ROR", ABSOLUTE_X, 3, 7},
+	0x40: opcode{RTI, "RTI", IMPLICIT, 1, 6},
+	0x60: opcode{RTS, "RTS", IMPLICIT, 1, 6},
+	0xE9: opcode{SBC, "SBC", IMMEDIATE, 2, 2},
+	0xE5: opcode{SBC, "SBC", ZERO_PAGE, 2, 3},
+	0xF5: opcode{SBC, "SBC", ZERO_PAGE_X, 2, 4},
+	0xED: opcode{SBC, "SBC", ABSOLUTE, 3, 4},
+	0xFD: opcode{SBC, "SBC", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
+	0xF9: opcode{SBC, "SBC", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
+	0xE1: opcode{SBC, "SBC", INDIRECT_X, 2, 6},
+	0xF1: opcode{SBC, "SBC", INDIRECT_Y, 2, 5 /* +1 if page crossed */},
+	0x38: opcode{SEC, "SEC", IMPLICIT, 1, 2},
+	0xF8: opcode{SED, "SED", IMPLICIT, 1, 2},
+	0x78: opcode{SEI, "SEI", IMPLICIT, 1, 2},
+	0x85: opcode{STA, "STA", ZERO_PAGE, 2, 3},
+	0x95: opcode{STA, "STA", ZERO_PAGE_X, 2, 4},
+	0x8D: opcode{STA, "STA", ABSOLUTE, 3, 4},
+	0x9D: opcode{STA, "STA", ABSOLUTE_X, 3, 5},
+	0x99: opcode{STA, "STA", ABSOLUTE_Y, 3, 5},
+	0x81: opcode{STA, "STA", INDIRECT_X, 2, 6},
+	0x91: opcode{STA, "STA", INDIRECT_Y, 2, 6},
+	0x86: opcode{STX, "STX", ZERO_PAGE, 2, 3},
+	0x96: opcode{STX, "STX", ZERO_PAGE_Y, 2, 4},
+	0x8E: opcode{STX, "STX", ABSOLUTE, 3, 4},
+	0x84: opcode{STY, "STY", ZERO_PAGE, 2, 3},
+	0x94: opcode{STY, "STY", ZERO_PAGE_X, 2, 4},
+	0x8C: opcode{STY, "STY", ABSOLUTE, 3, 4},
+	0xAA: opcode{TAX, "TAX", IMPLICIT, 1, 2},
+	0xA8: opcode{TAY, "TAY", IMPLICIT, 1, 2},
+	0xBA: opcode{TSX, "TSX", IMPLICIT, 1, 2},
+	0x8A: opcode{TXA, "TXA", IMPLICIT, 1, 2},
+	0x9A: opcode{TXS, "TXS", IMPLICIT, 1, 2},
+	0x98: opcode{TYA, "TYA", IMPLICIT, 1, 2},
 }
 
 // How much addressable memory we have

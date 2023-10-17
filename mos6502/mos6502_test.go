@@ -187,9 +187,9 @@ func TestGetInst(t *testing.T) {
 		want    opcode
 		wantErr error
 	}{
-		{0x00, opcode{BRK, IMPLICIT, 1, 7}, nil},
-		{0x24, opcode{BIT, ZERO_PAGE, 2, 3}, nil},
-		{0x02, opcode{BRK, IMPLICIT, 1, 7}, invalidInstruction},
+		{0x00, opcode{BRK, "BRK", IMPLICIT, 1, 7}, nil},
+		{0x24, opcode{BIT, "BIT", ZERO_PAGE, 2, 3}, nil},
+		{0x02, opcode{BRK, "BRK", IMPLICIT, 1, 7}, invalidInstruction},
 	}
 
 	for i, tc := range cases {
