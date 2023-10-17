@@ -338,7 +338,7 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 }
 
 // How much addressable memory we have
-const MEM_SIZE = math.MaxUint16
+const MEM_SIZE = math.MaxUint16 + 1
 
 // type cpu implements all of the machine state for the 6502
 type cpu struct {
@@ -347,7 +347,7 @@ type cpu struct {
 	status uint8  // a register for storing various status bits
 	sp     uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
 	pc     uint16 // the program counter
-	memory [MEM_SIZE + 1]uint8
+	memory [MEM_SIZE]uint8
 }
 
 func (c *cpu) String() string {
