@@ -26,6 +26,7 @@ const (
 	STATUS_FLAG_INTERRUPT_DISABLE = 1 << 2 // I
 	STATUS_FLAG_DECIMAL           = 1 << 3 // D
 	STATUS_FLAG_BREAK             = 1 << 4 // B
+	UNUSED_STATUS_FLAG            = 1 << 5 // This is never used but is always on
 	STATUS_FLAG_OVERFLOW          = 1 << 6 // V
 	STATUS_FLAG_NEGATIVE          = 1 << 7 // N
 )
@@ -379,6 +380,13 @@ func (c *cpu) getOperandAddr(mode uint8) uint16 {
 		panic("Invalid addressing mode")
 
 	}
+}
+
+func (c *cpu) reset() {
+	// Reset is the only time we should ever touch the unused flag
+	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
+	c.pc = c.memRead16(INT_RESET)
+	c.flagsOff(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
 func (c *cpu) step() {
