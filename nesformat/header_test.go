@@ -1,4 +1,4 @@
-package ines
+package nesFormat
 
 import (
 	"reflect"
