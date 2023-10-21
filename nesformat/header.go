@@ -28,7 +28,7 @@ type Header struct {
 	// Flags 10 – TV system, PRG-RAM presence (unofficial, rarely used extension)
 	flags10 uint8
 	// Bytes 11-15	Unused padding (should be filled with zero, but some rippers put their name across bytes 7-15)
-	unused string
+	unused []byte
 }
 
 // flag6 flag identifiers - the top 4 bits are the lower nibble of the mapper number
@@ -148,5 +148,6 @@ func parseHeader(hbytes []byte) *Header {
 		flags8:   uint8(hbytes[8]),
 		flags9:   uint8(hbytes[9]),
 		flags10:  uint8(hbytes[10]),
+		unused:   []byte(hbytes[11:]),
 	}
 }
