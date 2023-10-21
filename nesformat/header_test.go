@@ -89,3 +89,23 @@ func TestHasTrainer(t *testing.T) {
 		}
 	}
 }
+
+func TestHasPlayChoice10(t *testing.T) {
+	h := &Header{constant: "NES\x1A"}
+	cases := []struct {
+		flags7 uint8 // where the playchoice10 bit is stored
+		want   bool
+	}{
+		{0xFF, true},
+		{0x02, true},
+		{0x0D, false},
+		{0x01, false},
+	}
+
+	for i, tc := range cases {
+		h.flags7 = tc.flags7
+		if got := h.HasPlayChoice(); got != tc.want {
+			t.Errorf("%d: Got %t, want %t", i, got, tc.want)
+		}
+	}
+}
