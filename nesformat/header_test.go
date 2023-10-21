@@ -44,3 +44,30 @@ func TestNES2Format(t *testing.T) {
 		}
 	}
 }
+
+func TestMapperNum(t *testing.T) {
+	h := &Header{constant: "NES\x1A"}
+	cases := []struct {
+		flags6, flags7          uint8 // where the mapper num is assembled from
+		flags8, flags9, flags10 uint8 // other flag compontents that can influence outcome
+		want                    uint8
+	}{
+		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		{0x0F, 0x00, 0x00, 0x00, 0x00, 0x00}, // last 4 bytes 0, other bits in flag6
+		{0xFF, 0x00, 0x00, 0x00, 0x00, 0x0F}, // last 4 bytes 0
+		{0xFF, 0xF0, 0x00, 0x00, 0x00, 0x0F}, // last 4 bytes 0, but not NES2
+		{0xFF, 0xF8, 0x00, 0x00, 0x00, 0xFF}, // NES2
+		{0xCF, 0xC8, 0x00, 0x00, 0x00, 0xCC}, // NES2
+	}
+
+	for i, tc := range cases {
+		h.flags6 = tc.flags6
+		h.flags7 = tc.flags7
+		h.flags8 = tc.flags8
+		h.flags9 = tc.flags9
+		h.flags10 = tc.flags10
+		if got := h.MapperNum(); got != tc.want {
+			t.Errorf("%d: Got %d, want %d", i, got, tc.want)
+		}
+	}
+}
