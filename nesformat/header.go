@@ -2,6 +2,10 @@
 // https://www.nesdev.org/wiki/INES
 package nesFormat
 
+import (
+	"fmt"
+)
+
 type Header struct {
 	// Bytes 0-3
 	// Constant $4E $45 $53 $1A (ASCII "NES" followed by MS-DOS end-of-file)
@@ -64,6 +68,10 @@ const (
 	HORIZONTAL
 	FOUR_SCREEN
 )
+
+func (h *Header) String() string {
+	return fmt.Sprintf("%s, prg(%d), chr(%d), flags(%02x, %02x, %02x, %02x, %02x)", h.constant, h.prgSize, h.chrSize, h.flags6, h.flags7, h.flags8, h.flags9, h.flags10)
+}
 
 // HasTrainer indicates whether the NES ROM contains a Trainer
 func (h *Header) HasTrainer() bool {
