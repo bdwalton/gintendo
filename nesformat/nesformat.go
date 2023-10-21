@@ -62,5 +62,5 @@ func New(inesData io.Reader) (*ROM, error) {
 }
 
 func (h *Header) String() string {
-	return fmt.Sprintf("%s, prg(%d), chr(%d), flags(%d, %d, %d, %d, %d)", h.constant, h.prgSize, h.chrSize, h.flags6, h.flags7, h.flags8, h.flags9, h.flags10)
+	return fmt.Sprintf("%s, prg(%d), chr(%d), flags(%02x, %02x, %02x, %02x, %02x)", h.constant, h.prgSize, h.chrSize, h.flags6, h.flags7, h.flags8, h.flags9, h.flags10)
 }
