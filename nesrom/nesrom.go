@@ -92,3 +92,15 @@ func (r *ROM) String() string {
 
 	return sb.String()
 }
+
+func (r *ROM) PrgRead(addr uint16) uint8 {
+	return r.prg[addr]
+}
+
+func (r *ROM) PrgWrite(addr uint16, val uint8) {
+	r.prg[addr] = val
+}
+
+func (r *ROM) MapperNum() uint8 {
+	return r.h.MapperNum()
+}
