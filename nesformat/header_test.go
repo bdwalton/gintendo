@@ -69,3 +69,23 @@ func TestMapperNum(t *testing.T) {
 		}
 	}
 }
+
+func TestHasTrainer(t *testing.T) {
+	h := &Header{constant: "NES\x1A"}
+	cases := []struct {
+		flags6 uint8 // where the trainer bit is stored
+		want   bool
+	}{
+		{0xFF, true},
+		{0x04, true},
+		{0x0C, true},
+		{0x0A, false},
+	}
+
+	for i, tc := range cases {
+		h.flags6 = tc.flags6
+		if got := h.HasTrainer(); got != tc.want {
+			t.Errorf("%d: Got %t, want %t", i, got, tc.want)
+		}
+	}
+}
