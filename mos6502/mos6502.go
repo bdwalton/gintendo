@@ -8,6 +8,8 @@ import (
 	"math"
 	"math/bits"
 	"reflect"
+
+	"github.com/bdwalton/gintendo/mappers"
 )
 
 // 6502 Interrupt Vectors
@@ -293,15 +295,15 @@ type cpu struct {
 	status uint8  // a register for storing various status bits
 	sp     uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
 	pc     uint16 // the program counter
-	memory [MEM_SIZE]uint8
+	mem    mappers.Mapper
 }
 
 func (c *cpu) String() string {
-	return fmt.Sprintf("ACC: %d, X: %d, Y: %d, SP: %d, PC: %d, Inst: %s", c.acc, c.x, c.y, c.sp, c.pc, opcodes[c.memory[c.pc]])
+	return fmt.Sprintf("ACC: %d, X: %d, Y: %d, SP: %d, PC: %d, Inst: %s", c.acc, c.x, c.y, c.sp, c.pc, opcodes[c.mem.MemRead(c.pc)])
 }
 
-func New() *cpu {
-	return &cpu{sp: 0xFF}
+func New(m mappers.Mapper) *cpu {
+	return &cpu{sp: 0xFF, mem: m}
 }
 
 var invalidInstruction = errors.New("invalid instruction")
@@ -318,18 +320,23 @@ func (c *cpu) getInst() (opcode, error) {
 
 // memRead returns the byte from memory at addr
 func (c *cpu) memRead(addr uint16) uint8 {
-	return c.memory[addr]
+	return c.mem.MemRead(addr)
 }
 
 // memRange returns a slice of memory addresses from low to
 // high. Mostly useful for debugging.
 func (c *cpu) memRange(low, high uint16) []uint8 {
-	return c.memory[low : high+1]
+	ret := make([]uint8, high-low)
+	for i := low; i <= high; i += 1 {
+		ret = append(ret, c.mem.MemRead(uint16(i)))
+	}
+
+	return ret
 }
 
 // writeMem writes val to memory at addr
 func (c *cpu) writeMem(addr uint16, val uint8) {
-	c.memory[addr] = val
+	c.mem.MemWrite(addr, val)
 }
 
 // memRead16 returns the two bytes from memory at addr (lower byte is
