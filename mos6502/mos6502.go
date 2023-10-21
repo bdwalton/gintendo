@@ -643,7 +643,7 @@ func (c *cpu) INY(mode uint8) {
 }
 
 func (c *cpu) JMP(mode uint8) {
-	c.pc = c.memRead16(c.getOperandAddr(mode))
+	c.pc = c.getOperandAddr(mode)
 }
 
 func (c *cpu) JSR(mode uint8) {

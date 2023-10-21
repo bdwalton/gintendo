@@ -898,9 +898,8 @@ func TestOpJMP(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = tc.pc
-
-		c.writeMem16(c.getOperandAddr(ABSOLUTE), tc.target)
-		c.writeMem16(c.getOperandAddr(INDIRECT), tc.target2)
+		c.writeMem16(c.pc, tc.target)
+		c.writeMem16(c.getOperandAddr(ABSOLUTE), tc.target2)
 
 		c.JMP(tc.mode)
 		if c.pc != tc.wantPC {
