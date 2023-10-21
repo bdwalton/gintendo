@@ -25,6 +25,8 @@ const (
 	TRAINER_SIZE   = 512
 	PRG_BLOCK_SIZE = 16384
 	CHR_BLOCK_SIZE = 8192
+	PC_INST_SIZE   = 8192
+	PC_PROM_SIZE   = 32
 )
 
 func New(inesData io.Reader) (*ROM, error) {
@@ -56,6 +58,21 @@ func New(inesData io.Reader) (*ROM, error) {
 	i.chr = make([]byte, s)
 	if n, err := inesData.Read(i.chr); n != s || err != nil {
 		return nil, fmt.Errorf("error reading CHR ROM (read %d, wanted %d): %w", n, s, err)
+	}
+
+	if i.h.HasPlayChoice() {
+		i.pcInstRom = make([]byte, PC_INST_SIZE)
+		if n, err := inesData.Read(i.pcInstRom); n != PC_INST_SIZE || err != nil {
+			return nil, fmt.Errorf("error reading PlayChoice INSt ROM (n=%d; wanted %d): %w", n, PC_INST_SIZE, err)
+		}
+
+		// Some old ROMs may not have this, so bailing might
+		// be bad. But these should be rare, so we'll do the
+		// technically correct thing for now.
+		pcprom := make([]byte, PC_PROM_SIZE)
+		if n, err := inesData.Read(pcprom); n != PC_PROM_SIZE || err != nil {
+			return nil, fmt.Errorf("error reading PlayChoice PROM (n=%d, wanted %d): %w", n, PC_PROM_SIZE, err)
+		}
 	}
 
 	return i, nil
