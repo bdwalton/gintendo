@@ -18,12 +18,12 @@ type mapper0 struct {
 	rom *nesrom.ROM
 }
 
-func (m *mapper0) MemWrite(addr uint16, val uint8) {
-
-}
-
 func (m *mapper0) Name() string {
 	return m.Name()
+}
+
+func (m *mapper0) MemWrite(addr uint16, val uint8) {
+
 }
 
 func (m mapper0) MemRead(addr uint16) uint8 {
