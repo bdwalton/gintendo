@@ -386,7 +386,6 @@ func (c *cpu) reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
 	c.pc = c.memRead16(INT_RESET)
-	c.flagsOff(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
 func (c *cpu) step() {

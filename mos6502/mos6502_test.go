@@ -218,8 +218,8 @@ func TestReset(t *testing.T) {
 		c.writeMem16(INT_RESET, tc.int_reset_pc)
 		c.reset()
 
-		if c.pc != tc.wantPC || c.status != 0x20 {
-			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, 0x20)
+		if c.pc != tc.wantPC || c.status != 0x24 {
+			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, 0x24)
 		}
 	}
 
