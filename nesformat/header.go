@@ -120,12 +120,19 @@ func (h *Header) IsNES2Format() bool {
 // emulator should either mask off the upper 4 bits of the mapper
 // number or simply refuse to load the ROM.
 func (h *Header) ignoreHighNibble() bool {
-	fs := h.flags7 + h.flags8 + h.flags9 + h.flags10
-	if fs == 0 || h.IsNES2Format() {
-		return false
+	lfbz := true // last 4 bytes zero
+	for _, x := range h.unused[1:] {
+		if x != 0x00 {
+			lfbz = false
+			break
+		}
 	}
 
-	return true
+	if !lfbz && !h.IsNES2Format() {
+		return true
+	}
+
+	return false
 }
 
 // MapperNum returns the mapper number which is constructed of the
