@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"reflect"
 )
 
 // 6502 Interrupt Vectors
@@ -397,120 +398,8 @@ func (c *cpu) step() {
 
 	c.pc += 1
 
-	switch op.inst {
-	case ADC:
-		c.opADC(op.mode)
-	case AND:
-		c.opAND(op.mode)
-	case ASL:
-		c.opASL(op.mode)
-	case BCC:
-		c.opBCC(op.mode)
-	case BCS:
-		c.opBCS(op.mode)
-	case BEQ:
-		c.opBEQ(op.mode)
-	case BIT:
-		c.opBIT(op.mode)
-	case BMI:
-		c.opBMI(op.mode)
-	case BNE:
-		c.opBNE(op.mode)
-	case BPL:
-		c.opBPL(op.mode)
-	case BRK:
-		c.opBRK(op.mode)
-	case BVC:
-		c.opBVC(op.mode)
-	case BVS:
-		c.opBVS(op.mode)
-	case CLC:
-		c.opCLC(op.mode)
-	case CLD:
-		c.opCLD(op.mode)
-	case CLI:
-		c.opCLI(op.mode)
-	case CLV:
-		c.opCLV(op.mode)
-	case CMP:
-		c.opCMP(op.mode)
-	case CPX:
-		c.opCPX(op.mode)
-	case CPY:
-		c.opCPY(op.mode)
-	case DEC:
-		c.opDEC(op.mode)
-	case DEX:
-		c.opDEX(op.mode)
-	case DEY:
-		c.opDEY(op.mode)
-	case EOR:
-		c.opEOR(op.mode)
-	case INC:
-		c.opINC(op.mode)
-	case INX:
-		c.opINX(op.mode)
-	case INY:
-		c.opINY(op.mode)
-	case JMP:
-		c.opJMP(op.mode)
-	case JSR:
-		c.opJSR(op.mode)
-	case LDA:
-		c.opLDA(op.mode)
-	case LDX:
-		c.opLDX(op.mode)
-	case LDY:
-		c.opLDY(op.mode)
-	case LSR:
-		c.opLSR(op.mode)
-	case NOP:
-		c.opNOP(op.mode)
-	case ORA:
-		c.opORA(op.mode)
-	case PHA:
-		c.opPHA(op.mode)
-	case PHP:
-		c.opPHP(op.mode)
-	case PLA:
-		c.opPLA(op.mode)
-	case PLP:
-		c.opPLP(op.mode)
-	case ROL:
-		c.opROL(op.mode)
-	case ROR:
-		c.opROR(op.mode)
-	case RTI:
-		c.opRTI(op.mode)
-	case RTS:
-		c.opRTS(op.mode)
-	case SEC:
-		c.opSEC(op.mode)
-	case SED:
-		c.opSED(op.mode)
-	case SEI:
-		c.opSEI(op.mode)
-	case STA:
-		c.opSTA(op.mode)
-	case STX:
-		c.opSTX(op.mode)
-	case STY:
-		c.opSTY(op.mode)
-	case TAX:
-		c.opTAX(op.mode)
-	case TAY:
-		c.opTAY(op.mode)
-	case TSX:
-		c.opTSX(op.mode)
-	case TXA:
-		c.opTXA(op.mode)
-	case TXS:
-		c.opTXS(op.mode)
-	case TYA:
-		c.opTYA(op.mode)
-	default:
-		panic(fmt.Errorf("unimplemented instruction %s", op))
-	}
+	v := reflect.ValueOf(c)
+	v.MethodByName(op.name).Call([]reflect.Value{reflect.ValueOf(op.mode)})
 }
 
 // setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
@@ -606,16 +495,16 @@ func (c *cpu) baseCMP(a, b uint8) {
 	}
 }
 
-func (c *cpu) opADC(mode uint8) {
+func (c *cpu) ADC(mode uint8) {
 	c.addWithOverflow(c.memRead(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) opAND(mode uint8) {
+func (c *cpu) AND(mode uint8) {
 	c.acc = c.acc & c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) opASL(mode uint8) {
+func (c *cpu) ASL(mode uint8) {
 	var ov, nv uint8 // old value, new value
 	switch mode {
 	case ACCUMULATOR:
@@ -636,19 +525,19 @@ func (c *cpu) opASL(mode uint8) {
 	}
 }
 
-func (c *cpu) opBCC(mode uint8) {
+func (c *cpu) BCC(mode uint8) {
 	c.branch(STATUS_FLAG_CARRY, false)
 }
 
-func (c *cpu) opBCS(mode uint8) {
+func (c *cpu) BCS(mode uint8) {
 	c.branch(STATUS_FLAG_CARRY, true)
 }
 
-func (c *cpu) opBEQ(mode uint8) {
+func (c *cpu) BEQ(mode uint8) {
 	c.branch(STATUS_FLAG_ZERO, true)
 }
 
-func (c *cpu) opBIT(mode uint8) {
+func (c *cpu) BIT(mode uint8) {
 	o := c.memRead(c.getOperandAddr(mode))
 
 	c.flagsOff(STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW | STATUS_FLAG_ZERO)
@@ -661,123 +550,123 @@ func (c *cpu) opBIT(mode uint8) {
 	c.flagsOn(flags)
 }
 
-func (c *cpu) opBMI(mode uint8) {
+func (c *cpu) BMI(mode uint8) {
 	c.branch(STATUS_FLAG_NEGATIVE, true)
 }
 
-func (c *cpu) opBNE(mode uint8) {
+func (c *cpu) BNE(mode uint8) {
 	c.branch(STATUS_FLAG_ZERO, false)
 }
 
-func (c *cpu) opBPL(mode uint8) {
+func (c *cpu) BPL(mode uint8) {
 	c.branch(STATUS_FLAG_NEGATIVE, false)
 }
 
-func (c *cpu) opBRK(mode uint8) {
+func (c *cpu) BRK(mode uint8) {
 	c.pushAddress(c.pc)
 	c.pushStack(c.status)
 	c.flagsOn(STATUS_FLAG_BREAK)
 	c.pc = c.memRead16(INT_BRK)
 }
 
-func (c *cpu) opBVC(mode uint8) {
+func (c *cpu) BVC(mode uint8) {
 	c.branch(STATUS_FLAG_OVERFLOW, false)
 }
 
-func (c *cpu) opBVS(mode uint8) {
+func (c *cpu) BVS(mode uint8) {
 	c.branch(STATUS_FLAG_OVERFLOW, true)
 }
 
-func (c *cpu) opCLC(mode uint8) {
+func (c *cpu) CLC(mode uint8) {
 	c.flagsOff(STATUS_FLAG_CARRY)
 }
 
-func (c *cpu) opCLD(mode uint8) {
+func (c *cpu) CLD(mode uint8) {
 	c.flagsOff(STATUS_FLAG_DECIMAL)
 }
 
-func (c *cpu) opCLI(mode uint8) {
+func (c *cpu) CLI(mode uint8) {
 	c.flagsOff(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-func (c *cpu) opCLV(mode uint8) {
+func (c *cpu) CLV(mode uint8) {
 	c.flagsOff(STATUS_FLAG_OVERFLOW)
 }
 
-func (c *cpu) opCMP(mode uint8) {
+func (c *cpu) CMP(mode uint8) {
 	c.baseCMP(c.acc, c.memRead(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) opCPX(mode uint8) {
+func (c *cpu) CPX(mode uint8) {
 	c.baseCMP(c.x, c.memRead(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) opCPY(mode uint8) {
+func (c *cpu) CPY(mode uint8) {
 	c.baseCMP(c.y, c.memRead(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) opDEC(mode uint8) {
+func (c *cpu) DEC(mode uint8) {
 	a := c.getOperandAddr(mode)
 	c.writeMem(a, c.memRead(a)-1)
 	c.setNegativeAndZeroFlags(c.memRead(a))
 }
 
-func (c *cpu) opDEX(mode uint8) {
+func (c *cpu) DEX(mode uint8) {
 	c.x -= 1
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) opDEY(mode uint8) {
+func (c *cpu) DEY(mode uint8) {
 	c.y -= 1
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) opEOR(mode uint8) {
+func (c *cpu) EOR(mode uint8) {
 	c.acc = c.acc ^ c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) opINC(mode uint8) {
+func (c *cpu) INC(mode uint8) {
 	a := c.getOperandAddr(mode)
 	c.writeMem(a, c.memRead(a)+1)
 	c.setNegativeAndZeroFlags(c.memRead(a))
 }
 
-func (c *cpu) opINX(mode uint8) {
+func (c *cpu) INX(mode uint8) {
 	c.x += 1
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) opINY(mode uint8) {
+func (c *cpu) INY(mode uint8) {
 	c.y += 1
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) opJMP(mode uint8) {
+func (c *cpu) JMP(mode uint8) {
 	c.pc = c.memRead16(c.getOperandAddr(mode))
 }
 
-func (c *cpu) opJSR(mode uint8) {
+func (c *cpu) JSR(mode uint8) {
 	c.pushAddress(c.pc - 1)
 	c.pc = c.getOperandAddr(mode)
 }
 
-func (c *cpu) opLDA(mode uint8) {
+func (c *cpu) LDA(mode uint8) {
 	c.acc = c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) opLDX(mode uint8) {
+func (c *cpu) LDX(mode uint8) {
 	c.x = c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) opLDY(mode uint8) {
+func (c *cpu) LDY(mode uint8) {
 	c.y = c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) opLSR(mode uint8) {
+func (c *cpu) LSR(mode uint8) {
 	var ov, nv uint8
 	switch mode {
 	case ACCUMULATOR:
@@ -799,33 +688,33 @@ func (c *cpu) opLSR(mode uint8) {
 
 }
 
-func (c *cpu) opNOP(mode uint8) {
+func (c *cpu) NOP(mode uint8) {
 	return
 }
 
-func (c *cpu) opORA(mode uint8) {
+func (c *cpu) ORA(mode uint8) {
 	c.acc = c.acc | c.memRead(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) opPHA(mode uint8) {
+func (c *cpu) PHA(mode uint8) {
 	c.pushStack(c.acc)
 }
 
-func (c *cpu) opPHP(mode uint8) {
+func (c *cpu) PHP(mode uint8) {
 	c.pushStack(c.status)
 }
 
-func (c *cpu) opPLA(mode uint8) {
+func (c *cpu) PLA(mode uint8) {
 	c.acc = c.popStack()
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) opPLP(mode uint8) {
+func (c *cpu) PLP(mode uint8) {
 	c.status = c.popStack()
 }
 
-func (c *cpu) opROL(mode uint8) {
+func (c *cpu) ROL(mode uint8) {
 	var ov, nv uint8 // old value, new value
 	switch mode {
 	case ACCUMULATOR:
@@ -846,7 +735,7 @@ func (c *cpu) opROL(mode uint8) {
 	}
 }
 
-func (c *cpu) opROR(mode uint8) {
+func (c *cpu) ROR(mode uint8) {
 	var ov, nv uint8 // old value, new value
 	switch mode {
 	case ACCUMULATOR:
@@ -867,68 +756,68 @@ func (c *cpu) opROR(mode uint8) {
 	}
 }
 
-func (c *cpu) opRTI(mode uint8) {
+func (c *cpu) RTI(mode uint8) {
 	c.status = c.popStack()
 	c.pc = c.popAddress()
 }
 
-func (c *cpu) opRTS(mode uint8) {
+func (c *cpu) RTS(mode uint8) {
 	c.pc = c.popAddress() + 1
 }
 
-func (c *cpu) opSBC(mode uint8) {
+func (c *cpu) SBC(mode uint8) {
 	c.addWithOverflow(^c.memRead(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) opSEC(mode uint8) {
+func (c *cpu) SEC(mode uint8) {
 	c.flagsOn(STATUS_FLAG_CARRY)
 }
 
-func (c *cpu) opSED(mode uint8) {
+func (c *cpu) SED(mode uint8) {
 	c.flagsOn(STATUS_FLAG_DECIMAL)
 }
 
-func (c *cpu) opSEI(mode uint8) {
+func (c *cpu) SEI(mode uint8) {
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-func (c *cpu) opSTA(mode uint8) {
+func (c *cpu) STA(mode uint8) {
 	c.writeMem(c.getOperandAddr(mode), c.acc)
 }
 
-func (c *cpu) opSTX(mode uint8) {
+func (c *cpu) STX(mode uint8) {
 	c.writeMem(c.getOperandAddr(mode), c.x)
 }
 
-func (c *cpu) opSTY(mode uint8) {
+func (c *cpu) STY(mode uint8) {
 	c.writeMem(c.getOperandAddr(mode), c.y)
 }
 
-func (c *cpu) opTAX(mode uint8) {
+func (c *cpu) TAX(mode uint8) {
 	c.x = c.acc
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) opTAY(mode uint8) {
+func (c *cpu) TAY(mode uint8) {
 	c.y = c.acc
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) opTSX(mode uint8) {
+func (c *cpu) TSX(mode uint8) {
 	c.x = c.sp
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) opTXA(mode uint8) {
+func (c *cpu) TXA(mode uint8) {
 	c.acc = c.x
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) opTXS(mode uint8) {
+func (c *cpu) TXS(mode uint8) {
 	c.sp = c.x
 }
 
-func (c *cpu) opTYA(mode uint8) {
+func (c *cpu) TYA(mode uint8) {
 	c.acc = c.y
 	c.setNegativeAndZeroFlags(c.acc)
 }
