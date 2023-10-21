@@ -397,9 +397,18 @@ func (c *cpu) step() {
 	}
 
 	c.pc += 1
+	opc := c.pc
 
 	v := reflect.ValueOf(c)
 	v.MethodByName(op.name).Call([]reflect.Value{reflect.ValueOf(op.mode)})
+
+	// If we didn't branch, move the PC beyond the full width of
+	// the instruction. We consumed the first byte for the
+	// instruction code, so only skip over the remaining argument
+	// bytes.
+	if c.pc == opc {
+		c.pc += uint16(op.bytes) - 1
+	}
 }
 
 // setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
