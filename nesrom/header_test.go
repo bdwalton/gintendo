@@ -1,4 +1,4 @@
-package nesFormat
+package nesrom
 
 import (
 	"reflect"

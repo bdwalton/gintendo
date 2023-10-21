@@ -1,6 +1,6 @@
 // package nesFormat implements support for the NES (iNES) ROM format
-// https://www.nesdev.org/wiki/INES
-package nesFormat
+// https://www.nesdev.org/wiki/INES, https://www.nesdev.org/wiki/NES_2.0
+package nesrom
 
 import (
 	"fmt"
