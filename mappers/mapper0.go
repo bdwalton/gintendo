@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	AllMappers[0] = &mapper0{
+	allMappers[0] = &mapper0{
 		baseMapper: &baseMapper{
 			name:    "NROM",
 			baseRAM: make([]uint8, NES_BASE_MEMORY),

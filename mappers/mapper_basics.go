@@ -3,11 +3,23 @@
 package mappers
 
 import (
+	"fmt"
+
 	"github.com/bdwalton/gintendo/nesrom"
 )
 
 // A global registry of mappers, keyed by mapper id
-var AllMappers map[uint8]Mapper = map[uint8]Mapper{}
+var allMappers map[uint8]Mapper = map[uint8]Mapper{}
+
+// Get returns a mapper with the specified id or an error if we don't
+// have a mapper for that id yet.
+func Get(id uint8) (Mapper, error) {
+	m, ok := allMappers[id]
+	if !ok {
+		return nil, fmt.Errorf("uknown mapper id %d", id)
+	}
+	return m, nil
+}
 
 const (
 	NES_BASE_MEMORY = 2048 // 2KB built in RAM

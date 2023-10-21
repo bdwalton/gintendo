@@ -28,8 +28,8 @@ func main() {
 		log.Fatalf("Invalid ROM: %v", err)
 	}
 
-	m, ok := mappers.AllMappers[rom.MapperNum()]
-	if !ok {
+	m, err := mappers.Get(rom.MapperNum())
+	if err != nil {
 		log.Fatalf("Unimplemnted mapper id %d.", rom.MapperNum())
 	}
 	g := mos6502.New(m)
