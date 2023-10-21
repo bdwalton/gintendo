@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func memInit(val uint8) (mem [MEM_SIZE]uint8) {
+func memInit(c *cpu, val uint8) (mem [MEM_SIZE]uint8) {
 	for i := 0; i < MEM_SIZE; i++ {
-		mem[i] = val
+		c.writeMem(uint16(i), val)
 	}
 	return
 }
@@ -61,8 +61,8 @@ func TestMemRead16(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.memory[i] = tc.mem1
-		c.memory[i+1] = tc.mem2
+		c.writeMem(uint16(i), tc.mem1)
+		c.writeMem(uint16(i+1), tc.mem2)
 		c.pc = uint16(i)
 		if got := c.memRead16(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
@@ -83,11 +83,12 @@ func TestMemWrite16(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = uint16(i)
 		c.writeMem16(c.pc, tc.val)
-		c.memory[i] = tc.mem1
-		c.memory[i+1] = tc.mem2
+		c.writeMem(uint16(i), tc.mem1)
+		c.writeMem(uint16(i+1), tc.mem2)
 
-		if c.memory[i] != tc.mem1 || c.memory[i+1] != tc.mem2 {
-			t.Errorf("%d: Got (0x%02x, 0x%02x), want (0x%02x, 0x%02x)", i, c.memory[i], c.memory[i+1], tc.mem1, tc.mem2)
+		m1, m2 := c.memRead(uint16(i)), c.memRead(uint16(i+1))
+		if m1 != tc.mem1 || m2 != tc.mem2 {
+			t.Errorf("%d: Got (0x%02x, 0x%02x), want (0x%02x, 0x%02x)", i, m1, m2, tc.mem1, tc.mem2)
 		}
 	}
 }
@@ -142,14 +143,11 @@ func TestPopAddress(t *testing.T) {
 func TestGetOperandAddr(t *testing.T) {
 	c := New()
 
-	c.memory[0x0F] = 0x44
-	c.memory[0x10] = 0x55
-	c.memory[0x64] = 0x0F
-	c.memory[0x65] = 0x11
-	c.memory[0x001F] = 0x55
-	c.memory[0x110F] = 0xFA
-	c.memory[0x1110] = 0xBB
-	c.memory[0xFF66] = 0x82
+	c.writeMem16(0x000F, 0x5544)
+	c.writeMem16(0x0064, 0x110F)
+	c.writeMem(0x001F, 0x55)
+	c.writeMem16(0x110F, 0xBBFA)
+	c.writeMem(0xFF66, 0x82)
 	c.x = 0x10
 	c.y = 0xAC
 
@@ -193,7 +191,7 @@ func TestGetInst(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.memory[0] = tc.val
+		c.writeMem(0, tc.val)
 		got, err := c.getInst()
 		if got != tc.want || (err != nil && tc.wantErr == nil) || !errors.Is(err, tc.wantErr) {
 			t.Errorf("%d: got %s, want %s; err %v, wantErr %v", i, got, tc.want, err, tc.wantErr)
@@ -266,7 +264,7 @@ func TestOpAND(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		if c.AND(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
@@ -729,10 +727,11 @@ func TestOpDEC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 
-		if c.DEC(IMMEDIATE); c.memory[c.pc] != tc.want || c.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
+		c.DEC(IMMEDIATE)
+		if m := c.memRead(c.pc); m != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, m, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
@@ -802,10 +801,11 @@ func TestOpEOR(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 		c.acc = tc.acc
 
-		if c.EOR(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
+		c.EOR(IMMEDIATE)
+		if c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
 	}
@@ -874,10 +874,11 @@ func TestOpINC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 
-		if c.INC(IMMEDIATE); c.memory[c.pc] != tc.want || c.status != tc.wantStatus {
-			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.memory[c.pc], c.status, tc.want, tc.wantStatus)
+		c.INC(IMMEDIATE)
+		if m := c.memRead(c.pc); m != tc.want || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, m, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
@@ -973,9 +974,10 @@ func TestOpLDX(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 
-		if c.LDX(IMMEDIATE); c.x != tc.want || c.status != tc.wantStatus {
+		c.LDX(IMMEDIATE)
+		if c.x != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.x, c.status, tc.want, tc.wantStatus)
 		}
 	}
@@ -997,9 +999,10 @@ func TestOpLDY(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 
-		if c.LDY(IMMEDIATE); c.y != tc.want || c.status != tc.wantStatus {
+		c.LDY(IMMEDIATE)
+		if c.y != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.y, c.status, tc.want, tc.wantStatus)
 		}
 	}
@@ -1045,7 +1048,7 @@ func TestOpLSR(t *testing.T) {
 
 func TestOpNOP(t *testing.T) {
 	c := New()
-	c.memory = memInit(0xEA) // NOP
+	memInit(c, 0xEA) // NOP
 
 	cases := []struct {
 		pc         uint16
@@ -1085,7 +1088,7 @@ func TestOpORA(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.memory[c.pc] = tc.op1
+		c.writeMem(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		if c.ORA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
@@ -1107,8 +1110,9 @@ func TestOpPHA(t *testing.T) {
 
 	for i, tc := range cases {
 		c.acc = tc.acc
-		if c.PHA(IMPLICIT); c.memory[c.getStackAddr()+1] != tc.acc || c.sp != tc.wantSP {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, c.memory[c.getStackAddr()-1], tc.acc)
+		c.PHA(IMPLICIT)
+		if m := c.memRead(c.getStackAddr() + 1); m != tc.acc || c.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, m, tc.acc)
 		}
 	}
 }
@@ -1126,8 +1130,9 @@ func TestOpPHP(t *testing.T) {
 
 	for i, tc := range cases {
 		c.status = tc.status
-		if c.PHP(IMPLICIT); c.memory[c.getStackAddr()+1] != tc.status || c.sp != tc.wantSP {
-			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, c.memory[c.sp-1], tc.status)
+		c.PHP(IMPLICIT)
+		if m := c.memRead(c.getStackAddr() + 1); m != tc.status || c.sp != tc.wantSP {
+			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, m, tc.status)
 		}
 	}
 }
