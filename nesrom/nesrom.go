@@ -5,6 +5,7 @@ package nesrom
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 type PlayChoicePROM struct {
@@ -76,4 +77,18 @@ func New(inesData io.Reader) (*ROM, error) {
 	}
 
 	return i, nil
+}
+
+func (r *ROM) String() string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s\n", r.h))
+	if r.h.HasTrainer() {
+		sb.WriteString(fmt.Sprintf("Trainer: %v\n", r.trainer))
+	}
+
+	sb.WriteString(fmt.Sprintf("PRG: %v\n", r.prg))
+	sb.WriteString(fmt.Sprintf("CHR: %v\n", r.chr))
+
+	return sb.String()
 }
