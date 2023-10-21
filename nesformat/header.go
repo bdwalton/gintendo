@@ -108,7 +108,7 @@ func (h *Header) IsINesFormat() bool {
 }
 
 func (h *Header) IsNES2Format() bool {
-	return (h.flags7 & 0x0C) == 0x08
+	return h.IsINesFormat() && ((h.flags7 & 0x0C) == 0x08)
 }
 
 // ignoreHighNibble returns true if we should not use the high 4 bits of

@@ -21,3 +21,26 @@ func TestParseHeader(t *testing.T) {
 		}
 	}
 }
+
+func TestNES2Format(t *testing.T) {
+	h := &Header{}
+	cases := []struct {
+		constant           string
+		flags7             uint8
+		wantINES, wantNES2 bool
+	}{
+		{"NES\x1A", 0x08, true, true},
+		{"NES\x1A", 0x0C, true, false},
+		{"BOB\x1A", 0x10, false, false},
+		{"BOB\x1A", 0x04, false, false},
+		{"BOB\x1A", 0x08, false, false},
+	}
+
+	for i, tc := range cases {
+		h.constant = tc.constant
+		h.flags7 = tc.flags7
+		if h.IsINesFormat() != tc.wantINES || h.IsNES2Format() != tc.wantNES2 {
+			t.Errorf("%d: ines = %t want %t; nes2 = %t, want %t", i, h.IsINesFormat(), tc.wantINES, h.IsNES2Format(), tc.wantNES2)
+		}
+	}
+}
