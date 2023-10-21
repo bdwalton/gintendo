@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/mos6502"
 	"github.com/bdwalton/gintendo/nesrom"
 )
@@ -27,8 +28,10 @@ func main() {
 		log.Fatalf("Invalid ROM: %v", err)
 	}
 
-	fmt.Println(rom)
-
-	g := mos6502.New()
+	m, ok := mappers.AllMappers[rom.MapperNum()]
+	if !ok {
+		log.Fatalf("Unimplemnted mapper id %d.", rom.MapperNum())
+	}
+	g := mos6502.New(m)
 	fmt.Println(g)
 }
