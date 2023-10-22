@@ -418,6 +418,8 @@ func (c *cpu) BIOS() {
 		fmt.Scanf("%c\n", &in)
 
 		switch in {
+		case 'q', 'Q':
+			return
 		case 'r', 'R':
 			c.Run()
 		case 's', 'S':
