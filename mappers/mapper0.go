@@ -1,7 +1,8 @@
 package mappers
 
 func init() {
-	RegisterMapper(0, newMapper0())
+	m := newMapper0()
+	RegisterMapper(m.ID(), m)
 }
 
 type mapper0 struct {

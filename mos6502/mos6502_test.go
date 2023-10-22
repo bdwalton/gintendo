@@ -11,6 +11,10 @@ type dummyMapper struct {
 	memory []uint8
 }
 
+func (dm *dummyMapper) ID() uint8 {
+	return 0
+}
+
 func (dm *dummyMapper) Init(r *nesrom.ROM) {
 	return
 }

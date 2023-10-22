@@ -33,6 +33,7 @@ const (
 )
 
 type Mapper interface {
+	ID() uint8
 	Init(*nesrom.ROM)
 	Name() string
 	MemWrite(uint16, uint8) // Write to uint8 to address uint16
@@ -53,6 +54,10 @@ func newBaseMapper(id uint8, name string) *baseMapper {
 		name:    name,
 		baseRAM: make([]uint8, NES_BASE_MEMORY),
 	}
+}
+
+func (bm *baseMapper) ID() uint8 {
+	return bm.id
 }
 
 func (bm *baseMapper) String() string {
