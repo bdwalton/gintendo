@@ -36,10 +36,19 @@ type Mapper interface {
 }
 
 type baseMapper struct {
+	id   uint8
 	rom  *nesrom.ROM
 	name string
 	//The base amount of NES RAM (2k) will be accessed here.
 	baseRAM []uint8
+}
+
+func newBaseMapper(id uint8, name string) *baseMapper {
+	return &baseMapper{
+		id:      id,
+		name:    name,
+		baseRAM: make([]uint8, NES_BASE_MEMORY),
+	}
 }
 
 func (bm *baseMapper) String() string {

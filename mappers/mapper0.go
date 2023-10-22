@@ -13,6 +13,10 @@ type mapper0 struct {
 	*baseMapper
 }
 
+func newMapper0() *mapper0 {
+	return &mapper0{baseMapper: newBaseMapper(0, "NROM")}
+}
+
 func (m *mapper0) MemWrite(addr uint16, val uint8) {
 
 }
