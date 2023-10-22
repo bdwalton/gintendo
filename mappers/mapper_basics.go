@@ -11,6 +11,10 @@ import (
 // A global registry of mappers, keyed by mapper id
 var allMappers map[uint8]Mapper = map[uint8]Mapper{}
 
+func RegisterMapper(id uint8, m Mapper) {
+	allMappers[id] = m
+}
+
 // Get returns a mapper with the specified id or an error if we don't
 // have a mapper for that id yet.
 func Get(rom *nesrom.ROM) (Mapper, error) {

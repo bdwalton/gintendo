@@ -1,12 +1,7 @@
 package mappers
 
 func init() {
-	allMappers[0] = &mapper0{
-		baseMapper: &baseMapper{
-			name:    "NROM",
-			baseRAM: make([]uint8, NES_BASE_MEMORY),
-		},
-	}
+	RegisterMapper(0, newMapper0())
 }
 
 type mapper0 struct {
