@@ -440,12 +440,13 @@ func (c *cpu) BIOS() {
 				if x%5 == 0 {
 					fmt.Println()
 				}
-				if i == math.MaxUint16 {
+				if i == high || i == math.MaxUint16 {
 					break
 				}
 				x += 1
 				i += 1
 			}
+			fmt.Println()
 		}
 	}
 }
