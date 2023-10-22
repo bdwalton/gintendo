@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
@@ -33,6 +34,5 @@ func main() {
 	}
 
 	g := mos6502.New(m)
-
-	g.BIOS()
+	g.BIOS(context.Background())
 }

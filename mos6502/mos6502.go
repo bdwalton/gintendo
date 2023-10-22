@@ -3,11 +3,16 @@
 package mos6502
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"math/bits"
+	"os"
+	"os/signal"
 	"reflect"
+	"syscall"
+	"time"
 
 	"github.com/bdwalton/gintendo/mappers"
 )
@@ -418,7 +423,11 @@ func (c *cpu) reset() {
 	c.pc = c.memRead16(INT_RESET)
 }
 
-func (c *cpu) BIOS() {
+func (c *cpu) BIOS(ctx context.Context) {
+
+	sigQuit := make(chan os.Signal, 1)
+	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
+
 	for {
 		fmt.Printf("%s\n\n", c)
 		fmt.Println("(R)un - run to completion")
@@ -435,7 +444,18 @@ func (c *cpu) BIOS() {
 		case 'q', 'Q':
 			return
 		case 'r', 'R':
-			c.Run()
+			cctx, cancel := context.WithCancel(ctx)
+			go func(ctx context.Context) {
+				for {
+					select {
+					case <-sigQuit:
+						cancel()
+					case <-ctx.Done():
+						return
+					}
+				}
+			}(cctx)
+			c.Run(cctx)
 		case 's', 'S':
 			c.step()
 		case 'e', 'E':
@@ -465,9 +485,17 @@ func (c *cpu) BIOS() {
 	}
 }
 
-func (c *cpu) Run() {
+func (c *cpu) Run(ctx context.Context) {
+	// https://www.nesdev.org/wiki/CPU#Frequencies
+	t := time.NewTicker(time.Nanosecond * 559)
 	for {
-		c.step()
+		select {
+		case <-t.C:
+			c.step()
+			fmt.Println(c)
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
