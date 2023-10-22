@@ -13,10 +13,6 @@ type mapper0 struct {
 	*baseMapper
 }
 
-func (m *mapper0) Name() string {
-	return m.Name()
-}
-
 func (m *mapper0) MemWrite(addr uint16, val uint8) {
 
 }

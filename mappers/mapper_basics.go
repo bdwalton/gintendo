@@ -46,6 +46,10 @@ func (bm *baseMapper) String() string {
 	return bm.name
 }
 
+func (bm *baseMapper) Name() string {
+	return bm.name
+}
+
 func (bm *baseMapper) Init(r *nesrom.ROM) {
 	bm.rom = r
 }
