@@ -396,6 +396,58 @@ func (c *cpu) reset() {
 	c.pc = c.memRead16(INT_RESET)
 }
 
+func (c *cpu) BIOS() {
+	for {
+		fmt.Println("(R)un - run to completion")
+		fmt.Println("(S)step - step the cpu one instruction")
+		fmt.Println("R(e)set - hit the reset button")
+		fmt.Println("(D)isplay - output cpu state")
+		fmt.Println("(M)memory - select a memory range to display")
+		fmt.Println("(Q)uit - shutdown the gintentdo")
+		fmt.Printf("Choice: ")
+
+		var in rune
+		fmt.Scanf("%c\n", &in)
+
+		switch in {
+		case 'r', 'R':
+			c.Run()
+		case 's', 'S':
+			c.step()
+		case 'e', 'E':
+			c.reset()
+		case 'd', 'D':
+			fmt.Println(c)
+		case 'm', 'M':
+			var low, high uint16
+			fmt.Printf("Low address (eg 0xF00D): ")
+			fmt.Scanf("0x%04x\n", &low)
+			fmt.Printf("High address (eg 0xBEEF): ")
+			fmt.Scanf("0x%04x\n", &high)
+
+			var x int
+			i := low
+			for {
+				fmt.Printf("0x%04x: 0x%02x ", i, c.memRead(i))
+				if x%5 == 0 {
+					fmt.Println()
+				}
+				if i == math.MaxUint16 {
+					break
+				}
+				x += 1
+				i += 1
+			}
+		}
+	}
+}
+
+func (c *cpu) Run() {
+	for c.status&STATUS_FLAG_BREAK == 0 {
+		c.step()
+	}
+}
+
 func (c *cpu) step() {
 	op, err := c.getInst()
 

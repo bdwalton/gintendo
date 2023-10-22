@@ -33,4 +33,6 @@ func main() {
 	}
 
 	g := mos6502.New(m)
+
+	g.BIOS()
 }
