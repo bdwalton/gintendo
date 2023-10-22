@@ -406,10 +406,10 @@ func (c *cpu) reset() {
 
 func (c *cpu) BIOS() {
 	for {
+		fmt.Printf("%s\n\n", c)
 		fmt.Println("(R)un - run to completion")
 		fmt.Println("(S)step - step the cpu one instruction")
 		fmt.Println("R(e)set - hit the reset button")
-		fmt.Println("(D)isplay - output cpu state")
 		fmt.Println("(M)memory - select a memory range to display")
 		fmt.Println("(Q)uit - shutdown the gintentdo")
 		fmt.Printf("Choice: ")
@@ -424,8 +424,6 @@ func (c *cpu) BIOS() {
 			c.step()
 		case 'e', 'E':
 			c.reset()
-		case 'd', 'D':
-			fmt.Println(c)
 		case 'm', 'M':
 			var low, high uint16
 			fmt.Printf("Low address (eg 0xF00D): ")
