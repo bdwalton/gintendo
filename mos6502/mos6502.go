@@ -303,7 +303,11 @@ func (c *cpu) String() string {
 }
 
 func New(m mappers.Mapper) *cpu {
-	return &cpu{sp: 0xFF, mem: m}
+	return &cpu{
+		sp:     0xFF,
+		mem:    m,
+		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
+	}
 }
 
 var invalidInstruction = errors.New("invalid instruction")

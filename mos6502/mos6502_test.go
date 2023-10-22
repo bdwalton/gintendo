@@ -317,6 +317,7 @@ func TestOpASL(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = 0x000F
+		c.status = 0 // Clear processor init defaults
 		switch tc.mode {
 		case ACCUMULATOR:
 			c.acc = tc.val
@@ -434,6 +435,7 @@ func TestOpBIT(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = 0x0300
+		c.status = 0 // Clear processor init defaults
 		c.acc = tc.acc
 		c.writeMem(c.getOperandAddr(ZERO_PAGE), tc.op)
 
@@ -683,12 +685,13 @@ func TestOpCMP(t *testing.T) {
 		wantStatus uint8
 	}{
 		{0x41, 0x41, 0x03 /* ZERO, CARRY */},
-		{0x41, 0x42, 0x81 /* NEGATIVE, CARRY */},
+		{0x41, 0x42, 0x80 /* NEGATIVE */},
 		{0x10, 0x01, 0x01 /* CARRY */},
 	}
 
 	for i, tc := range cases {
 		c.pc = 0
+		c.status = 0 // Clear processor init defaults
 		c.acc = tc.acc
 		c.writeMem(c.pc, tc.m)
 		if c.CMP(IMMEDIATE); c.status != tc.wantStatus {
@@ -704,12 +707,13 @@ func TestOpCPX(t *testing.T) {
 		wantStatus uint8
 	}{
 		{0x42, 0x42, 0x03 /* ZERO, CARRY */},
-		{0x42, 0x43, 0x81 /* NEGATIVE, CARRY */},
+		{0x42, 0x43, 0x80 /* NEGATIVE */},
 		{0x11, 0x02, 0x01 /* CARRY */},
 	}
 
 	for i, tc := range cases {
 		c.pc = 0
+		c.status = 0 // Clear processor init defaults
 		c.x = tc.x
 		c.writeMem(c.pc, tc.m)
 		if c.CPX(IMMEDIATE); c.status != tc.wantStatus {
@@ -725,12 +729,13 @@ func TestOpCPY(t *testing.T) {
 		wantStatus uint8
 	}{
 		{0x43, 0x43, 0x03 /* ZERO, CARRY */},
-		{0x43, 0x44, 0x81 /* NEGATIVE, CARRY */},
+		{0x43, 0x44, 0x80 /* NEGATIVE */},
 		{0x12, 0x03, 0x01 /* CARRY */},
 	}
 
 	for i, tc := range cases {
 		c.pc = 0
+		c.status = 0 // Clear processor init defaults
 		c.y = tc.y
 		c.writeMem(c.pc, tc.m)
 		if c.CPY(IMMEDIATE); c.status != tc.wantStatus {
@@ -1051,6 +1056,7 @@ func TestOpLSR(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = 0x000F
+		c.status = 0 // Clear processor init defaults
 		switch tc.mode {
 		case ACCUMULATOR:
 			c.acc = tc.val
