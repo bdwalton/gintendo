@@ -466,7 +466,7 @@ func (c *cpu) BIOS() {
 }
 
 func (c *cpu) Run() {
-	for c.status&STATUS_FLAG_BREAK == 0 {
+	for {
 		c.step()
 	}
 }
