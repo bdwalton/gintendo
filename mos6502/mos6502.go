@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/bdwalton/gintendo/mappers"
+	"strings"
 )
 
 // 6502 Interrupt Vectors
@@ -293,6 +294,41 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 // How much addressable memory we have
 const MEM_SIZE = math.MaxUint16 + 1
 
+var flagMap map[uint8]byte = map[uint8]byte{
+	STATUS_FLAG_CARRY:             'C',
+	STATUS_FLAG_ZERO:              'Z',
+	STATUS_FLAG_INTERRUPT_DISABLE: 'I',
+	STATUS_FLAG_DECIMAL:           'D',
+	STATUS_FLAG_BREAK:             'B',
+	UNUSED_STATUS_FLAG:            '-',
+	STATUS_FLAG_NEGATIVE:          'N',
+}
+
+func statusString(p uint8) string {
+	var sb strings.Builder
+
+	flags := []uint8{
+		STATUS_FLAG_NEGATIVE,
+		STATUS_FLAG_OVERFLOW,
+		UNUSED_STATUS_FLAG,
+		STATUS_FLAG_BREAK,
+		STATUS_FLAG_DECIMAL,
+		STATUS_FLAG_INTERRUPT_DISABLE,
+		STATUS_FLAG_ZERO,
+		STATUS_FLAG_CARRY,
+	}
+
+	for _, f := range flags {
+		if p&f > 0 {
+			sb.WriteByte(flagMap[f])
+		} else {
+			sb.WriteByte('.')
+		}
+	}
+
+	return sb.String()
+}
+
 // type cpu implements all of the machine state for the 6502
 type cpu struct {
 	acc    uint8  // main register
@@ -305,7 +341,7 @@ type cpu struct {
 }
 
 func (c *cpu) String() string {
-	return fmt.Sprintf("A,X,Y: %d, %d, %d; PC: 0x%04x, SP: 0x%02x, P: 0x%02x; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, c.status, opcodes[c.mem.MemRead(c.pc)])
+	return fmt.Sprintf("A,X,Y: %d, %d, %d; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.mem.MemRead(c.pc)])
 }
 
 func New(m mappers.Mapper) *cpu {
