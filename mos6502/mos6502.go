@@ -299,7 +299,7 @@ type cpu struct {
 }
 
 func (c *cpu) String() string {
-	return fmt.Sprintf("ACC: %d, X: %d, Y: %d, SP: 0x%02x, PC: 0x%04x, Status: 0x%02x; Inst: %s", c.acc, c.x, c.y, c.sp, c.pc, c.status, opcodes[c.mem.MemRead(c.pc)])
+	return fmt.Sprintf("A,X,Y: %d, %d, %d; PC: 0x%04x, SP: 0x%02x, P: 0x%02x; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, c.status, opcodes[c.mem.MemRead(c.pc)])
 }
 
 func New(m mappers.Mapper) *cpu {
