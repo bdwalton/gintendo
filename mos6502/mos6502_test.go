@@ -40,6 +40,44 @@ func memInit(c *cpu, val uint8) (mem [MEM_SIZE]uint8) {
 	return
 }
 
+func TestCycles(t *testing.T) {
+	c := New(dm)
+	memInit(c, 0xEA)
+
+	cases := []struct {
+		pc                uint16
+		status, acc, x, y uint8
+		op, arg1, arg2    uint8
+		wantPC            uint16
+		wantCycles        uint8
+	}{
+		{0, 0, 0, 0, 0, 0x69 /* ADC IMM */, 0, 0, 0x02, 2},
+		{0, 0, 0, 0, 0, 0x7D /* ADC ABS_X */, 0, 0, 0x03, 4 /* no page crossed */},
+		{0xFF, 0, 1, 1, 0, 0x7D /* ADC ABS_X */, 0xFF, 0x01, 0x0102, 5 /* page crossed*/},
+		{0xFF, 0, 1, 1, 2, 0x79 /* ADC ABS_Y */, 0xFF, 0x01, 0x0102, 5 /* page crossed*/},
+		{0xFF, 0, 1, 1, 0, 0x79 /* ADC ABS_Y */, 0xFF, 0x01, 0x0102, 4 /* no page crossed*/},
+		{0, 0 /* CARRY CLEAR */, 1, 1, 0, 0x90 /* BCC REL */, 0x20, 0x01, 0x20, 3 /* branch succeed, no page crossed*/},
+	}
+
+	for i, tc := range cases {
+		c.pc = tc.pc
+		c.acc = tc.acc
+		c.x = tc.x
+		c.y = tc.y
+		c.writeMem(c.pc, tc.op)
+		c.writeMem(c.pc+1, tc.arg1)
+		c.writeMem(c.pc+2, tc.arg2)
+
+		c.cycles = 0 // So we execute op
+
+		c.step()
+
+		if c.cycles != tc.wantCycles || c.pc != tc.wantPC {
+			t.Errorf("%d: PC = 0x%04x, cycles = %d, wanted PC = 0x%04x, cycles %d.", i, c.pc, c.cycles, tc.wantPC, tc.wantCycles)
+		}
+	}
+}
+
 func TestMemRead(t *testing.T) {
 	c := New(dm)
 	cases := []struct {
@@ -173,14 +211,14 @@ func TestGetOperandAddr(t *testing.T) {
 
 	c.writeMem16(0x000F, 0x5544)
 	c.writeMem16(0x0064, 0x110F)
-	c.writeMem(0x001F, 0x55)
+	c.writeMem16(0x001F, 0x0055)
 	c.writeMem16(0x110F, 0xBBFA)
 	c.writeMem(0xFF66, 0x82)
 	c.x = 0x10
 	c.y = 0xAC
 
 	cases := []struct {
-		pc   uint16
+		pc   uint16 // first operand, not op
 		mode uint8
 		want uint16
 	}{
@@ -188,8 +226,8 @@ func TestGetOperandAddr(t *testing.T) {
 		{0x0064, ZERO_PAGE, 0x000F},   // mem[pc]
 		{0x0064, ZERO_PAGE_X, 0x001F}, // mem[pc] + x
 		{0x0064, ZERO_PAGE_Y, 0x00BB}, // mem[pc] + y
-		{0x0064, RELATIVE, 0x73},      // pc + int8(mem[pc])
-		{0xFF66, RELATIVE, 0xFEE8},    // pc - int8(mem[pc])
+		{0x0064, RELATIVE, 0x72},      // pc + int8(mem[pc])
+		{0xFF66, RELATIVE, 0xFEE7},    // pc - int8(mem[pc])
 		{0x0064, ABSOLUTE, 0x110F},    // mem[pc+1] << 8 + mem[pc]
 		{0x0064, ABSOLUTE_X, 0x111F},  // (mem[pc+1] << 8 + mem[pc]) + x
 		{0x0064, ABSOLUTE_Y, 0x11BB},  // (mem[pc+1] << 8 + mem[pc]) + y
@@ -219,6 +257,8 @@ func TestGetInst(t *testing.T) {
 	}
 
 	for i, tc := range cases {
+		c.pc = 0
+		c.cycles = 0
 		c.writeMem(0, tc.val)
 		got, err := c.getInst()
 		if got != tc.want || (err != nil && tc.wantErr == nil) || !errors.Is(err, tc.wantErr) {
@@ -343,15 +383,15 @@ func TestOpASL(t *testing.T) {
 func TestOpBCC(t *testing.T) {
 	c := New(dm)
 	cases := []struct {
-		pc     uint16
+		pc     uint16 // operand, so 1 beyond pc for op
 		offset uint8
 		status uint8
 		wantPC uint16
 	}{
 		{0x6677, 0xF6 /* -10 */, 0x01 /* CARRY */, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x01 /* CARRY */, 0x6677},
-		{0x6677, 0xF6 /* -10 */, 0x00, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x00, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x00, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x00, 0x6680},
 	}
 
 	for i, tc := range cases {
@@ -374,8 +414,8 @@ func TestOpBCS(t *testing.T) {
 		status uint8
 		wantPC uint16
 	}{
-		{0x6677, 0xF6 /* -10 */, 0x01 /* CARRY */, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x01 /* CARRY */, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x01 /* CARRY */, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x01 /* CARRY */, 0x6680},
 		{0x6677, 0xF6 /* -10 */, 0x00, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x00, 0x6677},
 	}
@@ -400,8 +440,8 @@ func TestOpBEQ(t *testing.T) {
 		status uint8
 		wantPC uint16
 	}{
-		{0x6677, 0xF6 /* -10 */, 0x02 /* ZERO */, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x02 /* ZERO */, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x02 /* ZERO */, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x02 /* ZERO */, 0x6680},
 		{0x6677, 0xF6 /* -10 */, 0x00, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x00, 0x6677},
 	}
@@ -453,8 +493,8 @@ func TestOpBMI(t *testing.T) {
 		status uint8
 		wantPC uint16
 	}{
-		{0x6677, 0xF6 /* -10 */, 0x80 /* NEGATIVE */, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x80 /* NEGATIVE */, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x80 /* NEGATIVE */, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x80 /* NEGATIVE */, 0x6680},
 		{0x6677, 0xF6 /* -10 */, 0x00, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x00, 0x6677},
 	}
@@ -473,15 +513,15 @@ func TestOpBMI(t *testing.T) {
 func TestOpBNE(t *testing.T) {
 	c := New(dm)
 	cases := []struct {
-		pc     uint16
+		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
 		status uint8
 		wantPC uint16
 	}{
 		{0x6677, 0xF6 /* -10 */, 0x02 /* ZERO */, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x02 /* ZERO */, 0x6677},
-		{0x6677, 0xF6 /* -10 */, 0x00, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x00, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x00, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x00, 0x6680},
 	}
 
 	for i, tc := range cases {
@@ -499,15 +539,15 @@ func TestOpBNE(t *testing.T) {
 func TestOpBPL(t *testing.T) {
 	c := New(dm)
 	cases := []struct {
-		pc     uint16
+		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
 		status uint8
 		wantPC uint16
 	}{
 		{0x6677, 0xF6 /* -10 */, 0x80 /* NEGATIVE */, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x80 /* NEGATIVE */, 0x6677},
-		{0x6677, 0xF6 /* -10 */, 0x00, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x00, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x00, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x00, 0x6680},
 	}
 
 	for i, tc := range cases {
@@ -548,15 +588,15 @@ func TestOpBRK(t *testing.T) {
 func TestOpBVC(t *testing.T) {
 	c := New(dm)
 	cases := []struct {
-		pc     uint16
+		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
 		status uint8
 		wantPC uint16
 	}{
 		{0x6677, 0xF6 /* -10 */, 0x40 /* OVERFLOW */, 0x6677},
 		{0x6677, 0x0A /* +10 */, 0x40 /* OVERFLOW */, 0x6677},
-		{0x6677, 0xF6 /* -10 */, 0x00, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x00, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x00, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x00, 0x6680},
 	}
 
 	for i, tc := range cases {
@@ -573,13 +613,13 @@ func TestOpBVC(t *testing.T) {
 func TestOpBVS(t *testing.T) {
 	c := New(dm)
 	cases := []struct {
-		pc     uint16
+		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
 		status uint8
 		wantPC uint16
 	}{
-		{0x6677, 0xF6 /* -10 */, 0x40 /* OVERFLOW */, 0x666D},
-		{0x6677, 0x0A /* +10 */, 0x40 /* OVERFLOW */, 0x6681},
+		{0x6677, 0xF6 /* -10 */, 0x40 /* OVERFLOW */, 0x666C},
+		{0x6677, 0x0A /* +10 */, 0x40 /* OVERFLOW */, 0x6680},
 		{0x6677, 0xF6 /* -10 */, 0x00, 0x6677},
 	}
 
@@ -1094,6 +1134,7 @@ func TestOpNOP(t *testing.T) {
 	}
 
 	for i, tc := range cases {
+		c.cycles = 0
 		c.pc = tc.pc
 		c.status = tc.status
 		c.step()
@@ -1113,20 +1154,20 @@ func TestPCWithStep(t *testing.T) {
 		m1, m2 uint8
 		wantPC uint16
 	}{
-		{0x00 /* CARRY CLEAR */, 0x90 /* BCC */, 0xCC, 0x00, 0xFFCD},
+		{0x00 /* CARRY CLEAR */, 0x90 /* BCC */, 0xCC, 0x00, 0xFFCC},
 		{0x01 /* CARRY */, 0x90 /* BCC */, 0xCC, 0x00, 0x0002},
-		{0x01 /* CARRY */, 0xB0 /* BCS */, 0xCC, 0x00, 0xFFCD},
+		{0x01 /* CARRY */, 0xB0 /* BCS */, 0xCC, 0x00, 0xFFCC},
 		{0x00 /* CARRY CLEAR */, 0xB0 /* BCS */, 0xCC, 0x00, 0x0002},
 		{0x00 /* ZERO CLEAR */, 0xF0 /* BEQ */, 0xCC, 0x00, 0x0002},
-		{0x02 /* ZERO */, 0xF0 /* BEQ */, 0x1C, 0x00, 0x001D},
+		{0x02 /* ZERO */, 0xF0 /* BEQ */, 0x1C, 0x00, 0x001C},
 		{0x00 /* NEGATIVE CLEAR */, 0x30 /* BMI */, 0x1C, 0x00, 0x0002},
-		{0x80 /* NEGATIVE */, 0x30 /* BMI */, 0x1C, 0x00, 0x001D},
-		{0x00 /* NEGATIVE CLEAR */, 0x10 /* BPL */, 0x1C, 0x00, 0x001D},
+		{0x80 /* NEGATIVE */, 0x30 /* BMI */, 0x1C, 0x00, 0x001C},
+		{0x00 /* NEGATIVE CLEAR */, 0x10 /* BPL */, 0x1C, 0x00, 0x001C},
 		{0x80 /* NEGATIVE */, 0x10 /* BPL */, 0x1C, 0x00, 0x0002},
-		{0x00 /* OVERFLOW CLEAR */, 0x50 /* BVC */, 0x1C, 0x00, 0x001D},
+		{0x00 /* OVERFLOW CLEAR */, 0x50 /* BVC */, 0x1C, 0x00, 0x001C},
 		{0x40 /* OVERFLOW */, 0x50 /* BVC */, 0x1C, 0x00, 0x0002},
 		{0x00 /* OVERFLOW CLEAR */, 0x70 /* BVS */, 0x1C, 0x00, 0x0002},
-		{0x40 /* OVERFLOW */, 0x70 /* BVS */, 0x1C, 0x00, 0x001D},
+		{0x40 /* OVERFLOW */, 0x70 /* BVS */, 0x1C, 0x00, 0x001C},
 		{0x00 /* EMPTY */, 0x4C /* JMP(abs) */, 0x1C, 0x1E, 0x1E1C},
 		{0x00 /* EMPTY */, 0x2d /* AND(abs) */, 0x1C, 0x1E, 0x0003}, // 3 bytes
 		{0x00 /* EMPTY */, 0x29 /* AND(imm) */, 0xC1, 0xE1, 0x0002}, // 2 bytes
@@ -1134,7 +1175,8 @@ func TestPCWithStep(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.pc = 0
+		c.cycles = 0
+		c.pc = 0 // first operand, not op, so branching from pc-1
 		c.status = tc.status
 		c.writeMem(c.pc, tc.inst)
 		c.writeMem(c.pc+1, tc.m1)

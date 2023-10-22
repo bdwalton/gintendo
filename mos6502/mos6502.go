@@ -119,11 +119,11 @@ const (
 )
 
 type opcode struct {
-	inst    uint8 // The instruction id
-	name    string
-	mode    uint8 // The memory addressing mode to use
-	bytes   uint8 // The number of bytes consumed by operands
-	_cycles uint8 // The number of cycles consumed by the instruction
+	inst   uint8 // The instruction id
+	name   string
+	mode   uint8 // The memory addressing mode to use
+	bytes  uint8 // The number of bytes consumed by operands
+	cycles uint8 // The number of cycles consumed by the instruction
 }
 
 func (o opcode) String() string {
@@ -296,6 +296,7 @@ type cpu struct {
 	sp     uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
 	pc     uint16 // the program counter
 	mem    mappers.Mapper
+	cycles uint8 // how many cycles to wait until next instruction
 }
 
 func (c *cpu) String() string {
@@ -365,15 +366,16 @@ func (c *cpu) writeMem16(addr, val uint16) {
 // referenced by the program counter. It assumes that the counter was
 // incremented past the actual instruction itself.
 func (c *cpu) getOperandAddr(mode uint8) uint16 {
+	var addr uint16
 	switch mode {
 	case ACCUMULATOR:
 		panic("ACCUMULATOR Address mode should never use this method")
 	case IMPLICIT:
 		panic("IMPLICIT Address mode should never use this method")
 	case IMMEDIATE:
-		return c.pc
+		addr = c.pc
 	case ZERO_PAGE:
-		return uint16(c.memRead(c.pc))
+		addr = uint16(c.memRead(c.pc))
 	case ZERO_PAGE_X:
 		return uint16(c.memRead(c.pc) + c.x)
 	case ZERO_PAGE_Y:
@@ -381,21 +383,33 @@ func (c *cpu) getOperandAddr(mode uint8) uint16 {
 	case ABSOLUTE:
 		return c.memRead16(c.pc)
 	case ABSOLUTE_X:
-		return c.memRead16(c.pc) + uint16(c.x)
+		a := c.memRead16(c.pc)
+		addr = a + uint16(c.x)
+		c.cycles += extraCycles(a, addr)
 	case ABSOLUTE_Y:
-		return c.memRead16(c.pc) + uint16(c.y)
+		a := c.memRead16(c.pc)
+		addr = a + uint16(c.y)
+		c.cycles += extraCycles(a, addr)
 	case INDIRECT:
 		return c.memRead16(c.memRead16(c.pc))
 	case INDIRECT_X:
 		return c.memRead16(uint16(c.memRead(c.pc) + c.x))
 	case INDIRECT_Y:
-		return c.memRead16(uint16(c.memRead(c.pc))) + uint16(c.y)
+		a := c.memRead16(uint16(c.memRead(c.pc)))
+		addr = a + uint16(c.y)
+		c.cycles += extraCycles(a, addr)
 	case RELATIVE:
-		return c.pc + uint16(int16(int8(c.memRead(c.pc))))
+		// Relative from PC at time of instruction
+		// execution. We advance pc as soo as we eat the byte
+		// from memory to decode the instruction, so we need
+		// to account for that here.
+		addr = (c.pc - 1) + uint16(int16(int8(c.memRead(c.pc))))
 	default:
 		panic("Invalid addressing mode")
 
 	}
+
+	return addr
 }
 
 func (c *cpu) reset() {
@@ -458,12 +472,17 @@ func (c *cpu) Run() {
 }
 
 func (c *cpu) step() {
-	op, err := c.getInst()
+	if c.cycles > 0 {
+		c.cycles -= 1
+		return
+	}
 
+	op, err := c.getInst()
 	if err != nil {
 		panic(err)
 	}
 
+	c.cycles += op.cycles
 	c.pc += 1
 	opc := c.pc
 
@@ -531,6 +550,17 @@ func (c *cpu) flagsOff(mask uint8) {
 	c.status = c.status &^ mask
 }
 
+// extraCycles returns 0 if addr1 and add2 are in the same page, 1
+// otherwise. This is useful for instructions that take a variable
+// number of cycles, depending on whether or not a page boundary is
+// crossed.
+func extraCycles(addr1, addr2 uint16) uint8 {
+	if addr1&0xFF00 != addr2&0xFF00 {
+		return 1
+	}
+	return 0
+}
+
 // branch will adjust the PC conditionally based on whether the mask
 // bits are set and the resulting comparison is expected to be true or
 // false. This allows you to check for STATUS_FLAG being set or
@@ -538,7 +568,11 @@ func (c *cpu) flagsOff(mask uint8) {
 // when OVERFLOW not set.
 func (c *cpu) branch(mask uint8, predicate bool) {
 	if (c.status&mask > 0) == predicate {
-		c.pc = c.getOperandAddr(RELATIVE)
+		a := c.getOperandAddr(RELATIVE)
+		// Branching instructions take an extra cycle if they cause a page break
+		c.cycles += extraCycles(a, c.pc)
+		c.cycles += 1 // successful branches take an extra cycle
+		c.pc = a
 	}
 }
 
