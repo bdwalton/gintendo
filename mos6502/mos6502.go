@@ -305,11 +305,13 @@ func (c *cpu) String() string {
 func New(m mappers.Mapper) *cpu {
 	// Power on state values from:
 	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
-	return &cpu{
+	c := &cpu{
 		sp:     0xFD,
 		mem:    m,
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
+	c.pc = c.memRead16(INT_RESET)
+	return c
 }
 
 var invalidInstruction = errors.New("invalid instruction")
