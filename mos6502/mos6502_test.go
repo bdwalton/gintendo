@@ -1180,10 +1180,14 @@ func TestOpPHA(t *testing.T) {
 		acc    uint8
 		wantSP uint8
 	}{
+		// These cases build on each other
 		{0x01, 0xFE},
 		{0x02, 0xFD},
 		{0xFF, 0xFC},
 	}
+
+	// Set the stack to the top (which differs from poweron/reset value)
+	c.sp = 0xFF
 
 	for i, tc := range cases {
 		c.acc = tc.acc
@@ -1200,10 +1204,14 @@ func TestOpPHP(t *testing.T) {
 		status uint8
 		wantSP uint8
 	}{
+		// These cases build on each other
 		{0x01, 0xFE},
 		{0x02, 0xFD},
 		{0x80, 0xFC},
 	}
+
+	// Set the stack to the top (which differs from poweron/reset value)
+	c.sp = 0xFF
 
 	for i, tc := range cases {
 		c.status = tc.status
@@ -1221,11 +1229,15 @@ func TestOpPLA(t *testing.T) {
 		wantSP     uint8
 		wantStatus uint8
 	}{
+		// These cases build on each other
 		{0xFE, 0xFC, 0x80},
 		{0x82, 0xFD, 0x80},
 		{0x00, 0xFE, 0x02},
 		{0x01, 0xFF, 0x00},
 	}
+
+	// Set the stack to the top (which differs from poweron/reset value)
+	c.sp = 0xFF
 
 	// Adjust c.sp with these calls, in reverse from the cases
 	// we'll compare as we pop.
@@ -1250,11 +1262,15 @@ func TestOpPLP(t *testing.T) {
 		wantSP     uint8
 		wantStatus uint8
 	}{
+		// These cases build on each other
 		{0x80, 0xFC, 0x80},
 		{0x81, 0xFD, 0x81},
 		{0x00, 0xFE, 0x00},
 		{0x01, 0xFF, 0x01},
 	}
+
+	// Set the stack to the top (which differs from poweron/reset value)
+	c.sp = 0xFF
 
 	// Adjust c.sp with these calls, in reverse from the cases
 	// we'll compare as we pop.

@@ -303,8 +303,10 @@ func (c *cpu) String() string {
 }
 
 func New(m mappers.Mapper) *cpu {
+	// Power on state values from:
+	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
 	return &cpu{
-		sp:     0xFF,
+		sp:     0xFD,
 		mem:    m,
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
