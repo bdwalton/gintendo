@@ -12,6 +12,9 @@ import (
 var allMappers map[uint8]Mapper = map[uint8]Mapper{}
 
 func RegisterMapper(id uint8, m Mapper) {
+	if om, ok := allMappers[id]; ok {
+		panic(fmt.Sprintf("Can't re-register mapper id %d. It's used by %q.", id, om.Name()))
+	}
 	allMappers[id] = m
 }
 
