@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -28,10 +27,10 @@ func main() {
 		log.Fatalf("Invalid ROM: %v", err)
 	}
 
-	m, err := mappers.Get(rom.MapperNum())
+	m, err := mappers.Get(rom)
 	if err != nil {
-		log.Fatalf("Unimplemnted mapper id %d.", rom.MapperNum())
+		log.Fatalf("Couldn't Get() mapper: %v", err)
 	}
+
 	g := mos6502.New(m)
-	fmt.Println(g)
 }

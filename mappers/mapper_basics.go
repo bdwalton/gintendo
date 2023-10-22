@@ -13,11 +13,14 @@ var allMappers map[uint8]Mapper = map[uint8]Mapper{}
 
 // Get returns a mapper with the specified id or an error if we don't
 // have a mapper for that id yet.
-func Get(id uint8) (Mapper, error) {
+func Get(rom *nesrom.ROM) (Mapper, error) {
+	id := rom.MapperNum()
 	m, ok := allMappers[id]
 	if !ok {
 		return nil, fmt.Errorf("uknown mapper id %d", id)
 	}
+
+	m.Init(rom)
 	return m, nil
 }
 
