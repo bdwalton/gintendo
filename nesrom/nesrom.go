@@ -79,6 +79,10 @@ func New(inesData io.Reader) (*ROM, error) {
 	return i, nil
 }
 
+func (r *ROM) NumPrgBlocks() uint8 {
+	return r.h.prgSize
+}
+
 func (r *ROM) String() string {
 	var sb strings.Builder
 
