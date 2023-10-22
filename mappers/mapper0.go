@@ -1,9 +1,5 @@
 package mappers
 
-import (
-	"github.com/bdwalton/gintendo/nesrom"
-)
-
 func init() {
 	allMappers[0] = &mapper0{
 		baseMapper: &baseMapper{
@@ -15,7 +11,6 @@ func init() {
 
 type mapper0 struct {
 	*baseMapper
-	rom *nesrom.ROM
 }
 
 func (m *mapper0) Name() string {
