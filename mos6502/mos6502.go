@@ -569,8 +569,12 @@ func extraCycles(addr1, addr2 uint16) uint8 {
 func (c *cpu) branch(mask uint8, predicate bool) {
 	if (c.status&mask > 0) == predicate {
 		a := c.getOperandAddr(RELATIVE)
-		// Branching instructions take an extra cycle if they cause a page break
-		c.cycles += extraCycles(a, c.pc)
+		// Branching instructions take an extra cycle if they
+		// cause a page break pc-1 because we increment it
+		// right after reading the op, but that's where we
+		// branch from so that's where we compare for page
+		// break
+		c.cycles += extraCycles(a, c.pc-1)
 		c.cycles += 1 // successful branches take an extra cycle
 		c.pc = a
 	}

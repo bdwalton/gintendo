@@ -57,6 +57,7 @@ func TestCycles(t *testing.T) {
 		{0xFF, 0, 1, 1, 2, 0x79 /* ADC ABS_Y */, 0xFF, 0x01, 0x0102, 5 /* page crossed*/},
 		{0xFF, 0, 1, 1, 0, 0x79 /* ADC ABS_Y */, 0xFF, 0x01, 0x0102, 4 /* no page crossed*/},
 		{0, 0 /* CARRY CLEAR */, 1, 1, 0, 0x90 /* BCC REL */, 0x20, 0x01, 0x20, 3 /* branch succeed, no page crossed*/},
+		{0xFF, 0 /* CARRY CLEAR */, 1, 1, 0, 0x90 /* BCC REL */, 10, 0x01, 0x0109, 4 /* branch succeed, page crossed*/},
 	}
 
 	for i, tc := range cases {
