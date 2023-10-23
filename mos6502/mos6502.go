@@ -441,10 +441,11 @@ func (c *cpu) getOperandAddr(mode uint8) uint16 {
 		c.cycles += extraCycles(a, addr)
 	case RELATIVE:
 		// Relative from PC at time of instruction
-		// execution. We advance pc as soo as we eat the byte
+		// execution. We advance pc as soon as we eat the byte
 		// from memory to decode the instruction, so we need
-		// to account for that here.
-		addr = (c.pc - 1) + uint16(int16(int8(c.memRead(c.pc))))
+		// to account for that here and step over the relative
+		// argument while calculating the new target address.
+		addr = (c.pc + 1) + uint16(int8(c.memRead(c.pc)))
 	default:
 		panic("Invalid addressing mode")
 
