@@ -852,7 +852,7 @@ func (c *cpu) JMP(mode uint8) {
 }
 
 func (c *cpu) JSR(mode uint8) {
-	c.pushAddress(c.pc - 1)
+	c.pushAddress(c.pc + 1) // this is the second byte of the JSR argument
 	c.pc = c.getOperandAddr(mode)
 }
 
