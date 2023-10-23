@@ -35,7 +35,7 @@ var dm *dummyMapper = &dummyMapper{memory: make([]uint8, MEM_SIZE)}
 
 func memInit(c *cpu, val uint8) (mem [MEM_SIZE]uint8) {
 	for i := 0; i < MEM_SIZE; i++ {
-		c.writeMem(uint16(i), val)
+		c.memWrite(uint16(i), val)
 	}
 	return
 }
@@ -65,9 +65,9 @@ func TestCycles(t *testing.T) {
 		c.acc = tc.acc
 		c.x = tc.x
 		c.y = tc.y
-		c.writeMem(c.pc, tc.op)
-		c.writeMem(c.pc+1, tc.arg1)
-		c.writeMem(c.pc+2, tc.arg2)
+		c.memWrite(c.pc, tc.op)
+		c.memWrite(c.pc+1, tc.arg1)
+		c.memWrite(c.pc+2, tc.arg2)
 
 		c.cycles = 0 // So we execute op
 
@@ -90,7 +90,7 @@ func TestMemRead(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.writeMem(uint16(i), tc.mem1)
+		c.memWrite(uint16(i), tc.mem1)
 		c.pc = uint16(i)
 		if got := c.memRead(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
@@ -110,7 +110,7 @@ func TestMemWrite(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = uint16(i)
-		c.writeMem(c.pc, tc.mem1)
+		c.memWrite(c.pc, tc.mem1)
 		if got := c.memRead(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%02x, want 0x%02x", i, got, tc.want)
 		}
@@ -128,8 +128,8 @@ func TestMemRead16(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.writeMem(uint16(i), tc.mem1)
-		c.writeMem(uint16(i+1), tc.mem2)
+		c.memWrite(uint16(i), tc.mem1)
+		c.memWrite(uint16(i+1), tc.mem2)
 		c.pc = uint16(i)
 		if got := c.memRead16(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
@@ -149,9 +149,9 @@ func TestMemWrite16(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = uint16(i)
-		c.writeMem16(c.pc, tc.val)
-		c.writeMem(uint16(i), tc.mem1)
-		c.writeMem(uint16(i+1), tc.mem2)
+		c.memWrite16(c.pc, tc.val)
+		c.memWrite(uint16(i), tc.mem1)
+		c.memWrite(uint16(i+1), tc.mem2)
 
 		m1, m2 := c.memRead(uint16(i)), c.memRead(uint16(i+1))
 		if m1 != tc.mem1 || m2 != tc.mem2 {
@@ -210,11 +210,11 @@ func TestPopAddress(t *testing.T) {
 func TestGetOperandAddr(t *testing.T) {
 	c := New(dm)
 
-	c.writeMem16(0x000F, 0x5544)
-	c.writeMem16(0x0064, 0x110F)
-	c.writeMem16(0x001F, 0x0055)
-	c.writeMem16(0x110F, 0xBBFA)
-	c.writeMem(0xFF66, 0x82)
+	c.memWrite16(0x000F, 0x5544)
+	c.memWrite16(0x0064, 0x110F)
+	c.memWrite16(0x001F, 0x0055)
+	c.memWrite16(0x110F, 0xBBFA)
+	c.memWrite(0xFF66, 0x82)
 	c.x = 0x10
 	c.y = 0xAC
 
@@ -260,7 +260,7 @@ func TestGetInst(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.cycles = 0
-		c.writeMem(0, tc.val)
+		c.memWrite(0, tc.val)
 		got, err := c.getInst()
 		if got != tc.want || (err != nil && tc.wantErr == nil) || !errors.Is(err, tc.wantErr) {
 			t.Errorf("%d: got %s, want %s; err %v, wantErr %v", i, got, tc.want, err, tc.wantErr)
@@ -282,7 +282,7 @@ func TestReset(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem16(INT_RESET, tc.int_reset_pc)
+		c.memWrite16(INT_RESET, tc.int_reset_pc)
 		c.reset()
 
 		if c.pc != tc.wantPC || c.status != 0x24 {
@@ -309,7 +309,7 @@ func TestOpADC(t *testing.T) {
 		c.pc = 0x7780
 		c.acc = tc.acc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		if c.ADC(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (status 0x%02x), wanted 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
@@ -333,7 +333,7 @@ func TestOpAND(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		if c.AND(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
@@ -363,7 +363,7 @@ func TestOpASL(t *testing.T) {
 		case ACCUMULATOR:
 			c.acc = tc.val
 		default:
-			c.writeMem(c.getOperandAddr(tc.mode), tc.val)
+			c.memWrite(c.getOperandAddr(tc.mode), tc.val)
 		}
 
 		c.ASL(tc.mode)
@@ -398,7 +398,7 @@ func TestOpBCC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BCC(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -424,7 +424,7 @@ func TestOpBCS(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BCS(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -450,7 +450,7 @@ func TestOpBEQ(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BEQ(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -478,7 +478,7 @@ func TestOpBIT(t *testing.T) {
 		c.pc = 0x0300
 		c.status = 0 // Clear processor init defaults
 		c.acc = tc.acc
-		c.writeMem(c.getOperandAddr(ZERO_PAGE), tc.op)
+		c.memWrite(c.getOperandAddr(ZERO_PAGE), tc.op)
 
 		if c.BIT(ZERO_PAGE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got status = 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
@@ -503,7 +503,7 @@ func TestOpBMI(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BMI(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -528,7 +528,7 @@ func TestOpBNE(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BNE(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -554,7 +554,7 @@ func TestOpBPL(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BPL(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -578,7 +578,7 @@ func TestOpBRK(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem16(INT_BRK, tc.brk)
+		c.memWrite16(INT_BRK, tc.brk)
 		c.BRK(IMPLICIT)
 		if c.pc != tc.wantPC || c.status != tc.wantStatus {
 			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, tc.wantStatus)
@@ -603,7 +603,7 @@ func TestOpBVC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BVC(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -627,7 +627,7 @@ func TestOpBVS(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.offset)
+		c.memWrite(c.pc, tc.offset)
 		c.BVS(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -734,7 +734,7 @@ func TestOpCMP(t *testing.T) {
 		c.pc = 0
 		c.status = 0 // Clear processor init defaults
 		c.acc = tc.acc
-		c.writeMem(c.pc, tc.m)
+		c.memWrite(c.pc, tc.m)
 		if c.CMP(IMMEDIATE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
 		}
@@ -756,7 +756,7 @@ func TestOpCPX(t *testing.T) {
 		c.pc = 0
 		c.status = 0 // Clear processor init defaults
 		c.x = tc.x
-		c.writeMem(c.pc, tc.m)
+		c.memWrite(c.pc, tc.m)
 		if c.CPX(IMMEDIATE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
 		}
@@ -778,7 +778,7 @@ func TestOpCPY(t *testing.T) {
 		c.pc = 0
 		c.status = 0 // Clear processor init defaults
 		c.y = tc.y
-		c.writeMem(c.pc, tc.m)
+		c.memWrite(c.pc, tc.m)
 		if c.CPY(IMMEDIATE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
 		}
@@ -801,7 +801,7 @@ func TestOpDEC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		c.DEC(IMMEDIATE)
 		if m := c.memRead(c.pc); m != tc.want || c.status != tc.wantStatus {
@@ -875,7 +875,7 @@ func TestOpEOR(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		c.EOR(IMMEDIATE)
@@ -948,7 +948,7 @@ func TestOpINC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		c.INC(IMMEDIATE)
 		if m := c.memRead(c.pc); m != tc.want || c.status != tc.wantStatus {
@@ -972,8 +972,8 @@ func TestOpJMP(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = tc.pc
-		c.writeMem16(c.pc, tc.target)
-		c.writeMem16(c.getOperandAddr(ABSOLUTE), tc.target2)
+		c.memWrite16(c.pc, tc.target)
+		c.memWrite16(c.getOperandAddr(ABSOLUTE), tc.target2)
 
 		c.JMP(tc.mode)
 		if c.pc != tc.wantPC {
@@ -996,7 +996,7 @@ func TestOpJSR(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = tc.pc
-		c.writeMem16(c.pc, tc.target)
+		c.memWrite16(c.pc, tc.target)
 		c.sp = tc.sp
 
 		c.JSR(ABSOLUTE)
@@ -1023,7 +1023,7 @@ func TestOpLDA(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		if c.LDA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
@@ -1047,7 +1047,7 @@ func TestOpLDX(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		c.LDX(IMMEDIATE)
 		if c.x != tc.want || c.status != tc.wantStatus {
@@ -1072,7 +1072,7 @@ func TestOpLDY(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		c.LDY(IMMEDIATE)
 		if c.y != tc.want || c.status != tc.wantStatus {
@@ -1102,7 +1102,7 @@ func TestOpLSR(t *testing.T) {
 		case ACCUMULATOR:
 			c.acc = tc.val
 		default:
-			c.writeMem(c.getOperandAddr(tc.mode), tc.val)
+			c.memWrite(c.getOperandAddr(tc.mode), tc.val)
 		}
 
 		c.LSR(tc.mode)
@@ -1179,9 +1179,9 @@ func TestPCWithStep(t *testing.T) {
 		c.cycles = 0
 		c.pc = 0 // first operand, not op, so branching from pc-1
 		c.status = tc.status
-		c.writeMem(c.pc, tc.inst)
-		c.writeMem(c.pc+1, tc.m1)
-		c.writeMem(c.pc+2, tc.m2)
+		c.memWrite(c.pc, tc.inst)
+		c.memWrite(c.pc+1, tc.m1)
+		c.memWrite(c.pc+2, tc.m2)
 
 		c.step()
 		if c.pc != tc.wantPC {
@@ -1208,7 +1208,7 @@ func TestOpORA(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		if c.ORA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
@@ -1360,7 +1360,7 @@ func TestOpROL(t *testing.T) {
 		c.pc = 0x10 // memory addr 0x10 should always be 0 on init
 		c.acc = tc.acc
 		if tc.mode != ACCUMULATOR {
-			c.writeMem(c.getOperandAddr(tc.mode), tc.op1)
+			c.memWrite(c.getOperandAddr(tc.mode), tc.op1)
 		}
 
 		c.status = tc.status
@@ -1406,7 +1406,7 @@ func TestOpROR(t *testing.T) {
 		c.pc = 0x10 // memory addr 0x10 should always be 0 on init
 		c.acc = tc.acc
 		if tc.mode != ACCUMULATOR {
-			c.writeMem(c.getOperandAddr(tc.mode), tc.op1)
+			c.memWrite(c.getOperandAddr(tc.mode), tc.op1)
 		}
 		c.status = tc.status
 
@@ -1488,7 +1488,7 @@ func TestOpSBC(t *testing.T) {
 		c.pc = 0x7780
 		c.acc = tc.acc
 		c.status = tc.status
-		c.writeMem(c.pc, tc.op1)
+		c.memWrite(c.pc, tc.op1)
 
 		if c.SBC(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (status 0x%02x), wanted 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
