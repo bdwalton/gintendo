@@ -503,7 +503,7 @@ func (c *cpu) BIOS(ctx context.Context) {
 			fmt.Printf("High address (eg 0xBEEF): ")
 			fmt.Scanf("0x%04x\n", &high)
 
-			var x int
+			x := 1
 			i := low
 			for {
 				fmt.Printf("0x%04x: 0x%02x ", i, c.memRead(i))
