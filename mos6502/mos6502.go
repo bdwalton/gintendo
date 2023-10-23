@@ -470,6 +470,8 @@ func (c *cpu) BIOS(ctx context.Context) {
 		fmt.Println("(S)step - step the cpu one instruction")
 		fmt.Println("R(e)set - hit the reset button")
 		fmt.Println("(M)memory - select a memory range to display")
+		fmt.Println("S(t)ack - show last 3 items on the stack")
+		fmt.Println("(I)instruction - show instruction memory locations")
 		fmt.Println("(Q)uit - shutdown the gintentdo")
 		fmt.Printf("Choice: ")
 
@@ -494,14 +496,37 @@ func (c *cpu) BIOS(ctx context.Context) {
 			c.Run(cctx)
 		case 's', 'S':
 			c.step()
+		case 't', 'T':
+			fmt.Println()
+			i := 0
+			for {
+				m := uint16((c.sp + uint8(i)))
+				fmt.Printf("0x%04x: 0x%02x ", m, c.memRead(m))
+				if m == 0x00ff || i == 2 {
+					break
+				}
+				i += 1
+			}
+			fmt.Printf("\n\n")
+		case 'i', 'I':
+			fmt.Println()
+			op := opcodes[c.memRead(c.pc)]
+			for i := 0; i < int(op.bytes); i++ {
+				m := c.pc + uint16(i)
+				fmt.Printf("0x%04x: 0x%02x ", m, c.memRead(m))
+			}
+			fmt.Printf("\n\n")
 		case 'e', 'E':
 			c.reset()
 		case 'm', 'M':
+			fmt.Println()
 			var low, high uint16
 			fmt.Printf("Low address (eg 0xF00D): ")
 			fmt.Scanf("0x%04x\n", &low)
 			fmt.Printf("High address (eg 0xBEEF): ")
 			fmt.Scanf("0x%04x\n", &high)
+
+			fmt.Println()
 
 			x := 1
 			i := low
@@ -516,7 +541,7 @@ func (c *cpu) BIOS(ctx context.Context) {
 				x += 1
 				i += 1
 			}
-			fmt.Println()
+			fmt.Printf("\n\n")
 		}
 	}
 }
