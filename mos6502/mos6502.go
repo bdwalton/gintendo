@@ -500,7 +500,7 @@ func (c *cpu) BIOS(ctx context.Context) {
 			fmt.Println()
 			i := 0
 			for {
-				m := uint16((c.sp + uint8(i)))
+				m := c.getStackAddr() + uint16(i)
 				fmt.Printf("0x%04x: 0x%02x ", m, c.memRead(m))
 				if m == 0x00ff || i == 2 {
 					break
