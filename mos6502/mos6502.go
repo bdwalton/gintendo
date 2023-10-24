@@ -301,6 +301,7 @@ var flagMap map[uint8]byte = map[uint8]byte{
 	STATUS_FLAG_DECIMAL:           'D',
 	STATUS_FLAG_BREAK:             'B',
 	UNUSED_STATUS_FLAG:            '-',
+	STATUS_FLAG_OVERFLOW:          'V',
 	STATUS_FLAG_NEGATIVE:          'N',
 }
 
