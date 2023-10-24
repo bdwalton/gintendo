@@ -167,7 +167,7 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0x30: opcode{BMI, "BMI", RELATIVE, 2, 2 /* +1 if branch succeeds +2 if to a new page */},
 	0xD0: opcode{BNE, "BNE", RELATIVE, 2, 2 /* +1 if branch succeeds +2 if to a new page */},
 	0x10: opcode{BPL, "BPL", RELATIVE, 2, 2 /* +1 if branch succeeds +2 if to a new page */},
-	0x00: opcode{BRK, "BRK", IMPLICIT, 1, 7},
+	0x00: opcode{BRK, "BRK", IMPLICIT, 2, 7},
 	0x50: opcode{BVC, "BVC", RELATIVE, 2, 2 /* +1 if branch succeeds +2 if to a new page */},
 	0x70: opcode{BVS, "BVS", RELATIVE, 2, 2 /* +1 if branch succeeds +2 if to a new page */},
 	0x18: opcode{CLC, "CLC", IMPLICIT, 1, 2},
@@ -347,6 +347,8 @@ func (c *cpu) String() string {
 func New(m mappers.Mapper) *cpu {
 	// Power on state values from:
 	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
+	// B is not normally visible in the register, but per docs, is
+	// set at startup.
 	c := &cpu{
 		sp:     0xFD,
 		mem:    m,
@@ -768,10 +770,11 @@ func (c *cpu) BPL(mode uint8) {
 }
 
 func (c *cpu) BRK(mode uint8) {
-	c.pushAddress(c.pc)
-	c.pushStack(c.status)
-	c.flagsOn(STATUS_FLAG_BREAK)
+	// BRK is 2 bytes
+	c.pushAddress(c.pc + 1)
+	c.pushStack(c.status | STATUS_FLAG_BREAK)
 	c.pc = c.memRead16(INT_BRK)
+	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
 func (c *cpu) BVC(mode uint8) {

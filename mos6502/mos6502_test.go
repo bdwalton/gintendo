@@ -252,9 +252,9 @@ func TestGetInst(t *testing.T) {
 		want    opcode
 		wantErr error
 	}{
-		{0x00, opcode{BRK, "BRK", IMPLICIT, 1, 7}, nil},
+		{0x00, opcode{BRK, "BRK", IMPLICIT, 2, 7}, nil},
 		{0x24, opcode{BIT, "BIT", ZERO_PAGE, 2, 3}, nil},
-		{0x02, opcode{BRK, "BRK", IMPLICIT, 1, 7}, invalidInstruction},
+		{0x02, opcode{BRK, "BRK", IMPLICIT, 2, 7}, invalidInstruction},
 	}
 
 	for i, tc := range cases {
@@ -569,10 +569,12 @@ func TestOpBRK(t *testing.T) {
 		brk        uint16
 		status     uint8
 		wantPC     uint16
+		wantReturn uint16
 		wantStatus uint8
+		wantStStat uint8
 	}{
-		{0xFF15, 0xAC69, 0x00, 0xAC69, 0x10 /* BRK set */},
-		{0xAAAA, 0x1167, 0x81, 0x1167, 0x91 /* BRK set */},
+		{0xFF15, 0xAC69, 0x00, 0xAC69, 0xFF16, 0x04 /* I set */, 0x10 /* BRK */},
+		{0xAAAA, 0x1167, 0x81, 0x1167, 0xAAAB, 0x85 /* N,I,C set */, 0x91 /* N,B,C */},
 	}
 
 	for i, tc := range cases {
@@ -580,7 +582,9 @@ func TestOpBRK(t *testing.T) {
 		c.status = tc.status
 		c.memWrite16(INT_BRK, tc.brk)
 		c.BRK(IMPLICIT)
-		if c.pc != tc.wantPC || c.status != tc.wantStatus {
+		stStat := c.popStack()
+		ret := c.popAddress()
+		if c.pc != tc.wantPC || c.status != tc.wantStatus || ret != tc.wantReturn || stStat != tc.wantStStat {
 			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, tc.wantStatus)
 		}
 	}
