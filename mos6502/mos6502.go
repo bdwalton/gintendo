@@ -910,7 +910,9 @@ func (c *cpu) PHA(mode uint8) {
 }
 
 func (c *cpu) PHP(mode uint8) {
-	c.pushStack(c.status)
+	// 6502 always sets BREAK when pushing the status register to
+	// the stack
+	c.pushStack(c.status | STATUS_FLAG_BREAK)
 }
 
 func (c *cpu) PLA(mode uint8) {
@@ -919,7 +921,7 @@ func (c *cpu) PLA(mode uint8) {
 }
 
 func (c *cpu) PLP(mode uint8) {
-	c.status = c.popStack()
+	c.status = c.popStack() & ^uint8(STATUS_FLAG_BREAK)
 }
 
 func (c *cpu) ROL(mode uint8) {

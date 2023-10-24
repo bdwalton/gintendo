@@ -1263,7 +1263,7 @@ func TestOpPHP(t *testing.T) {
 	for i, tc := range cases {
 		c.status = tc.status
 		c.PHP(IMPLICIT)
-		if m := c.memRead(c.getStackAddr() + 1); m != tc.status || c.sp != tc.wantSP {
+		if m := c.memRead(c.getStackAddr() + 1); m != (tc.status|STATUS_FLAG_BREAK) || c.sp != tc.wantSP {
 			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, m, tc.status)
 		}
 	}
@@ -1323,7 +1323,7 @@ func TestOpPLP(t *testing.T) {
 	// we'll compare as we pop.
 	for i := len(cases); i > 0; i -= 1 {
 		c.status = cases[i-1].status
-		c.PHP(IMPLICIT)
+		c.PHP(IMPLICIT) // We test that this forces B to be set
 	}
 
 	for i, tc := range cases {
