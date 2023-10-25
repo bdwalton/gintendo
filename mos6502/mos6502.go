@@ -463,13 +463,24 @@ func (c *cpu) reset() {
 	c.pc = c.memRead16(INT_RESET)
 }
 
+func readAddress(prompt string) uint16 {
+	var a uint16
+	fmt.Printf(prompt)
+	fmt.Scanf("%04x\n", &a)
+	return a
+}
+
 func (c *cpu) BIOS(ctx context.Context) {
 
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
 
+	breaks := make(map[uint16]struct{})
+
 	for {
 		fmt.Printf("%s\n\n", c)
+		fmt.Println("(B)reak - add breakpoint")
+		fmt.Println("(C)lear - cleear breakpoints")
 		fmt.Println("(R)un - run to completion")
 		fmt.Println("(S)step - step the cpu one instruction")
 		fmt.Println("R(e)set - hit the reset button")
@@ -483,6 +494,10 @@ func (c *cpu) BIOS(ctx context.Context) {
 		fmt.Scanf("%c\n", &in)
 
 		switch in {
+		case 'b', 'B':
+			breaks[readAddress("Breakpoint (eg: ff15): ")] = struct{}{}
+		case 'c', 'C':
+			breaks = make(map[uint16]struct{})
 		case 'q', 'Q':
 			return
 		case 'r', 'R':
@@ -497,7 +512,7 @@ func (c *cpu) BIOS(ctx context.Context) {
 					}
 				}
 			}(cctx)
-			c.Run(cctx)
+			c.Run(cctx, breaks)
 		case 's', 'S':
 			c.step()
 		case 't', 'T':
@@ -524,12 +539,8 @@ func (c *cpu) BIOS(ctx context.Context) {
 			c.reset()
 		case 'm', 'M':
 			fmt.Println()
-			var low, high uint16
-			fmt.Printf("Low address (eg 0xF00D): ")
-			fmt.Scanf("0x%04x\n", &low)
-			fmt.Printf("High address (eg 0xBEEF): ")
-			fmt.Scanf("0x%04x\n", &high)
-
+			low := readAddress("Low address (eg f00d): ")
+			high := readAddress("High address (eg beef): ")
 			fmt.Println()
 
 			x := 1
@@ -550,7 +561,7 @@ func (c *cpu) BIOS(ctx context.Context) {
 	}
 }
 
-func (c *cpu) Run(ctx context.Context) {
+func (c *cpu) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	// https://www.nesdev.org/wiki/CPU#Frequencies
 	t := time.NewTicker(time.Nanosecond * 559)
 	for {
@@ -559,6 +570,11 @@ func (c *cpu) Run(ctx context.Context) {
 			c.step()
 			fmt.Println(c)
 		case <-ctx.Done():
+			return
+		}
+
+		if _, ok := breaks[c.pc]; ok {
+			fmt.Printf("Hit breakpoint at 0%04x\n", c.pc)
 			return
 		}
 	}
