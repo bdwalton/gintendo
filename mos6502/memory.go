@@ -11,18 +11,23 @@ const (
 )
 
 type memory struct {
+	size   uint16         // The size of ram in words
 	ram    []uint8        // The actual memory
 	mapper mappers.Mapper // Access to "virtualized" memory via the mapper
 }
 
-func newMemory(ramSize uint16, m mappers.Mapper) *memory {
-	return &memory{ram: make([]uint8, ramSize), mapper: m}
+func newMemory(size uint16, m mappers.Mapper) *memory {
+	return &memory{size: size, ram: make([]uint8, size), mapper: m}
 }
 
 func (m *memory) read(addr uint16) uint8 {
+	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
-	case addr < uint16(len(m.ram)):
+	case addr < m.size:
 		return m.ram[addr]
+	case 0x0800 <= addr && addr <= 0x1FFF:
+		// Mirrors of 0x0000-0x07FF
+		return m.ram[addr%m.size]
 	case addr <= MAX_ADDRESS:
 		return m.mapper.PrgRead(addr)
 	}
@@ -40,9 +45,13 @@ func (m *memory) read16(addr uint16) uint16 {
 }
 
 func (m *memory) write(addr uint16, val uint8) {
+	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
-	case addr < uint16(len(m.ram)):
+	case addr < m.size:
 		m.ram[addr] = val
+	case 0x0800 <= addr && addr <= 0x1FFF:
+		// Mirrors of 0x0000-0x07FF
+		m.ram[addr%m.size] = val
 	case addr <= MAX_ADDRESS:
 		m.mapper.PrgWrite(addr, val)
 	}
