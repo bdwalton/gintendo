@@ -39,8 +39,8 @@ type Mapper interface {
 	ID() uint8
 	Init(*nesrom.ROM)
 	Name() string
-	MemWrite(uint16, uint8) // Write to uint8 to address uint16
-	MemRead(uint16) uint8   // Read uint8 from address uint16
+	PrgRead(uint16) uint8   // Read PRG data
+	PrgWrite(uint16, uint8) // Write PRG data
 }
 
 type baseMapper struct {

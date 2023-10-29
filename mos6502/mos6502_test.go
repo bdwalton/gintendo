@@ -2,6 +2,7 @@ package mos6502
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/bdwalton/gintendo/nesrom"
@@ -23,17 +24,17 @@ func (dm *dummyMapper) Name() string {
 	return "dummy mapper"
 }
 
-func (dm *dummyMapper) MemRead(addr uint16) uint8 {
+func (dm *dummyMapper) PrgRead(addr uint16) uint8 {
 	return dm.memory[addr]
 }
 
-func (dm *dummyMapper) MemWrite(addr uint16, val uint8) {
+func (dm *dummyMapper) PrgWrite(addr uint16, val uint8) {
 	dm.memory[addr] = val
 }
 
-var dm *dummyMapper = &dummyMapper{memory: make([]uint8, MEM_SIZE)}
+var dm *dummyMapper = &dummyMapper{memory: make([]uint8, math.MaxUint16+1)}
 
-func memInit(c *cpu, val uint8) (mem [MEM_SIZE]uint8) {
+func memInit(c *cpu, val uint8) {
 	for i := 0; i < MEM_SIZE; i++ {
 		c.memWrite(uint16(i), val)
 	}

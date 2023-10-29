@@ -18,6 +18,10 @@ import (
 	"strings"
 )
 
+const (
+	RAM_SIZE = 0x0800 // 2k of real (non-cartride memory)
+)
+
 // 6502 Interrupt Vectors
 // https://en.wikipedia.org/wiki/Interrupts_in_65xx_processors
 const (
@@ -332,17 +336,17 @@ func statusString(p uint8) string {
 
 // type cpu implements all of the machine state for the 6502
 type cpu struct {
-	acc    uint8  // main register
-	x, y   uint8  // index registers
-	status uint8  // a register for storing various status bits
-	sp     uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
-	pc     uint16 // the program counter
-	mem    mappers.Mapper
-	cycles uint8 // how many cycles to wait until next instruction
+	acc    uint8   // main register
+	x, y   uint8   // index registers
+	status uint8   // a register for storing various status bits
+	sp     uint8   // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
+	pc     uint16  // the program counter
+	mem    *memory // 64k addressable memory
+	cycles uint8   // how many cycles to wait until next instruction
 }
 
 func (c *cpu) String() string {
-	return fmt.Sprintf("A,X,Y: %4d, %4d, %4d; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.mem.MemRead(c.pc)])
+	return fmt.Sprintf("A,X,Y: %4d, %4d, %4d; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.mem.read(c.pc)])
 }
 
 func New(m mappers.Mapper) *cpu {
@@ -352,7 +356,7 @@ func New(m mappers.Mapper) *cpu {
 	// set at startup.
 	c := &cpu{
 		sp:     0xFD,
-		mem:    m,
+		mem:    newMemory(RAM_SIZE, m),
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
 	c.pc = c.memRead16(INT_RESET)
@@ -373,7 +377,7 @@ func (c *cpu) getInst() (opcode, error) {
 
 // memRead returns the byte from memory at addr
 func (c *cpu) memRead(addr uint16) uint8 {
-	return c.mem.MemRead(addr)
+	return c.mem.read(addr)
 }
 
 // memRange returns a slice of memory addresses from low to
@@ -381,7 +385,7 @@ func (c *cpu) memRead(addr uint16) uint8 {
 func (c *cpu) memRange(low, high uint16) []uint8 {
 	ret := make([]uint8, high-low)
 	for i := low; i <= high; i += 1 {
-		ret = append(ret, c.mem.MemRead(uint16(i)))
+		ret = append(ret, c.mem.read(uint16(i)))
 	}
 
 	return ret
@@ -389,7 +393,7 @@ func (c *cpu) memRange(low, high uint16) []uint8 {
 
 // memWrite writes val to memory at addr
 func (c *cpu) memWrite(addr uint16, val uint8) {
-	c.mem.MemWrite(addr, val)
+	c.mem.write(addr, val)
 }
 
 // memRead16 returns the two bytes from memory at addr (lower byte is
