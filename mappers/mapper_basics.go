@@ -41,6 +41,8 @@ type Mapper interface {
 	Name() string
 	PrgRead(uint16) uint8   // Read PRG data
 	PrgWrite(uint16, uint8) // Write PRG data
+	ChrRead(uint16) uint8   // Read CHR data
+	ChrWrite(uint16, uint8) // Write CHR data
 }
 
 type baseMapper struct {

@@ -105,6 +105,14 @@ func (r *ROM) PrgWrite(addr uint16, val uint8) {
 	r.prg[addr] = val
 }
 
+func (r *ROM) ChrRead(addr uint16) uint8 {
+	return r.chr[addr]
+}
+
+func (r *ROM) ChrWrite(addr uint16, val uint8) {
+	r.chr[addr] = val
+}
+
 func (r *ROM) MapperNum() uint8 {
 	return r.h.MapperNum()
 }

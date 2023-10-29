@@ -32,6 +32,14 @@ func (dm *dummyMapper) PrgWrite(addr uint16, val uint8) {
 	dm.memory[addr] = val
 }
 
+func (dm *dummyMapper) ChrRead(addr uint16) uint8 {
+	panic("dummyMapper: Doesn't support ChrRead().")
+}
+
+func (dm *dummyMapper) ChrWrite(addr uint16, val uint8) {
+	panic("dummyMapper: Doesn't support ChrWrite().")
+}
+
 var dm *dummyMapper = &dummyMapper{memory: make([]uint8, math.MaxUint16+1)}
 
 func memInit(c *cpu, val uint8) {
