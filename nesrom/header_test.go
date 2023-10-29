@@ -39,8 +39,8 @@ func TestNES2Format(t *testing.T) {
 	for i, tc := range cases {
 		h.constant = tc.constant
 		h.flags7 = tc.flags7
-		if h.IsINesFormat() != tc.wantINES || h.IsNES2Format() != tc.wantNES2 {
-			t.Errorf("%d: ines = %t want %t; nes2 = %t, want %t", i, h.IsINesFormat(), tc.wantINES, h.IsNES2Format(), tc.wantNES2)
+		if h.isINesFormat() != tc.wantINES || h.isNES2Format() != tc.wantNES2 {
+			t.Errorf("%d: ines = %t want %t; nes2 = %t, want %t", i, h.isINesFormat(), tc.wantINES, h.isNES2Format(), tc.wantNES2)
 		}
 	}
 }
@@ -64,7 +64,7 @@ func TestMapperNum(t *testing.T) {
 		h.flags6 = tc.flags6
 		h.flags7 = tc.flags7
 		h.unused = tc.unused
-		if got := h.MapperNum(); got != tc.want {
+		if got := h.mapperNum(); got != tc.want {
 			t.Errorf("%d: Got %d, want %d", i, got, tc.want)
 		}
 	}
@@ -84,7 +84,7 @@ func TestHasTrainer(t *testing.T) {
 
 	for i, tc := range cases {
 		h.flags6 = tc.flags6
-		if got := h.HasTrainer(); got != tc.want {
+		if got := h.hasTrainer(); got != tc.want {
 			t.Errorf("%d: Got %t, want %t", i, got, tc.want)
 		}
 	}
@@ -104,7 +104,7 @@ func TestHasPlayChoice10(t *testing.T) {
 
 	for i, tc := range cases {
 		h.flags7 = tc.flags7
-		if got := h.HasPlayChoice(); got != tc.want {
+		if got := h.hasPlayChoice(); got != tc.want {
 			t.Errorf("%d: Got %t, want %t", i, got, tc.want)
 		}
 	}

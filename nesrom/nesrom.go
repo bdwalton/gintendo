@@ -41,7 +41,7 @@ func New(inesData io.Reader) (*ROM, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing header %w", err)
 	}
-	if i.h.HasTrainer() {
+	if i.h.hasTrainer() {
 		i.trainer = make([]byte, TRAINER_SIZE)
 		if n, err := inesData.Read(i.trainer); n != TRAINER_SIZE || err != nil {
 			return nil, fmt.Errorf("error reading trainer data: %w", err)
@@ -49,19 +49,19 @@ func New(inesData io.Reader) (*ROM, error) {
 
 	}
 
-	s := PRG_BLOCK_SIZE * int(i.h.PrgSize())
+	s := PRG_BLOCK_SIZE * int(i.h.prgSize)
 	i.prg = make([]byte, s)
 	if n, err := inesData.Read(i.prg); n != s || err != nil {
 		return nil, fmt.Errorf("error reading PRG ROM (read %d, wanted %d): %w", n, s, err)
 	}
 
-	s = CHR_BLOCK_SIZE * int(i.h.ChrSize())
+	s = CHR_BLOCK_SIZE * int(i.h.chrSize)
 	i.chr = make([]byte, s)
 	if n, err := inesData.Read(i.chr); n != s || err != nil {
 		return nil, fmt.Errorf("error reading CHR ROM (read %d, wanted %d): %w", n, s, err)
 	}
 
-	if i.h.HasPlayChoice() {
+	if i.h.hasPlayChoice() {
 		i.pcInstRom = make([]byte, PC_INST_SIZE)
 		if n, err := inesData.Read(i.pcInstRom); n != PC_INST_SIZE || err != nil {
 			return nil, fmt.Errorf("error reading PlayChoice INSt ROM (n=%d; wanted %d): %w", n, PC_INST_SIZE, err)
@@ -87,7 +87,7 @@ func (r *ROM) String() string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("%s\n", r.h))
-	if r.h.HasTrainer() {
+	if r.h.hasTrainer() {
 		sb.WriteString(fmt.Sprintf("Trainer: %v\n", r.trainer))
 	}
 
@@ -114,7 +114,7 @@ func (r *ROM) ChrWrite(addr uint16, val uint8) {
 }
 
 func (r *ROM) MapperNum() uint8 {
-	return r.h.MapperNum()
+	return r.h.mapperNum()
 }
 
 func (r *ROM) MirroringMode() uint8 {

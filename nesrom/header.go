@@ -84,28 +84,18 @@ func (h *Header) mirroringMode() uint8 {
 	return h.flags6 & MIRRORING // 0 = horizonal, 1 = vertical
 }
 
-// HasTrainer indicates whether the NES ROM contains a Trainer
-func (h *Header) HasTrainer() bool {
+// hasTrainer indicates whether the NES ROM contains a Trainer
+func (h *Header) hasTrainer() bool {
 	return h.flags6&TRAINER == TRAINER
 }
 
-func (h *Header) HasPlayChoice() bool {
+func (h *Header) hasPlayChoice() bool {
 	return h.flags7&PLAYCHOICE_10 == PLAYCHOICE_10
-}
-
-// PrgSize returns the size of the PRG ROM in 16KB units
-func (h *Header) PrgSize() uint8 {
-	return h.prgSize
-}
-
-// ChrSize returns the size of the CHR ROM in 8KB units
-func (h *Header) ChrSize() uint8 {
-	return h.chrSize
 }
 
 // PrgRAMSize returns the size of PRG RAM in 8KB units with flags8==0
 // indicating that there is a single (1) 8KB unit
-func (h *Header) PrgRAMSize() uint8 {
+func (h *Header) prgRAMSize() uint8 {
 	if h.flags8 == 0 {
 		return 1
 	}
@@ -118,16 +108,16 @@ const (
 	PAL
 )
 
-func (h *Header) TVSystem() uint8 {
+func (h *Header) tvSystem() uint8 {
 	return h.flags9 & TV_SYSTEM
 }
 
-func (h *Header) IsINesFormat() bool {
+func (h *Header) isINesFormat() bool {
 	return h.constant == "NES\x1A"
 }
 
-func (h *Header) IsNES2Format() bool {
-	return h.IsINesFormat() && ((h.flags7 & 0x0C) == 0x08)
+func (h *Header) isNES2Format() bool {
+	return h.isINesFormat() && ((h.flags7 & 0x0C) == 0x08)
 }
 
 // ignoreHighNibble returns true if we should not use the high 4 bits of
@@ -147,16 +137,16 @@ func (h *Header) ignoreHighNibble() bool {
 		}
 	}
 
-	if !lfbz && !h.IsNES2Format() {
+	if !lfbz && !h.isNES2Format() {
 		return true
 	}
 
 	return false
 }
 
-// MapperNum returns the mapper number which is constructed of the
+// mapperNum returns the mapper number which is constructed of the
 // upper 4 bits of flag7 and the upper 4 bits of flag 6.
-func (h *Header) MapperNum() uint8 {
+func (h *Header) mapperNum() uint8 {
 	mn := ((h.flags6 & 0xF0) >> 4)
 	if h.ignoreHighNibble() {
 		return mn
