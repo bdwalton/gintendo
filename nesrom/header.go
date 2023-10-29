@@ -39,15 +39,15 @@ type Header struct {
 const (
 	// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
 	// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
-	MIRRORING = 0x01
+	MIRRORING = 1 << 0
 	// 1: Cartridge contains battery-backed PRG RAM ($6000-7FFF)
 	// or other persistent memory
-	BATTERY = 0x02
+	BATTERY = 1 << 1
 	// 1: 512-byte trainer at $7000-$71FF (stored before PRG data)
-	TRAINER = 0x04
+	TRAINER = 1 << 2
 	// 1: Ignore mirroring control or above mirroring bit; instead
 	// provide four-screen VRAM
-	IGNORE_MIRRORING = 0x08
+	IGNORE_MIRRORING = 1 << 3
 )
 
 // flag7 flag identifiers - the top 4 bits are the upper nibble of the mapper number
@@ -62,15 +62,26 @@ const (
 	TV_SYSTEM = 0x01
 )
 
+func (h *Header) String() string {
+	return fmt.Sprintf("%s, prg(%d), chr(%d), flags(%02x, %02x, %02x, %02x, %02x)", h.constant, h.prgSize, h.chrSize, h.flags6, h.flags7, h.flags8, h.flags9, h.flags10)
+}
+
 // Mirroring mode
 const (
-	VERTICAL = iota
-	HORIZONTAL
+	HORIZONTAL = iota
+	VERTICAL
 	FOUR_SCREEN
 )
 
-func (h *Header) String() string {
-	return fmt.Sprintf("%s, prg(%d), chr(%d), flags(%02x, %02x, %02x, %02x, %02x)", h.constant, h.prgSize, h.chrSize, h.flags6, h.flags7, h.flags8, h.flags9, h.flags10)
+// mirroringMode returns an identifier indicating which mirroring mode
+// the PPU should use during rendering.
+// https://www.nesdev.org/wiki/INES#Nametable_Mirroring
+func (h *Header) mirroringMode() uint8 {
+	if h.flags6&IGNORE_MIRRORING > 0 {
+		return FOUR_SCREEN
+	}
+
+	return h.flags6 & MIRRORING // 0 = horizonal, 1 = vertical
 }
 
 // HasTrainer indicates whether the NES ROM contains a Trainer

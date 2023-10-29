@@ -109,3 +109,24 @@ func TestHasPlayChoice10(t *testing.T) {
 		}
 	}
 }
+
+func TestMirroringMode(t *testing.T) {
+	h := &Header{constant: "NES\x1A"}
+	cases := []struct {
+		flags6 uint8
+		want   uint8
+	}{
+		{0xFF, FOUR_SCREEN},
+		{0x00, HORIZONTAL},
+		{0x01, VERTICAL},
+		{0x08, FOUR_SCREEN},
+		{0x09, FOUR_SCREEN},
+	}
+
+	for i, tc := range cases {
+		h.flags6 = tc.flags6
+		if got := h.mirroringMode(); got != tc.want {
+			t.Errorf("%d: Got %d, want %d.", i, got, tc.want)
+		}
+	}
+}

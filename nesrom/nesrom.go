@@ -116,3 +116,7 @@ func (r *ROM) ChrWrite(addr uint16, val uint8) {
 func (r *ROM) MapperNum() uint8 {
 	return r.h.MapperNum()
 }
+
+func (r *ROM) MirroringMode() uint8 {
+	return r.h.mirroringMode()
+}
