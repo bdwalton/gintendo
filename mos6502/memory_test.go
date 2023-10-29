@@ -2,10 +2,12 @@ package mos6502
 
 import (
 	"testing"
+
+	"github.com/bdwalton/gintendo/mappers"
 )
 
 func TestBaseMapping(t *testing.T) {
-	m := newMemory(RAM_SIZE, dm)
+	m := newMemory(RAM_SIZE, mappers.Dummy)
 
 	for i := 0; i < 10; i++ {
 		m.write(uint16(i), uint8(i+1))
