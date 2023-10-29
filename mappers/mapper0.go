@@ -33,7 +33,7 @@ func (m *mapper0) PrgRead(addr uint16) uint8 {
 	case 2:
 		return m.rom.PrgRead(a)
 	default:
-		panic("mapper0: Reading above 16k of PRG Data.")
+		panic("mapper0: Reading above 32k of PRG Data.")
 	}
 
 	// Never reached
