@@ -11,27 +11,27 @@ import (
 	"github.com/bdwalton/gintendo/mappers"
 )
 
-type bus struct {
+type machine struct {
 	cpu *CPU
 	ppu *PPU
 }
 
-func New(m mappers.Mapper) *bus {
-	b := &bus{}
-	b.cpu = newCPU(b, m)
-	b.ppu = newPPU(b, m)
+func New(m mappers.Mapper) *machine {
+	mach := &machine{}
+	mach.cpu = newCPU(mach, m)
+	mach.ppu = newPPU(mach, m)
 
-	return b
+	return mach
 }
 
-func (b *bus) BIOS(ctx context.Context) {
+func (mach *machine) BIOS(ctx context.Context) {
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
 
 	breaks := make(map[uint16]struct{})
 
 	for {
-		fmt.Printf("%s\n\n", b.cpu)
+		fmt.Printf("%s\n\n", mach.cpu)
 		fmt.Println("(B)reak - add breakpoint")
 		fmt.Println("(C)lear - cleear breakpoints")
 		fmt.Println("(R)un - run to completion")
@@ -65,15 +65,15 @@ func (b *bus) BIOS(ctx context.Context) {
 					}
 				}
 			}(cctx)
-			b.cpu.Run(cctx, breaks)
+			mach.cpu.Run(cctx, breaks)
 		case 's', 'S':
-			b.cpu.step()
+			mach.cpu.step()
 		case 't', 'T':
 			fmt.Println()
 			i := 0
 			for {
-				m := b.cpu.getStackAddr() + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.mem.read(m))
+				m := mach.cpu.getStackAddr() + uint16(i)
+				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.mem.read(m))
 				if m == 0x00ff || i == 2 {
 					break
 				}
@@ -82,14 +82,14 @@ func (b *bus) BIOS(ctx context.Context) {
 			fmt.Printf("\n\n")
 		case 'i', 'I':
 			fmt.Println()
-			op := opcodes[b.cpu.mem.read(b.cpu.pc)]
+			op := opcodes[mach.cpu.mem.read(mach.cpu.pc)]
 			for i := 0; i < int(op.bytes); i++ {
-				m := b.cpu.pc + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.mem.read(m))
+				m := mach.cpu.pc + uint16(i)
+				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.mem.read(m))
 			}
 			fmt.Printf("\n\n")
 		case 'e', 'E':
-			b.cpu.reset()
+			mach.cpu.reset()
 		case 'm', 'M':
 			fmt.Println()
 			low := readAddress("Low address (eg f00d): ")
@@ -99,7 +99,7 @@ func (b *bus) BIOS(ctx context.Context) {
 			x := 1
 			i := low
 			for {
-				fmt.Printf("0x%04x: 0x%02x ", i, b.cpu.mem.read(i))
+				fmt.Printf("0x%04x: 0x%02x ", i, mach.cpu.mem.read(i))
 				if x%5 == 0 {
 					fmt.Println()
 				}

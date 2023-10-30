@@ -11,7 +11,7 @@ const (
 )
 
 type PPU struct {
-	bus          *bus
+	mach         *machine
 	m            mappers.Mapper
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
@@ -19,8 +19,8 @@ type PPU struct {
 	ppuAddr      *addrReg
 }
 
-func newPPU(b *bus, m mappers.Mapper) *PPU {
-	return &PPU{bus: b, m: m, ppuAddr: &addrReg{}}
+func newPPU(mach *machine, m mappers.Mapper) *PPU {
+	return &PPU{mach: mach, m: m, ppuAddr: &addrReg{}}
 }
 
 func (p *PPU) writePPUADDR(val uint8) {
