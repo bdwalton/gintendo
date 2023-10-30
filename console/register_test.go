@@ -1,4 +1,4 @@
-package ppu
+package console
 
 import (
 	"testing"

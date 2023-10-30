@@ -1,18 +1,18 @@
-package ppu
+package console
 
 import (
 	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/nesrom"
 )
 
-type memory struct {
+type ppuMemory struct {
 	size   uint16  // The size of vram in words
 	ram    []uint8 // The actual vram memory
 	mapper mappers.Mapper
 }
 
-func newMemory(size uint16, m mappers.Mapper) *memory {
-	return &memory{size: size, ram: make([]uint8, size), mapper: m}
+func newPPUMemory(size uint16, m mappers.Mapper) *ppuMemory {
+	return &ppuMemory{size: size, ram: make([]uint8, size), mapper: m}
 }
 
 const (
@@ -55,7 +55,7 @@ func topRangeMap(addr uint16) uint16 {
 	return addr
 }
 
-func (m *memory) read(addr uint16) uint8 {
+func (m *ppuMemory) read(addr uint16) uint8 {
 	a := topRangeMap(addr)
 
 	switch {
@@ -72,7 +72,7 @@ func (m *memory) read(addr uint16) uint8 {
 	}
 }
 
-func (m *memory) write(addr uint16, val uint8) {
+func (m *ppuMemory) write(addr uint16, val uint8) {
 	a := topRangeMap(addr)
 
 	switch {

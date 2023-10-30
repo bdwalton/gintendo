@@ -1,4 +1,4 @@
-package ppu
+package console
 
 type addrReg struct {
 	high, low uint8

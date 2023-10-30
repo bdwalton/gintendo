@@ -1,4 +1,4 @@
-package mos6502
+package console
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"github.com/bdwalton/gintendo/mappers"
 )
 
-func memInit(c *cpu, val uint8) {
+func memInit(c *CPU, val uint8) {
 	for i := 0; i < MEM_SIZE; i++ {
 		c.mem.write(uint16(i), val)
 	}

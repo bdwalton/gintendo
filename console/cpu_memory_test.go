@@ -1,4 +1,4 @@
-package mos6502
+package console
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestBaseMapping(t *testing.T) {
-	m := newMemory(RAM_SIZE, mappers.Dummy)
+	m := newCPUMemory(RAM_SIZE, mappers.Dummy)
 
 	for i := 0; i < 10; i++ {
 		m.write(uint16(i), uint8(i+1))

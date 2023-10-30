@@ -1,6 +1,6 @@
-// Package mos6502 implements the MOS Technologies 6502 processor
-// https://en.wikipedia.org/wiki/MOS_Technology_6502
-package mos6502
+// Package console implements the Nintendo Entertainment System
+// It include an MOS6502 CPU, PPU and APU
+package console
 
 import (
 	"context"
@@ -335,28 +335,28 @@ func statusString(p uint8) string {
 }
 
 // type cpu implements all of the machine state for the 6502
-type cpu struct {
-	acc    uint8   // main register
-	x, y   uint8   // index registers
-	status uint8   // a register for storing various status bits
-	sp     uint8   // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
-	pc     uint16  // the program counter
-	mem    *memory // 64k addressable memory
-	cycles uint8   // how many cycles to wait until next instruction
+type CPU struct {
+	acc    uint8      // main register
+	x, y   uint8      // index registers
+	status uint8      // a register for storing various status bits
+	sp     uint8      // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
+	pc     uint16     // the program counter
+	mem    *cpuMemory // 64k addressable memory
+	cycles uint8      // how many cycles to wait until next instruction
 }
 
-func (c *cpu) String() string {
+func (c *CPU) String() string {
 	return fmt.Sprintf("A,X,Y: %4d, %4d, %4d; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.mem.read(c.pc)])
 }
 
-func New(m mappers.Mapper) *cpu {
+func New(m mappers.Mapper) *CPU {
 	// Power on state values from:
 	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
 	// B is not normally visible in the register, but per docs, is
 	// set at startup.
-	c := &cpu{
+	c := &CPU{
 		sp:     0xFD,
-		mem:    newMemory(RAM_SIZE, m),
+		mem:    newCPUMemory(RAM_SIZE, m),
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
 	c.pc = c.mem.read16(INT_RESET)
@@ -365,7 +365,7 @@ func New(m mappers.Mapper) *cpu {
 
 var invalidInstruction = errors.New("invalid instruction")
 
-func (c *cpu) getInst() (opcode, error) {
+func (c *CPU) getInst() (opcode, error) {
 	m := c.mem.read(c.pc)
 	op, ok := opcodes[m]
 	if !ok {
@@ -377,7 +377,7 @@ func (c *cpu) getInst() (opcode, error) {
 
 // memRange returns a slice of memory addresses from low to
 // high. Mostly useful for debugging.
-func (c *cpu) memRange(low, high uint16) []uint8 {
+func (c *CPU) memRange(low, high uint16) []uint8 {
 	ret := make([]uint8, high-low)
 	for i := low; i <= high; i += 1 {
 		ret = append(ret, c.mem.read(uint16(i)))
@@ -389,7 +389,7 @@ func (c *cpu) memRange(low, high uint16) []uint8 {
 // getOperandAddr takes a mode and returns an address for the operand
 // referenced by the program counter. It assumes that the counter was
 // incremented past the actual instruction itself.
-func (c *cpu) getOperandAddr(mode uint8) uint16 {
+func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	var addr uint16
 	switch mode {
 	case ACCUMULATOR:
@@ -437,7 +437,7 @@ func (c *cpu) getOperandAddr(mode uint8) uint16 {
 	return addr
 }
 
-func (c *cpu) reset() {
+func (c *CPU) reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
 	c.pc = c.mem.read16(INT_RESET)
@@ -450,7 +450,7 @@ func readAddress(prompt string) uint16 {
 	return a
 }
 
-func (c *cpu) BIOS(ctx context.Context) {
+func (c *CPU) BIOS(ctx context.Context) {
 
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
@@ -541,7 +541,7 @@ func (c *cpu) BIOS(ctx context.Context) {
 	}
 }
 
-func (c *cpu) Run(ctx context.Context, breaks map[uint16]struct{}) {
+func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	// https://www.nesdev.org/wiki/CPU#Frequencies
 	t := time.NewTicker(time.Nanosecond * 559)
 	for {
@@ -560,7 +560,7 @@ func (c *cpu) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	}
 }
 
-func (c *cpu) step() {
+func (c *CPU) step() {
 	if c.cycles > 0 {
 		c.cycles -= 1
 		return
@@ -590,7 +590,7 @@ func (c *cpu) step() {
 // setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
 // STATUS_FLAG_ZERO bits of the status register accordingly for the
 // value specified in n.
-func (c *cpu) setNegativeAndZeroFlags(n uint8) {
+func (c *CPU) setNegativeAndZeroFlags(n uint8) {
 	if n == 0 {
 		c.flagsOn(STATUS_FLAG_ZERO)
 	} else {
@@ -604,38 +604,38 @@ func (c *cpu) setNegativeAndZeroFlags(n uint8) {
 	}
 }
 
-func (c *cpu) getStackAddr() uint16 {
+func (c *CPU) getStackAddr() uint16 {
 	return STACK_PAGE + uint16(c.sp)
 }
 
-func (c *cpu) pushStack(val uint8) {
+func (c *CPU) pushStack(val uint8) {
 	c.mem.write(c.getStackAddr(), val)
 	c.sp -= 1
 }
 
-func (c *cpu) popStack() uint8 {
+func (c *CPU) popStack() uint8 {
 	c.sp += 1
 	return c.mem.read(c.getStackAddr())
 }
 
-func (c *cpu) pushAddress(addr uint16) {
+func (c *CPU) pushAddress(addr uint16) {
 	c.pushStack(uint8(addr >> 8))     // high
 	c.pushStack(uint8(addr & 0x00FF)) // low
 }
 
-func (c *cpu) popAddress() uint16 {
+func (c *CPU) popAddress() uint16 {
 	return uint16(c.popStack()) | (uint16(c.popStack()) << 8)
 }
 
 // flagsOn forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
 // on in the status register.
-func (c *cpu) flagsOn(mask uint8) {
+func (c *CPU) flagsOn(mask uint8) {
 	c.status = c.status | mask
 }
 
 // flagsOff forces the flags in mask (STATUS_FLAG_XXX|STATUS_FLAG_YYY)
 // off in the status register.
-func (c *cpu) flagsOff(mask uint8) {
+func (c *CPU) flagsOff(mask uint8) {
 	c.status = c.status &^ mask
 }
 
@@ -655,7 +655,7 @@ func extraCycles(addr1, addr2 uint16) uint8 {
 // false. This allows you to check for STATUS_FLAG being set or
 // cleared by: branch(STATUS_FLAG_OVERFLOW, RELATIVE, false) -> branch
 // when OVERFLOW not set.
-func (c *cpu) branch(mask uint8, predicate bool) {
+func (c *CPU) branch(mask uint8, predicate bool) {
 	if (c.status&mask > 0) == predicate {
 		a := c.getOperandAddr(RELATIVE)
 		// Branching instructions take an extra cycle if they
@@ -671,7 +671,7 @@ func (c *cpu) branch(mask uint8, predicate bool) {
 
 // addWithOverflow adds b to c.acc handling overflow, carry and ZN
 // flag setting as appropriate.
-func (c *cpu) addWithOverflow(b uint8) {
+func (c *CPU) addWithOverflow(b uint8) {
 	res16 := uint16(c.acc) + uint16(b) + uint16(c.status&STATUS_FLAG_CARRY)
 	res := uint8(res16)
 
@@ -692,23 +692,23 @@ func (c *cpu) addWithOverflow(b uint8) {
 
 // baseCMP does comparison operations on a and b, setting flags
 // accordingly.
-func (c *cpu) baseCMP(a, b uint8) {
+func (c *CPU) baseCMP(a, b uint8) {
 	c.setNegativeAndZeroFlags(a - b)
 	if a >= b {
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
 }
 
-func (c *cpu) ADC(mode uint8) {
+func (c *CPU) ADC(mode uint8) {
 	c.addWithOverflow(c.mem.read(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) AND(mode uint8) {
+func (c *CPU) AND(mode uint8) {
 	c.acc = c.acc & c.mem.read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) ASL(mode uint8) {
+func (c *CPU) ASL(mode uint8) {
 	var ov, nv uint8 // old value, new value
 	switch mode {
 	case ACCUMULATOR:
@@ -729,19 +729,19 @@ func (c *cpu) ASL(mode uint8) {
 	}
 }
 
-func (c *cpu) BCC(mode uint8) {
+func (c *CPU) BCC(mode uint8) {
 	c.branch(STATUS_FLAG_CARRY, false)
 }
 
-func (c *cpu) BCS(mode uint8) {
+func (c *CPU) BCS(mode uint8) {
 	c.branch(STATUS_FLAG_CARRY, true)
 }
 
-func (c *cpu) BEQ(mode uint8) {
+func (c *CPU) BEQ(mode uint8) {
 	c.branch(STATUS_FLAG_ZERO, true)
 }
 
-func (c *cpu) BIT(mode uint8) {
+func (c *CPU) BIT(mode uint8) {
 	o := c.mem.read(c.getOperandAddr(mode))
 
 	c.flagsOff(STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW | STATUS_FLAG_ZERO)
@@ -754,19 +754,19 @@ func (c *cpu) BIT(mode uint8) {
 	c.flagsOn(flags)
 }
 
-func (c *cpu) BMI(mode uint8) {
+func (c *CPU) BMI(mode uint8) {
 	c.branch(STATUS_FLAG_NEGATIVE, true)
 }
 
-func (c *cpu) BNE(mode uint8) {
+func (c *CPU) BNE(mode uint8) {
 	c.branch(STATUS_FLAG_ZERO, false)
 }
 
-func (c *cpu) BPL(mode uint8) {
+func (c *CPU) BPL(mode uint8) {
 	c.branch(STATUS_FLAG_NEGATIVE, false)
 }
 
-func (c *cpu) BRK(mode uint8) {
+func (c *CPU) BRK(mode uint8) {
 	// BRK is 2 bytes
 	c.pushAddress(c.pc + 1)
 	c.pushStack(c.status | STATUS_FLAG_BREAK)
@@ -774,104 +774,104 @@ func (c *cpu) BRK(mode uint8) {
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-func (c *cpu) BVC(mode uint8) {
+func (c *CPU) BVC(mode uint8) {
 	c.branch(STATUS_FLAG_OVERFLOW, false)
 }
 
-func (c *cpu) BVS(mode uint8) {
+func (c *CPU) BVS(mode uint8) {
 	c.branch(STATUS_FLAG_OVERFLOW, true)
 }
 
-func (c *cpu) CLC(mode uint8) {
+func (c *CPU) CLC(mode uint8) {
 	c.flagsOff(STATUS_FLAG_CARRY)
 }
 
-func (c *cpu) CLD(mode uint8) {
+func (c *CPU) CLD(mode uint8) {
 	c.flagsOff(STATUS_FLAG_DECIMAL)
 }
 
-func (c *cpu) CLI(mode uint8) {
+func (c *CPU) CLI(mode uint8) {
 	c.flagsOff(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-func (c *cpu) CLV(mode uint8) {
+func (c *CPU) CLV(mode uint8) {
 	c.flagsOff(STATUS_FLAG_OVERFLOW)
 }
 
-func (c *cpu) CMP(mode uint8) {
+func (c *CPU) CMP(mode uint8) {
 	c.baseCMP(c.acc, c.mem.read(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) CPX(mode uint8) {
+func (c *CPU) CPX(mode uint8) {
 	c.baseCMP(c.x, c.mem.read(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) CPY(mode uint8) {
+func (c *CPU) CPY(mode uint8) {
 	c.baseCMP(c.y, c.mem.read(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) DEC(mode uint8) {
+func (c *CPU) DEC(mode uint8) {
 	a := c.getOperandAddr(mode)
 	c.mem.write(a, c.mem.read(a)-1)
 	c.setNegativeAndZeroFlags(c.mem.read(a))
 }
 
-func (c *cpu) DEX(mode uint8) {
+func (c *CPU) DEX(mode uint8) {
 	c.x -= 1
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) DEY(mode uint8) {
+func (c *CPU) DEY(mode uint8) {
 	c.y -= 1
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) EOR(mode uint8) {
+func (c *CPU) EOR(mode uint8) {
 	c.acc = c.acc ^ c.mem.read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) INC(mode uint8) {
+func (c *CPU) INC(mode uint8) {
 	a := c.getOperandAddr(mode)
 	c.mem.write(a, c.mem.read(a)+1)
 	c.setNegativeAndZeroFlags(c.mem.read(a))
 }
 
-func (c *cpu) INX(mode uint8) {
+func (c *CPU) INX(mode uint8) {
 	c.x += 1
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) INY(mode uint8) {
+func (c *CPU) INY(mode uint8) {
 	c.y += 1
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) JMP(mode uint8) {
+func (c *CPU) JMP(mode uint8) {
 	c.pc = c.getOperandAddr(mode)
 }
 
-func (c *cpu) JSR(mode uint8) {
+func (c *CPU) JSR(mode uint8) {
 	c.pushAddress(c.pc + 1) // this is the second byte of the JSR argument
 	c.pc = c.getOperandAddr(mode)
 }
 
-func (c *cpu) LDA(mode uint8) {
+func (c *CPU) LDA(mode uint8) {
 	c.acc = c.mem.read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) LDX(mode uint8) {
+func (c *CPU) LDX(mode uint8) {
 	c.x = c.mem.read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) LDY(mode uint8) {
+func (c *CPU) LDY(mode uint8) {
 	c.y = c.mem.read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) LSR(mode uint8) {
+func (c *CPU) LSR(mode uint8) {
 	var ov, nv uint8
 	switch mode {
 	case ACCUMULATOR:
@@ -893,35 +893,35 @@ func (c *cpu) LSR(mode uint8) {
 
 }
 
-func (c *cpu) NOP(mode uint8) {
+func (c *CPU) NOP(mode uint8) {
 	return
 }
 
-func (c *cpu) ORA(mode uint8) {
+func (c *CPU) ORA(mode uint8) {
 	c.acc = c.acc | c.mem.read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) PHA(mode uint8) {
+func (c *CPU) PHA(mode uint8) {
 	c.pushStack(c.acc)
 }
 
-func (c *cpu) PHP(mode uint8) {
+func (c *CPU) PHP(mode uint8) {
 	// 6502 always sets BREAK when pushing the status register to
 	// the stack
 	c.pushStack(c.status | STATUS_FLAG_BREAK)
 }
 
-func (c *cpu) PLA(mode uint8) {
+func (c *CPU) PLA(mode uint8) {
 	c.acc = c.popStack()
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) PLP(mode uint8) {
+func (c *CPU) PLP(mode uint8) {
 	c.status = c.popStack() & ^uint8(STATUS_FLAG_BREAK)
 }
 
-func (c *cpu) ROL(mode uint8) {
+func (c *CPU) ROL(mode uint8) {
 	var ov, nv uint8 // old value, new value
 	switch mode {
 	case ACCUMULATOR:
@@ -942,7 +942,7 @@ func (c *cpu) ROL(mode uint8) {
 	}
 }
 
-func (c *cpu) ROR(mode uint8) {
+func (c *CPU) ROR(mode uint8) {
 	var ov, nv uint8 // old value, new value
 	switch mode {
 	case ACCUMULATOR:
@@ -963,68 +963,68 @@ func (c *cpu) ROR(mode uint8) {
 	}
 }
 
-func (c *cpu) RTI(mode uint8) {
+func (c *CPU) RTI(mode uint8) {
 	c.status = c.popStack()
 	c.pc = c.popAddress()
 }
 
-func (c *cpu) RTS(mode uint8) {
+func (c *CPU) RTS(mode uint8) {
 	c.pc = c.popAddress() + 1
 }
 
-func (c *cpu) SBC(mode uint8) {
+func (c *CPU) SBC(mode uint8) {
 	c.addWithOverflow(^c.mem.read(c.getOperandAddr(mode)))
 }
 
-func (c *cpu) SEC(mode uint8) {
+func (c *CPU) SEC(mode uint8) {
 	c.flagsOn(STATUS_FLAG_CARRY)
 }
 
-func (c *cpu) SED(mode uint8) {
+func (c *CPU) SED(mode uint8) {
 	c.flagsOn(STATUS_FLAG_DECIMAL)
 }
 
-func (c *cpu) SEI(mode uint8) {
+func (c *CPU) SEI(mode uint8) {
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
-func (c *cpu) STA(mode uint8) {
+func (c *CPU) STA(mode uint8) {
 	c.mem.write(c.getOperandAddr(mode), c.acc)
 }
 
-func (c *cpu) STX(mode uint8) {
+func (c *CPU) STX(mode uint8) {
 	c.mem.write(c.getOperandAddr(mode), c.x)
 }
 
-func (c *cpu) STY(mode uint8) {
+func (c *CPU) STY(mode uint8) {
 	c.mem.write(c.getOperandAddr(mode), c.y)
 }
 
-func (c *cpu) TAX(mode uint8) {
+func (c *CPU) TAX(mode uint8) {
 	c.x = c.acc
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) TAY(mode uint8) {
+func (c *CPU) TAY(mode uint8) {
 	c.y = c.acc
 	c.setNegativeAndZeroFlags(c.y)
 }
 
-func (c *cpu) TSX(mode uint8) {
+func (c *CPU) TSX(mode uint8) {
 	c.x = c.sp
 	c.setNegativeAndZeroFlags(c.x)
 }
 
-func (c *cpu) TXA(mode uint8) {
+func (c *CPU) TXA(mode uint8) {
 	c.acc = c.x
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func (c *cpu) TXS(mode uint8) {
+func (c *CPU) TXS(mode uint8) {
 	c.sp = c.x
 }
 
-func (c *cpu) TYA(mode uint8) {
+func (c *CPU) TYA(mode uint8) {
 	c.acc = c.y
 	c.setNegativeAndZeroFlags(c.acc)
 }

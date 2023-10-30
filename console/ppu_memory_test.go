@@ -1,4 +1,4 @@
-package ppu
+package console
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 
 func TestNameTableMirroring(t *testing.T) {
 	dm := mappers.Dummy
-	m := newMemory(VRAM_SIZE, dm)
+	m := newPPUMemory(VRAM_SIZE, dm)
 
 	cases := []struct {
 		a       uint16 // address to write

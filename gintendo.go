@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/bdwalton/gintendo/console"
 	"github.com/bdwalton/gintendo/mappers"
-	"github.com/bdwalton/gintendo/mos6502"
 	"github.com/bdwalton/gintendo/nesrom"
 )
 
@@ -33,6 +33,6 @@ func main() {
 		log.Fatalf("Couldn't Get() mapper: %v", err)
 	}
 
-	g := mos6502.New(m)
+	g := console.New(m)
 	g.BIOS(context.Background())
 }
