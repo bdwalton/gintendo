@@ -116,11 +116,11 @@ func TestMirroringMode(t *testing.T) {
 		flags6 uint8
 		want   uint8
 	}{
-		{0xFF, FOUR_SCREEN},
-		{0x00, HORIZONTAL},
-		{0x01, VERTICAL},
-		{0x08, FOUR_SCREEN},
-		{0x09, FOUR_SCREEN},
+		{0xFF, MIRROR_FOUR_SCREEN},
+		{0x00, MIRROR_HORIZONTAL},
+		{0x01, MIRROR_VERTICAL},
+		{0x08, MIRROR_FOUR_SCREEN},
+		{0x09, MIRROR_FOUR_SCREEN},
 	}
 
 	for i, tc := range cases {

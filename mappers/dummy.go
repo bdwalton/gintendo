@@ -7,6 +7,7 @@ import (
 
 type dummyMapper struct {
 	memory []uint8
+	MM     uint8 // mirroring mode - tests can set as needed
 }
 
 func (dm *dummyMapper) ID() uint8 {
@@ -35,6 +36,10 @@ func (dm *dummyMapper) ChrRead(addr uint16) uint8 {
 
 func (dm *dummyMapper) ChrWrite(addr uint16, val uint8) {
 	dm.memory[addr] = val
+}
+
+func (dm *dummyMapper) MirroringMode() uint8 {
+	return dm.MM
 }
 
 // For testing

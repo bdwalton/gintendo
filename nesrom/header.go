@@ -68,9 +68,9 @@ func (h *Header) String() string {
 
 // Mirroring mode
 const (
-	HORIZONTAL = iota
-	VERTICAL
-	FOUR_SCREEN
+	MIRROR_HORIZONTAL = iota
+	MIRROR_VERTICAL
+	MIRROR_FOUR_SCREEN
 )
 
 // mirroringMode returns an identifier indicating which mirroring mode
@@ -78,7 +78,7 @@ const (
 // https://www.nesdev.org/wiki/INES#Nametable_Mirroring
 func (h *Header) mirroringMode() uint8 {
 	if h.flags6&IGNORE_MIRRORING > 0 {
-		return FOUR_SCREEN
+		return MIRROR_FOUR_SCREEN
 	}
 
 	return h.flags6 & MIRRORING // 0 = horizonal, 1 = vertical

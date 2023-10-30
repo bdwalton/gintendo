@@ -43,6 +43,7 @@ type Mapper interface {
 	PrgWrite(uint16, uint8) // Write PRG data
 	ChrRead(uint16) uint8   // Read CHR data
 	ChrWrite(uint16, uint8) // Write CHR data
+	MirroringMode() uint8   // Which mirroring mode is tilemap data stored in
 }
 
 type baseMapper struct {
@@ -75,4 +76,8 @@ func (bm *baseMapper) Name() string {
 
 func (bm *baseMapper) Init(r *nesrom.ROM) {
 	bm.rom = r
+}
+
+func (bm *baseMapper) MirroringMode() uint8 {
+	return bm.rom.MirroringMode()
 }
