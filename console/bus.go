@@ -19,6 +19,7 @@ type bus struct {
 func New(m mappers.Mapper) *bus {
 	b := &bus{}
 	b.cpu = newCPU(b, m)
+	b.ppu = newPPU(b, m)
 
 	return b
 }
