@@ -30,3 +30,21 @@ func TestAddrReg(t *testing.T) {
 		ar.reset()
 	}
 }
+
+func TestCtrlRegVRAMIncrement(t *testing.T) {
+	cases := []struct {
+		val  uint8
+		want uint8
+	}{
+		{CTRL_VRAM_ADD_INCREMENT, CTRL_INCR_DOWN},
+		{CTRL_NAMETABLE1 | CTRL_NAMETABLE2, CTRL_INCR_ACROSS},
+	}
+
+	cr := &ctrlReg{}
+	for i, tc := range cases {
+		cr.set(tc.val)
+		if got := cr.vram_increment(); got != tc.want {
+			t.Errorf("%d: Got %d, want %d", i, got, tc.want)
+		}
+	}
+}
