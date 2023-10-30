@@ -33,6 +33,6 @@ func main() {
 		log.Fatalf("Couldn't Get() mapper: %v", err)
 	}
 
-	g := console.New(m)
-	g.BIOS(context.Background())
+	gintendo := console.New(m)
+	gintendo.BIOS(context.Background())
 }

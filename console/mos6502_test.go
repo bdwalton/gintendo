@@ -15,7 +15,7 @@ func memInit(c *CPU, val uint8) {
 }
 
 func TestCycles(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	memInit(c, 0xEA)
 
 	cases := []struct {
@@ -54,7 +54,7 @@ func TestCycles(t *testing.T) {
 }
 
 func TestMemRead(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		mem1 uint8
 		want uint8
@@ -73,7 +73,7 @@ func TestMemRead(t *testing.T) {
 }
 
 func TestMemWrite(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		mem1 uint8
 		want uint8
@@ -92,7 +92,7 @@ func TestMemWrite(t *testing.T) {
 }
 
 func TestMemRead16(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		mem1, mem2 uint8
 		want       uint16
@@ -112,7 +112,7 @@ func TestMemRead16(t *testing.T) {
 }
 
 func TestMemWrite16(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		val        uint16
 		mem1, mem2 uint8
@@ -135,7 +135,7 @@ func TestMemWrite16(t *testing.T) {
 }
 
 func TestPushAddress(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		addr                   uint16
 		sp                     uint8
@@ -158,7 +158,7 @@ func TestPushAddress(t *testing.T) {
 }
 
 func TestPopAddress(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		addr     uint16
 		sp       uint8
@@ -182,7 +182,7 @@ func TestPopAddress(t *testing.T) {
 }
 
 func TestGetOperandAddr(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 
 	c.mem.write16(0x000F, 0x5544)
 	c.mem.write16(0x0064, 0x110F)
@@ -220,7 +220,7 @@ func TestGetOperandAddr(t *testing.T) {
 }
 
 func TestGetInst(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		val     uint8
 		want    opcode
@@ -244,7 +244,7 @@ func TestGetInst(t *testing.T) {
 }
 
 func TestReset(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		int_reset_pc uint16
 		wantPC       uint16
@@ -266,7 +266,7 @@ func TestReset(t *testing.T) {
 }
 
 func TestOpADC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, op1, status uint8
 		want, wantStatus uint8
@@ -292,7 +292,7 @@ func TestOpADC(t *testing.T) {
 }
 
 func TestOpAND(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -317,7 +317,7 @@ func TestOpAND(t *testing.T) {
 }
 
 func TestOpASL(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		val, mode        uint8 // ACCUMULATOR and ZERO_PAGE are what we use for testing
 		want, wantStatus uint8
@@ -356,7 +356,7 @@ func TestOpASL(t *testing.T) {
 }
 
 func TestOpBCC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16 // operand, so 1 beyond pc for op
 		offset uint8
@@ -382,7 +382,7 @@ func TestOpBCC(t *testing.T) {
 }
 
 func TestOpBCS(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16
 		offset uint8
@@ -408,7 +408,7 @@ func TestOpBCS(t *testing.T) {
 }
 
 func TestOpBEQ(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16
 		offset uint8
@@ -434,7 +434,7 @@ func TestOpBEQ(t *testing.T) {
 }
 
 func TestOpBIT(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, op    uint8
 		wantStatus uint8
@@ -461,7 +461,7 @@ func TestOpBIT(t *testing.T) {
 }
 
 func TestOpBMI(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16
 		offset uint8
@@ -486,7 +486,7 @@ func TestOpBMI(t *testing.T) {
 }
 
 func TestOpBNE(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -512,7 +512,7 @@ func TestOpBNE(t *testing.T) {
 }
 
 func TestOpBPL(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -537,7 +537,7 @@ func TestOpBPL(t *testing.T) {
 }
 
 func TestOpBRK(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc         uint16
 		brk        uint16
@@ -565,7 +565,7 @@ func TestOpBRK(t *testing.T) {
 }
 
 func TestOpBVC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -590,7 +590,7 @@ func TestOpBVC(t *testing.T) {
 }
 
 func TestOpBVS(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -614,7 +614,7 @@ func TestOpBVS(t *testing.T) {
 }
 
 func TestOpCLC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -635,7 +635,7 @@ func TestOpCLC(t *testing.T) {
 }
 
 func TestOpCLD(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -656,7 +656,7 @@ func TestOpCLD(t *testing.T) {
 }
 
 func TestOpCLI(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -677,7 +677,7 @@ func TestOpCLI(t *testing.T) {
 }
 
 func TestOpCLV(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -698,7 +698,7 @@ func TestOpCLV(t *testing.T) {
 }
 
 func TestOpCMP(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, m     uint8
 		wantStatus uint8
@@ -720,7 +720,7 @@ func TestOpCMP(t *testing.T) {
 }
 
 func TestOpCPX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		x, m       uint8
 		wantStatus uint8
@@ -742,7 +742,7 @@ func TestOpCPX(t *testing.T) {
 }
 
 func TestOpCPY(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		y, m       uint8
 		wantStatus uint8
@@ -764,7 +764,7 @@ func TestOpCPY(t *testing.T) {
 }
 
 func TestOpDEC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -789,7 +789,7 @@ func TestOpDEC(t *testing.T) {
 }
 
 func TestOpDEX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		x          uint8
 		status     uint8
@@ -813,7 +813,7 @@ func TestOpDEX(t *testing.T) {
 }
 
 func TestOpDEY(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		y          uint8
 		status     uint8
@@ -837,7 +837,7 @@ func TestOpDEY(t *testing.T) {
 }
 
 func TestOpEOR(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -864,7 +864,7 @@ func TestOpEOR(t *testing.T) {
 }
 
 func TestOpINX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		x          uint8
 		status     uint8
@@ -888,7 +888,7 @@ func TestOpINX(t *testing.T) {
 }
 
 func TestOpINY(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		y          uint8
 		status     uint8
@@ -912,7 +912,7 @@ func TestOpINY(t *testing.T) {
 }
 
 func TestOpINC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -936,7 +936,7 @@ func TestOpINC(t *testing.T) {
 }
 
 func TestOpJMP(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc              uint16
 		mode            uint8
@@ -961,7 +961,7 @@ func TestOpJMP(t *testing.T) {
 }
 
 func TestOpJSR(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc               uint16
 		target           uint16
@@ -986,7 +986,7 @@ func TestOpJSR(t *testing.T) {
 }
 
 func TestOpLDA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -1010,7 +1010,7 @@ func TestOpLDA(t *testing.T) {
 }
 
 func TestOpLDX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -1035,7 +1035,7 @@ func TestOpLDX(t *testing.T) {
 }
 
 func TestOpLDY(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -1060,7 +1060,7 @@ func TestOpLDY(t *testing.T) {
 }
 
 func TestOpLSR(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		val, mode        uint8 // ACCUMULATOR and ZERO_PAGE are what we use for testing
 		want, wantStatus uint8
@@ -1099,7 +1099,7 @@ func TestOpLSR(t *testing.T) {
 }
 
 func TestOpNOP(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	memInit(c, 0xEA) // NOP
 
 	cases := []struct {
@@ -1124,7 +1124,7 @@ func TestOpNOP(t *testing.T) {
 }
 
 func TestPCWithStep(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	memInit(c, 0xEA)
 
 	cases := []struct {
@@ -1169,7 +1169,7 @@ func TestPCWithStep(t *testing.T) {
 }
 
 func TestOpORA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -1196,7 +1196,7 @@ func TestOpORA(t *testing.T) {
 }
 
 func TestOpPHA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc    uint8
 		wantSP uint8
@@ -1220,7 +1220,7 @@ func TestOpPHA(t *testing.T) {
 }
 
 func TestOpPHP(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		wantSP uint8
@@ -1244,7 +1244,7 @@ func TestOpPHP(t *testing.T) {
 }
 
 func TestOpPLA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc        uint8
 		wantSP     uint8
@@ -1277,7 +1277,7 @@ func TestOpPLA(t *testing.T) {
 }
 
 func TestOpPLP(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status     uint8
 		wantSP     uint8
@@ -1309,7 +1309,7 @@ func TestOpPLP(t *testing.T) {
 }
 
 func TestOpROL(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -1356,7 +1356,7 @@ func TestOpROL(t *testing.T) {
 }
 
 func TestOpROR(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -1401,7 +1401,7 @@ func TestOpROR(t *testing.T) {
 }
 
 func TestOpRTI(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		stack      []uint8 // pc and status as 3 uint8 values
 		wantPC     uint16
@@ -1427,7 +1427,7 @@ func TestOpRTI(t *testing.T) {
 }
 
 func TestOpRTS(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		pc     uint16
 		target uint16
@@ -1451,7 +1451,7 @@ func TestOpRTS(t *testing.T) {
 }
 
 func TestOpSBC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, op1, status uint8
 		want, wantStatus uint8
@@ -1475,7 +1475,7 @@ func TestOpSBC(t *testing.T) {
 }
 
 func TestOpSEC(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1496,7 +1496,7 @@ func TestOpSEC(t *testing.T) {
 }
 
 func TestOpSED(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1517,7 +1517,7 @@ func TestOpSED(t *testing.T) {
 }
 
 func TestOpSEI(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1539,7 +1539,7 @@ func TestOpSEI(t *testing.T) {
 }
 
 func TestOpSTA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, status      uint8
 		want, wantStatus uint8
@@ -1561,7 +1561,7 @@ func TestOpSTA(t *testing.T) {
 }
 
 func TestOpSTX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		x, status        uint8
 		want, wantStatus uint8
@@ -1583,7 +1583,7 @@ func TestOpSTX(t *testing.T) {
 }
 
 func TestOpSTY(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		y, status        uint8
 		want, wantStatus uint8
@@ -1605,7 +1605,7 @@ func TestOpSTY(t *testing.T) {
 }
 
 func TestOpTAX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, x     uint8
 		wantX      uint8
@@ -1627,7 +1627,7 @@ func TestOpTAX(t *testing.T) {
 }
 
 func TestOpTAY(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, y     uint8
 		wantY      uint8
@@ -1649,7 +1649,7 @@ func TestOpTAY(t *testing.T) {
 }
 
 func TestOpTSX(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		sp, x      uint8
 		wantX      uint8
@@ -1671,7 +1671,7 @@ func TestOpTSX(t *testing.T) {
 }
 
 func TestOpTXA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, x     uint8
 		want       uint8
@@ -1694,7 +1694,7 @@ func TestOpTXA(t *testing.T) {
 }
 
 func TestOpTXS(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		sp, x, status uint8
 		wantSP        uint8
@@ -1717,7 +1717,7 @@ func TestOpTXS(t *testing.T) {
 }
 
 func TestOpTYA(t *testing.T) {
-	c := New(mappers.Dummy)
+	c := newCPU(nil, mappers.Dummy)
 	cases := []struct {
 		acc, y     uint8
 		want       uint8
