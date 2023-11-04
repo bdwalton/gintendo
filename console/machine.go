@@ -24,6 +24,14 @@ func New(m mappers.Mapper) *machine {
 	return mach
 }
 
+func (mach *machine) WritePPU(reg uint16, val uint8) {
+	mach.ppu.WriteReg(reg, val)
+}
+
+func (mach *machine) ReadPPU(reg uint16) uint8 {
+	return mach.ppu.ReadReg(reg)
+}
+
 func (mach *machine) BIOS(ctx context.Context) {
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
