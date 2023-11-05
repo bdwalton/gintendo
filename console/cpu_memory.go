@@ -7,7 +7,9 @@ import (
 )
 
 const (
-	MAX_ADDRESS = math.MaxUint16
+	MAX_ADDRESS         = math.MaxUint16
+	MAX_IO_REG_MIRRORED = 0x4000
+	MAX_IO_REG          = 0x4020
 )
 
 type cpuMemory struct {
@@ -28,11 +30,14 @@ func newCPUMemory(mach *machine, size uint16, m mappers.Mapper) *cpuMemory {
 func (m *cpuMemory) read(addr uint16) uint8 {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
-	case addr < m.size:
-		return m.ram[addr]
-	case 0x0800 <= addr && addr <= 0x1FFF:
-		// Mirrors of 0x0000-0x07FF
+	case addr <= 0x1FFF:
+		// 0x800-0x1FFF mirrors 0x0000-0x07FF
 		return m.ram[addr%m.size]
+	case addr < MAX_IO_REG_MIRRORED:
+		// PPU registers are mirrored between 0x2000 and 0x4000
+		return m.mach.ReadPPU(0x2000 + ((addr - 0x2000) % 0x8))
+	case addr < MAX_IO_REG:
+		// handle joysticks
 	case addr <= MAX_ADDRESS:
 		return m.mapper.PrgRead(addr)
 	}
@@ -52,11 +57,14 @@ func (m *cpuMemory) read16(addr uint16) uint16 {
 func (m *cpuMemory) write(addr uint16, val uint8) {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
-	case addr < m.size:
-		m.ram[addr] = val
-	case 0x0800 <= addr && addr <= 0x1FFF:
-		// Mirrors of 0x0000-0x07FF
+	case addr <= 0x1FFF:
+		// 0x800-0x1FFF mirrors 0x0000-0x07FF
 		m.ram[addr%m.size] = val
+	case addr < MAX_IO_REG_MIRRORED:
+		// PPU registers are mirrored between 0x2000 and 0x4000
+		m.mach.WritePPU(0x2000+((addr-0x2000)%0x8), val)
+	case addr < MAX_IO_REG:
+		// handle joysticks
 	case addr <= MAX_ADDRESS:
 		m.mapper.PrgWrite(addr, val)
 	}
