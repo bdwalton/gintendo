@@ -113,7 +113,7 @@ func (r *ROM) ChrWrite(addr uint16, val uint8) {
 	r.chr[addr] = val
 }
 
-func (r *ROM) MapperNum() uint8 {
+func (r *ROM) MapperNum() uint16 {
 	return r.h.mapperNum()
 }
 

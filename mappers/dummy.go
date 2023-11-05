@@ -10,7 +10,7 @@ type dummyMapper struct {
 	MM     uint8 // mirroring mode - tests can set as needed
 }
 
-func (dm *dummyMapper) ID() uint8 {
+func (dm *dummyMapper) ID() uint16 {
 	return 0
 }
 

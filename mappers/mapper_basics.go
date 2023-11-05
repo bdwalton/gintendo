@@ -9,9 +9,9 @@ import (
 )
 
 // A global registry of mappers, keyed by mapper id
-var allMappers map[uint8]Mapper = map[uint8]Mapper{}
+var allMappers map[uint16]Mapper = map[uint16]Mapper{}
 
-func RegisterMapper(id uint8, m Mapper) {
+func RegisterMapper(id uint16, m Mapper) {
 	if om, ok := allMappers[id]; ok {
 		panic(fmt.Sprintf("Can't re-register mapper id %d. It's used by %q.", id, om.Name()))
 	}
@@ -36,7 +36,7 @@ const (
 )
 
 type Mapper interface {
-	ID() uint8
+	ID() uint16
 	Init(*nesrom.ROM)
 	Name() string
 	PrgRead(uint16) uint8   // Read PRG data
@@ -47,14 +47,14 @@ type Mapper interface {
 }
 
 type baseMapper struct {
-	id   uint8
+	id   uint16
 	rom  *nesrom.ROM
 	name string
 	//The base amount of NES RAM (2k) will be accessed here.
 	baseRAM []uint8
 }
 
-func newBaseMapper(id uint8, name string) *baseMapper {
+func newBaseMapper(id uint16, name string) *baseMapper {
 	return &baseMapper{
 		id:      id,
 		name:    name,
@@ -62,7 +62,7 @@ func newBaseMapper(id uint8, name string) *baseMapper {
 	}
 }
 
-func (bm *baseMapper) ID() uint8 {
+func (bm *baseMapper) ID() uint16 {
 	return bm.id
 }
 

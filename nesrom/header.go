@@ -156,7 +156,7 @@ func (h *header) isNES2Format() bool {
 // number or simply refuse to load the ROM.
 func (h *header) ignoreHighNibble() bool {
 	lfbz := true // last 4 bytes zero
-	for _, x := range []byte{h.flags11, h.flags12, h.flags13, h.flags14} {
+	for _, x := range []byte{h.flags12, h.flags13, h.flags14, h.flags15} {
 		if x != 0x00 {
 			lfbz = false
 			break
@@ -172,12 +172,19 @@ func (h *header) ignoreHighNibble() bool {
 
 // mapperNum returns the mapper number which is constructed of the
 // upper 4 bits of flag7 and the upper 4 bits of flag 6.
-func (h *header) mapperNum() uint8 {
+func (h *header) mapperNum() uint16 {
+	// iNES and NES2 share the first 8 bits of the mapper number in the flags
 	mn := ((h.flags6 & 0xF0) >> 4)
-	if h.ignoreHighNibble() {
-		return mn
+	if !h.ignoreHighNibble() {
+		mn = (h.flags7 & 0xF0) | mn
 	}
-	return (h.flags7 & 0xF0) | mn
+
+	if h.isNES2Format() {
+		// Add the additional 4 bits of mapper number identifier
+		return (uint16(h.flags8&0xF) << 8) | uint16(mn)
+	}
+
+	return uint16(mn)
 }
 
 func parseHeader(hbytes []byte) *header {
