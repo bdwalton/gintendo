@@ -11,13 +11,18 @@ const (
 )
 
 type cpuMemory struct {
+	mach   *machine       // The machine, which encapsulates the wider memory bus
 	size   uint16         // The size of ram in words
 	ram    []uint8        // The actual memory
 	mapper mappers.Mapper // Access to "virtualized" memory via the mapper
 }
 
-func newCPUMemory(size uint16, m mappers.Mapper) *cpuMemory {
-	return &cpuMemory{size: size, ram: make([]uint8, size), mapper: m}
+func newCPUMemory(mach *machine, size uint16, m mappers.Mapper) *cpuMemory {
+	return &cpuMemory{
+		mach:   mach,
+		size:   size,
+		ram:    make([]uint8, size),
+		mapper: m}
 }
 
 func (m *cpuMemory) read(addr uint16) uint8 {

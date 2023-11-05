@@ -355,7 +355,7 @@ func newCPU(mach *machine, m mappers.Mapper) *CPU {
 	c := &CPU{
 		mach:   mach,
 		sp:     0xFD,
-		mem:    newCPUMemory(RAM_SIZE, m),
+		mem:    newCPUMemory(mach, RAM_SIZE, m),
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
 	c.pc = c.mem.read16(INT_RESET)
