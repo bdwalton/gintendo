@@ -42,7 +42,7 @@ const (
 	MIRRORING = 1 << 0
 	// 1: Cartridge contains battery-backed PRG RAM ($6000-7FFF)
 	// or other persistent memory
-	BATTERY = 1 << 1
+	BATTERY_BACKED_SRAM = 1 << 1
 	// 1: 512-byte trainer at $7000-$71FF (stored before PRG data)
 	TRAINER = 1 << 2
 	// 1: Ignore mirroring control or above mirroring bit; instead
@@ -93,14 +93,22 @@ func (h *Header) hasPlayChoice() bool {
 	return h.flags7&PLAYCHOICE_10 == PLAYCHOICE_10
 }
 
+func (h *Header) hasPrgRAM() bool {
+	return h.flags6&BATTERY_BACKED_SRAM > 0
+}
+
 // PrgRAMSize returns the size of PRG RAM in 8KB units with flags8==0
 // indicating that there is a single (1) 8KB unit
 func (h *Header) prgRAMSize() uint8 {
-	if h.flags8 == 0 {
-		return 1
+	if h.hasPrgRAM() {
+		if h.flags8 == 0 {
+			return 1
+		}
+
+		return h.flags8
 	}
 
-	return h.flags8
+	return 0
 }
 
 const (

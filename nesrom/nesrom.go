@@ -120,3 +120,7 @@ func (r *ROM) MapperNum() uint8 {
 func (r *ROM) MirroringMode() uint8 {
 	return r.h.mirroringMode()
 }
+
+func (r *ROM) HasSaveRAM() bool {
+	return r.h.hasPrgRAM()
+}

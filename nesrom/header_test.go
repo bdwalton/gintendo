@@ -130,3 +130,26 @@ func TestMirroringMode(t *testing.T) {
 		}
 	}
 }
+
+func TestBatteryBackedSRAM(t *testing.T) {
+	h := &Header{constant: "NES\x1A"}
+	cases := []struct {
+		flags6, flags8 uint8
+		want           bool
+		wantSize       uint8
+	}{
+		{0, 0, false, 0},
+		{0, 16, false, 0},
+		{BATTERY_BACKED_SRAM, 0, true, 1},
+		{BATTERY_BACKED_SRAM, 1, true, 1},
+		{BATTERY_BACKED_SRAM, 16, true, 16},
+	}
+
+	for i, tc := range cases {
+		h.flags6 = tc.flags6
+		h.flags8 = tc.flags8
+		if got, size := h.hasPrgRAM(), h.prgRAMSize(); got != tc.want || size != tc.wantSize {
+			t.Errorf("%d: Got %t, wanted %t, size = %d, wanted %d", i, got, tc.want, size, tc.wantSize)
+		}
+	}
+}
