@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-type Header struct {
+type header struct {
 	// Bytes 0-3
 	// Constant $4E $45 $53 $1A (ASCII "NES" followed by MS-DOS end-of-file)
 	constant string
@@ -62,7 +62,7 @@ const (
 	TV_SYSTEM = 0x01
 )
 
-func (h *Header) String() string {
+func (h *header) String() string {
 	return fmt.Sprintf("%s, prg(%d), chr(%d), flags(%02x, %02x, %02x, %02x, %02x)", h.constant, h.prgSize, h.chrSize, h.flags6, h.flags7, h.flags8, h.flags9, h.flags10)
 }
 
@@ -76,7 +76,7 @@ const (
 // mirroringMode returns an identifier indicating which mirroring mode
 // the PPU should use during rendering.
 // https://www.nesdev.org/wiki/INES#Nametable_Mirroring
-func (h *Header) mirroringMode() uint8 {
+func (h *header) mirroringMode() uint8 {
 	if h.flags6&IGNORE_MIRRORING > 0 {
 		return MIRROR_FOUR_SCREEN
 	}
@@ -85,21 +85,21 @@ func (h *Header) mirroringMode() uint8 {
 }
 
 // hasTrainer indicates whether the NES ROM contains a Trainer
-func (h *Header) hasTrainer() bool {
+func (h *header) hasTrainer() bool {
 	return h.flags6&TRAINER == TRAINER
 }
 
-func (h *Header) hasPlayChoice() bool {
+func (h *header) hasPlayChoice() bool {
 	return h.flags7&PLAYCHOICE_10 == PLAYCHOICE_10
 }
 
-func (h *Header) hasPrgRAM() bool {
+func (h *header) hasPrgRAM() bool {
 	return h.flags6&BATTERY_BACKED_SRAM > 0
 }
 
 // PrgRAMSize returns the size of PRG RAM in 8KB units with flags8==0
 // indicating that there is a single (1) 8KB unit
-func (h *Header) prgRAMSize() uint8 {
+func (h *header) prgRAMSize() uint8 {
 	if h.hasPrgRAM() {
 		if h.flags8 == 0 {
 			return 1
@@ -116,15 +116,15 @@ const (
 	PAL
 )
 
-func (h *Header) tvSystem() uint8 {
+func (h *header) tvSystem() uint8 {
 	return h.flags9 & TV_SYSTEM
 }
 
-func (h *Header) isINesFormat() bool {
+func (h *header) isINesFormat() bool {
 	return h.constant == "NES\x1A"
 }
 
-func (h *Header) isNES2Format() bool {
+func (h *header) isNES2Format() bool {
 	return h.isINesFormat() && ((h.flags7 & 0x0C) == 0x08)
 }
 
@@ -136,7 +136,7 @@ func (h *Header) isNES2Format() bool {
 // all zero, and the header is not marked for NES 2.0 format, an
 // emulator should either mask off the upper 4 bits of the mapper
 // number or simply refuse to load the ROM.
-func (h *Header) ignoreHighNibble() bool {
+func (h *header) ignoreHighNibble() bool {
 	lfbz := true // last 4 bytes zero
 	for _, x := range h.unused[1:] {
 		if x != 0x00 {
@@ -154,7 +154,7 @@ func (h *Header) ignoreHighNibble() bool {
 
 // mapperNum returns the mapper number which is constructed of the
 // upper 4 bits of flag7 and the upper 4 bits of flag 6.
-func (h *Header) mapperNum() uint8 {
+func (h *header) mapperNum() uint8 {
 	mn := ((h.flags6 & 0xF0) >> 4)
 	if h.ignoreHighNibble() {
 		return mn
@@ -162,8 +162,8 @@ func (h *Header) mapperNum() uint8 {
 	return (h.flags7 & 0xF0) | mn
 }
 
-func parseHeader(hbytes []byte) *Header {
-	return &Header{
+func parseHeader(hbytes []byte) *header {
+	return &header{
 		constant: string(hbytes[0:4]),
 		prgSize:  uint8(hbytes[4]),
 		chrSize:  uint8(hbytes[5]),

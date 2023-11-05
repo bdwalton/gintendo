@@ -8,10 +8,10 @@ import (
 func TestParseHeader(t *testing.T) {
 	cases := []struct {
 		bytes      []byte
-		wantHeader *Header
+		wantHeader *header
 	}{
 		{
-			[]byte{0x4e, 0x45, 0x53, 0x1a, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, &Header{constant: "NES\x1a", prgSize: 2, chrSize: 1, flags6: 1, flags7: 0, flags8: 0, flags9: 0, flags10: 0, unused: []byte{0x00, 0x00, 0x00, 0x00, 0x00}},
+			[]byte{0x4e, 0x45, 0x53, 0x1a, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, &header{constant: "NES\x1a", prgSize: 2, chrSize: 1, flags6: 1, flags7: 0, flags8: 0, flags9: 0, flags10: 0, unused: []byte{0x00, 0x00, 0x00, 0x00, 0x00}},
 		},
 	}
 	for i, tc := range cases {
@@ -23,7 +23,7 @@ func TestParseHeader(t *testing.T) {
 }
 
 func TestNES2Format(t *testing.T) {
-	h := &Header{}
+	h := &header{}
 	cases := []struct {
 		constant           string
 		flags7             uint8
@@ -46,7 +46,7 @@ func TestNES2Format(t *testing.T) {
 }
 
 func TestMapperNum(t *testing.T) {
-	h := &Header{constant: "NES\x1A"}
+	h := &header{constant: "NES\x1A"}
 	cases := []struct {
 		flags6, flags7 uint8 // where the mapper num is assembled from
 		unused         []byte
@@ -71,7 +71,7 @@ func TestMapperNum(t *testing.T) {
 }
 
 func TestHasTrainer(t *testing.T) {
-	h := &Header{constant: "NES\x1A"}
+	h := &header{constant: "NES\x1A"}
 	cases := []struct {
 		flags6 uint8 // where the trainer bit is stored
 		want   bool
@@ -91,7 +91,7 @@ func TestHasTrainer(t *testing.T) {
 }
 
 func TestHasPlayChoice10(t *testing.T) {
-	h := &Header{constant: "NES\x1A"}
+	h := &header{constant: "NES\x1A"}
 	cases := []struct {
 		flags7 uint8 // where the playchoice10 bit is stored
 		want   bool
@@ -111,7 +111,7 @@ func TestHasPlayChoice10(t *testing.T) {
 }
 
 func TestMirroringMode(t *testing.T) {
-	h := &Header{constant: "NES\x1A"}
+	h := &header{constant: "NES\x1A"}
 	cases := []struct {
 		flags6 uint8
 		want   uint8
@@ -132,7 +132,7 @@ func TestMirroringMode(t *testing.T) {
 }
 
 func TestBatteryBackedSRAM(t *testing.T) {
-	h := &Header{constant: "NES\x1A"}
+	h := &header{constant: "NES\x1A"}
 	cases := []struct {
 		flags6, flags8 uint8
 		want           bool

@@ -14,7 +14,7 @@ type PlayChoicePROM struct {
 }
 
 type ROM struct {
-	h         *Header
+	h         *header
 	trainer   []byte          // if present
 	prg       []byte          // 16384 * x bytes; x from header
 	chr       []byte          // 8192 * y bytes; y from header
