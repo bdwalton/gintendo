@@ -11,10 +11,12 @@ type header struct {
 	// Constant $4E $45 $53 $1A (ASCII "NES" followed by MS-DOS end-of-file)
 	constant string
 	// Byte 4
-	// Size of PRG ROM in 16 KB units
+	// iNES: Size of PRG ROM in 16 KB units
+	// NES2: PRG-ROM size, LSB
 	prgSize uint8
 	// Byte 5
-	// Size of CHR ROM in 8 KB units (value 0 means the board uses CHR RAM)
+	// iNES: Size of CHR ROM in 8 KB units (value 0 means the board uses CHR RAM)
+	// NES2: CHR-ROM size, LSB
 	chrSize uint8
 	// Byte 6
 	// Flags 6 – Mapper, mirroring, battery, trainer
@@ -23,16 +25,32 @@ type header struct {
 	// Flags 7 – Mapper, VS/Playchoice, NES 2.0
 	flags7 uint8
 	// Byte 8
-	// Flags 8 – PRG-RAM size (rarely used extension)
+	// iNES: Flags 8 – PRG-RAM size (rarely used extension)
+	// NES2: Mapper MSB/Submapper
 	flags8 uint8
 	// Byte 9
-	// Flags 9 – TV system (rarely used extension)
+	// iNES: Flags 9 – TV system (rarely used extension)
+	// NES2: PRG-ROM/CHR-ROM size, MSB
 	flags9 uint8
 	// Byte 10
-	// Flags 10 – TV system, PRG-RAM presence (unofficial, rarely used extension)
+	// iNES: Flags 10 – TV system, PRG-RAM presence (unofficial, rarely used extension)
+	// NES2: PRG-RAM/EEPROM size
 	flags10 uint8
-	// Bytes 11-15	Unused padding (should be filled with zero, but some rippers put their name across bytes 7-15)
-	unused []byte
+	// iNES: Unused
+	// NES2: CHR-RAM size
+	flags11 uint8
+	// iNES: Unused
+	// NES2: CPU/PPU Timing
+	flags12 uint8
+	// iNES: Unused
+	// NES2: When Byte 7 AND 3 =1: Vs. System Type
+	flags13 uint8
+	// iNES: Unused
+	// NES2: Miscellaneous ROMs
+	flags14 uint8
+	// iNES: Unused
+	// NES2: Default Expansion Device
+	flags15 uint8
 }
 
 // flag6 flag identifiers - the top 4 bits are the lower nibble of the mapper number
@@ -138,7 +156,7 @@ func (h *header) isNES2Format() bool {
 // number or simply refuse to load the ROM.
 func (h *header) ignoreHighNibble() bool {
 	lfbz := true // last 4 bytes zero
-	for _, x := range h.unused[1:] {
+	for _, x := range []byte{h.flags11, h.flags12, h.flags13, h.flags14} {
 		if x != 0x00 {
 			lfbz = false
 			break
@@ -172,6 +190,9 @@ func parseHeader(hbytes []byte) *header {
 		flags8:   uint8(hbytes[8]),
 		flags9:   uint8(hbytes[9]),
 		flags10:  uint8(hbytes[10]),
-		unused:   []byte(hbytes[11:]),
+		flags11:  uint8(hbytes[11]),
+		flags12:  uint8(hbytes[12]),
+		flags13:  uint8(hbytes[13]),
+		flags14:  uint8(hbytes[14]),
 	}
 }

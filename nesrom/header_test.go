@@ -11,7 +11,7 @@ func TestParseHeader(t *testing.T) {
 		wantHeader *header
 	}{
 		{
-			[]byte{0x4e, 0x45, 0x53, 0x1a, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, &header{constant: "NES\x1a", prgSize: 2, chrSize: 1, flags6: 1, flags7: 0, flags8: 0, flags9: 0, flags10: 0, unused: []byte{0x00, 0x00, 0x00, 0x00, 0x00}},
+			[]byte{0x4e, 0x45, 0x53, 0x1a, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, &header{constant: "NES\x1a", prgSize: 2, chrSize: 1, flags6: 1, flags7: 0, flags8: 0, flags9: 0, flags10: 0, flags11: 0, flags12: 0, flags13: 0, flags14: 0, flags15: 0},
 		},
 	}
 	for i, tc := range cases {
@@ -48,22 +48,25 @@ func TestNES2Format(t *testing.T) {
 func TestMapperNum(t *testing.T) {
 	h := &header{constant: "NES\x1A"}
 	cases := []struct {
-		flags6, flags7 uint8 // where the mapper num is assembled from
-		unused         []byte
-		want           uint8
+		flags6, flags7, flags11, flags12, flags13, flags14, flags15 uint8 // where the mapper num is assembled from
+		want                                                        uint8
 	}{
-		{0xEF, 0xF0, []byte{0, 0, 0, 0, 0}, 0xFE}, // Not NES2, last 4 bytes 0
-		{0xFF, 0xE0, []byte{0, 0, 0, 0, 0}, 0xEF}, // Not NES2, last 4 bytes 0
-		{0xC0, 0xB0, []byte{0, 0, 1, 1, 1}, 0x0C}, // Not NES2, last 4 bytes not 0
-		{0x1F, 0x20, []byte{0, 0, 1, 1, 1}, 0x01}, // Not NES2, last 4 bytes not 0
-		{0xFF, 0xF8, []byte{0, 0, 0, 1, 1}, 0xFF}, // NES2, last 4 bytes not 0
-		{0xAF, 0xD8, []byte{0, 0, 0, 0, 0}, 0xDA}, // NES2, last 4 bytes 0
+		{0xEF, 0xF0, 0, 0, 0, 0, 0, 0xFE}, // Not NES2, last 4 bytes 0
+		{0xFF, 0xE0, 0, 0, 0, 0, 0, 0xEF}, // Not NES2, last 4 bytes 0
+		{0xC0, 0xB0, 0, 0, 1, 1, 1, 0x0C}, // Not NES2, last 4 bytes not 0
+		{0x1F, 0x20, 0, 0, 1, 1, 1, 0x01}, // Not NES2, last 4 bytes not 0
+		{0xFF, 0xF8, 0, 0, 0, 1, 1, 0xFF}, // NES2, last 4 bytes not 0
+		{0xAF, 0xD8, 0, 0, 0, 0, 0, 0xDA}, // NES2, last 4 bytes 0
 	}
 
 	for i, tc := range cases {
 		h.flags6 = tc.flags6
 		h.flags7 = tc.flags7
-		h.unused = tc.unused
+		h.flags11 = tc.flags11
+		h.flags12 = tc.flags12
+		h.flags13 = tc.flags13
+		h.flags14 = tc.flags14
+		h.flags15 = tc.flags15
 		if got := h.mapperNum(); got != tc.want {
 			t.Errorf("%d: Got %d, want %d", i, got, tc.want)
 		}
