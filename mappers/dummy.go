@@ -42,5 +42,9 @@ func (dm *dummyMapper) MirroringMode() uint8 {
 	return dm.MM
 }
 
+func (dm *dummyMapper) HasSaveRAM() bool {
+	return true
+}
+
 // For testing
 var Dummy *dummyMapper = &dummyMapper{memory: make([]uint8, math.MaxUint16+1)}

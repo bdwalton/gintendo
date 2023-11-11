@@ -44,6 +44,7 @@ type Mapper interface {
 	ChrRead(uint16) uint8   // Read CHR data
 	ChrWrite(uint16, uint8) // Write CHR data
 	MirroringMode() uint8   // Which mirroring mode is tilemap data stored in
+	HasSaveRAM() bool       // Whether or not the cartridge exposes Save RAM at 0x6000-0x7999
 }
 
 type baseMapper struct {
@@ -80,4 +81,8 @@ func (bm *baseMapper) Init(r *nesrom.ROM) {
 
 func (bm *baseMapper) MirroringMode() uint8 {
 	return bm.rom.MirroringMode()
+}
+
+func (bm *baseMapper) HasSaveRAM() bool {
+	return bm.rom.HasSaveRAM()
 }
