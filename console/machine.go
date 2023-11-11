@@ -48,6 +48,7 @@ func (mach *machine) BIOS(ctx context.Context) {
 		fmt.Println("(M)memory - select a memory range to display")
 		fmt.Println("S(t)ack - show last 3 items on the stack")
 		fmt.Println("(I)instruction - show instruction memory locations")
+		fmt.Println("(P)C - set program counter")
 		fmt.Println("(Q)uit - shutdown the gintentdo")
 		fmt.Printf("Choice: ")
 
@@ -59,6 +60,8 @@ func (mach *machine) BIOS(ctx context.Context) {
 			breaks[readAddress("Breakpoint (eg: ff15): ")] = struct{}{}
 		case 'c', 'C':
 			breaks = make(map[uint16]struct{})
+		case 'p', 'P':
+			mach.cpu.pc = readAddress("Set PC to what address (eg: 0400)?: ")
 		case 'q', 'Q':
 			return
 		case 'r', 'R':
