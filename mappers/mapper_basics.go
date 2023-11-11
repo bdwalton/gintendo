@@ -39,12 +39,14 @@ type Mapper interface {
 	ID() uint16
 	Init(*nesrom.ROM)
 	Name() string
-	PrgRead(uint16) uint8   // Read PRG data
-	PrgWrite(uint16, uint8) // Write PRG data
-	ChrRead(uint16) uint8   // Read CHR data
-	ChrWrite(uint16, uint8) // Write CHR data
-	MirroringMode() uint8   // Which mirroring mode is tilemap data stored in
-	HasSaveRAM() bool       // Whether or not the cartridge exposes Save RAM at 0x6000-0x7999
+	ReadBaseRAM(uint16) uint8   // Read from 2k Base memory
+	WriteBaseRAM(uint16, uint8) // Write to 2k Base memory
+	PrgRead(uint16) uint8       // Read PRG data
+	PrgWrite(uint16, uint8)     // Write PRG data
+	ChrRead(uint16) uint8       // Read CHR data
+	ChrWrite(uint16, uint8)     // Write CHR data
+	MirroringMode() uint8       // Which mirroring mode is tilemap data stored in
+	HasSaveRAM() bool           // Whether or not the cartridge exposes Save RAM at 0x6000-0x7999
 }
 
 type baseMapper struct {
@@ -61,6 +63,14 @@ func newBaseMapper(id uint16, name string) *baseMapper {
 		name:    name,
 		baseRAM: make([]uint8, NES_BASE_MEMORY),
 	}
+}
+
+func (bm *baseMapper) ReadBaseRAM(addr uint16) uint8 {
+	return bm.baseRAM[addr]
+}
+
+func (bm *baseMapper) WriteBaseRAM(addr uint16, val uint8) {
+	bm.baseRAM[addr] = val
 }
 
 func (bm *baseMapper) ID() uint16 {

@@ -22,6 +22,14 @@ func (dm *dummyMapper) Name() string {
 	return "dummy mapper"
 }
 
+func (dm *dummyMapper) ReadBaseRAM(addr uint16) uint8 {
+	return dm.memory[addr]
+}
+
+func (dm *dummyMapper) WriteBaseRAM(addr uint16, val uint8) {
+	dm.memory[addr] = val
+}
+
 func (dm *dummyMapper) PrgRead(addr uint16) uint8 {
 	return dm.memory[addr]
 }
