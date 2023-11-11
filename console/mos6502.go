@@ -364,16 +364,16 @@ func extraCycles(addr1, addr2 uint16) uint8 {
 // branch will adjust the PC conditionally based on whether the mask
 // bits are set and the resulting comparison is expected to be true or
 // false. This allows you to check for STATUS_FLAG being set or
-// cleared by: branch(STATUS_FLAG_OVERFLOW, RELATIVE, false) -> branch
+// cleared by: branch(STATUS_FLAG_OVERFLOW, false) -> branch
 // when OVERFLOW not set.
 func (c *CPU) branch(mask uint8, predicate bool) {
 	if (c.status&mask > 0) == predicate {
 		a := c.getOperandAddr(RELATIVE)
 		// Branching instructions take an extra cycle if they
-		// cause a page break pc-1 because we increment it
-		// right after reading the op, but that's where we
-		// branch from so that's where we compare for page
-		// break
+		// cause a page break. We use pc-1 because we
+		// increment it right after reading the op, but that's
+		// where we branch from so that's the address we
+		// compare to see if we've jumped to a new page.
 		c.cycles += extraCycles(a, c.pc-1)
 		c.cycles += 1 // successful branches take an extra cycle
 		c.pc = a
