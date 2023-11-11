@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-	"os"
 
 	"github.com/bdwalton/gintendo/console"
 	"github.com/bdwalton/gintendo/mappers"
@@ -18,12 +17,7 @@ var (
 func main() {
 	flag.Parse()
 
-	rf, err := os.Open(*romFile)
-	if err != nil {
-		log.Fatalf("Couldn't open %q: %v", *romFile, err)
-	}
-
-	rom, err := nesrom.New(rf)
+	rom, err := nesrom.New(*romFile)
 	if err != nil {
 		log.Fatalf("Invalid ROM: %v", err)
 	}

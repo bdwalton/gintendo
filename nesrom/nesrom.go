@@ -4,7 +4,7 @@ package nesrom
 
 import (
 	"fmt"
-	"io"
+	"os"
 	"strings"
 )
 
@@ -14,6 +14,7 @@ type PlayChoicePROM struct {
 }
 
 type ROM struct {
+	path      string
 	h         *header
 	trainer   []byte          // if present
 	prg       []byte          // 16384 * x bytes; x from header
@@ -30,20 +31,25 @@ const (
 	PC_PROM_SIZE   = 32
 )
 
-func New(inesData io.Reader) (*ROM, error) {
+func New(path string) (*ROM, error) {
+	rf, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't open ROM file %q: %w", path, err)
+	}
+
 	hbytes := make([]byte, 16)
-	n, err := inesData.Read(hbytes)
+	n, err := rf.Read(hbytes)
 	if n != 16 || err != nil {
 		return nil, fmt.Errorf("couldn't read header: %w", err)
 	}
 
-	i, err := &ROM{h: parseHeader(hbytes)}, nil
+	i, err := &ROM{path: path, h: parseHeader(hbytes)}, nil
 	if err != nil {
 		return nil, fmt.Errorf("error parsing header %w", err)
 	}
 	if i.h.hasTrainer() {
 		i.trainer = make([]byte, TRAINER_SIZE)
-		if n, err := inesData.Read(i.trainer); n != TRAINER_SIZE || err != nil {
+		if n, err := rf.Read(i.trainer); n != TRAINER_SIZE || err != nil {
 			return nil, fmt.Errorf("error reading trainer data: %w", err)
 		}
 
@@ -51,19 +57,19 @@ func New(inesData io.Reader) (*ROM, error) {
 
 	s := PRG_BLOCK_SIZE * int(i.h.prgSize)
 	i.prg = make([]byte, s)
-	if n, err := inesData.Read(i.prg); n != s || err != nil {
+	if n, err := rf.Read(i.prg); n != s || err != nil {
 		return nil, fmt.Errorf("error reading PRG ROM (read %d, wanted %d): %w", n, s, err)
 	}
 
 	s = CHR_BLOCK_SIZE * int(i.h.chrSize)
 	i.chr = make([]byte, s)
-	if n, err := inesData.Read(i.chr); n != s || err != nil {
+	if n, err := rf.Read(i.chr); n != s || err != nil {
 		return nil, fmt.Errorf("error reading CHR ROM (read %d, wanted %d): %w", n, s, err)
 	}
 
 	if i.h.hasPlayChoice() {
 		i.pcInstRom = make([]byte, PC_INST_SIZE)
-		if n, err := inesData.Read(i.pcInstRom); n != PC_INST_SIZE || err != nil {
+		if n, err := rf.Read(i.pcInstRom); n != PC_INST_SIZE || err != nil {
 			return nil, fmt.Errorf("error reading PlayChoice INSt ROM (n=%d; wanted %d): %w", n, PC_INST_SIZE, err)
 		}
 
@@ -71,7 +77,7 @@ func New(inesData io.Reader) (*ROM, error) {
 		// be bad. But these should be rare, so we'll do the
 		// technically correct thing for now.
 		pcprom := make([]byte, PC_PROM_SIZE)
-		if n, err := inesData.Read(pcprom); n != PC_PROM_SIZE || err != nil {
+		if n, err := rf.Read(pcprom); n != PC_PROM_SIZE || err != nil {
 			return nil, fmt.Errorf("error reading PlayChoice PROM (n=%d, wanted %d): %w", n, PC_PROM_SIZE, err)
 		}
 	}
