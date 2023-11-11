@@ -55,5 +55,15 @@ func (dm *dummyMapper) HasSaveRAM() bool {
 	return true
 }
 
+func (dm *dummyMapper) LoadMem(start uint8, mem []uint8) {
+	for i, m := range mem {
+		dm.memory[int(start)+i] = m
+	}
+}
+
+func (dm *dummyMapper) ClearMem() {
+	dm.memory = make([]uint8, math.MaxUint16+1)
+}
+
 // For testing
 var Dummy *dummyMapper = &dummyMapper{memory: make([]uint8, math.MaxUint16+1)}
