@@ -81,7 +81,7 @@ func (mach *machine) BIOS(ctx context.Context) {
 			i := 0
 			for {
 				m := mach.cpu.getStackAddr() + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.mem.read(m))
+				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.read(m))
 				if m == 0x00ff || i == 2 {
 					break
 				}
@@ -90,10 +90,10 @@ func (mach *machine) BIOS(ctx context.Context) {
 			fmt.Printf("\n\n")
 		case 'i', 'I':
 			fmt.Println()
-			op := opcodes[mach.cpu.mem.read(mach.cpu.pc)]
+			op := opcodes[mach.cpu.read(mach.cpu.pc)]
 			for i := 0; i < int(op.bytes); i++ {
 				m := mach.cpu.pc + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.mem.read(m))
+				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.read(m))
 			}
 			fmt.Printf("\n\n")
 		case 'e', 'E':
@@ -107,7 +107,7 @@ func (mach *machine) BIOS(ctx context.Context) {
 			x := 1
 			i := low
 			for {
-				fmt.Printf("0x%04x: 0x%02x ", i, mach.cpu.mem.read(i))
+				fmt.Printf("0x%04x: 0x%02x ", i, mach.cpu.read(i))
 				if x%5 == 0 {
 					fmt.Println()
 				}

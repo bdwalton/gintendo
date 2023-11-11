@@ -1,8 +1,9 @@
 package mappers
 
 import (
-	"github.com/bdwalton/gintendo/nesrom"
 	"math"
+
+	"github.com/bdwalton/gintendo/nesrom"
 )
 
 type dummyMapper struct {
