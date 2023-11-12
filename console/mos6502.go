@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/bits"
 	"reflect"
 	"time"
@@ -35,14 +34,6 @@ const (
 	UNUSED_STATUS_FLAG            = 1 << 5 // This is never used but is always on
 	STATUS_FLAG_OVERFLOW          = 1 << 6 // V
 	STATUS_FLAG_NEGATIVE          = 1 << 7 // N
-)
-
-const (
-	MAX_ADDRESS         = math.MaxUint16
-	MEM_SIZE            = MAX_ADDRESS + 1
-	MAX_IO_REG_MIRRORED = 0x4000
-	MAX_IO_REG          = 0x4020
-	MAX_SRAM            = 0x6000
 )
 
 var flagMap map[uint8]byte = map[uint8]byte{

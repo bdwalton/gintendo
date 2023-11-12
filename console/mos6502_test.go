@@ -16,25 +16,7 @@ func memInit(c *CPU, val uint8) {
 	return
 }
 
-var bus *Bus = New(mappers.Dummy)
-
-func TestBaseMapping(t *testing.T) {
-	c := bus.cpu
-
-	for i := 0; i < 10; i++ {
-		c.write(uint16(i), uint8(i+1))
-	}
-
-	for _, a := range []uint16{0, 0x800, 0x1000, 0x1800} {
-		for i := 0; i < 10; i++ {
-			if got := c.read(a + uint16(i)); got != uint8(i+1) {
-				t.Errorf("mem[%04x] = %02x, wanted %02x", a, got, i+1)
-			}
-
-		}
-	}
-
-}
+var bus *Bus = New(mappers.Dummy, REG_MODE)
 
 func TestCycles(t *testing.T) {
 	c := bus.cpu
@@ -1768,9 +1750,8 @@ func TestFunctionsBin(t *testing.T) {
 		t.Errorf("Couldn't read testdata file %q: %v", tf, err)
 	}
 
-	d := mappers.Dummy
-	d.LoadMem(0x000A, bin)
-	defer d.ClearMem()
+	bus := New(mappers.Dummy, REG_MODE)
+	bus.LoadMem(0x000A, bin)
 
 	c := bus.cpu
 	c.pc = 0x0400

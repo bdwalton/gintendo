@@ -11,26 +11,50 @@ import (
 	"github.com/bdwalton/gintendo/mappers"
 )
 
+const (
+	NES_MODE = iota // act as an NES
+	REG_MODE        // act as a machine with 64k RAM directly connected, no ppu, etc
+
+	NES_BASE_MEMORY = 0x800 // 2KB built in RAM
+	REG_BASE_MEMORY = 0x10000
+
+	MAX_ADDRESS         = math.MaxUint16
+	MEM_SIZE            = MAX_ADDRESS + 1
+	MAX_NES_BASE_RAM    = 0x1FFF
+	MAX_IO_REG_MIRRORED = 0x4000
+	MAX_IO_REG          = 0x4020
+	MAX_SRAM            = 0x6000
+)
+
 type Bus struct {
 	cpu    *CPU
 	ppu    *PPU
 	mapper mappers.Mapper
+	mode   int // NES or regular computer
+	ram    []uint8
 }
 
-func New(m mappers.Mapper) *Bus {
-	bus := &Bus{mapper: m}
+func New(m mappers.Mapper, mode int) *Bus {
+	bus := &Bus{mapper: m, mode: mode}
+	switch mode {
+	case NES_MODE:
+		bus.ram = make([]uint8, NES_BASE_MEMORY)
+	default:
+		bus.ram = make([]uint8, REG_BASE_MEMORY)
+	}
+
 	bus.cpu = newCPU(bus, m)
 	bus.ppu = newPPU(bus, m)
 
 	return bus
 }
 
-func (b *Bus) Read(addr uint16) uint8 {
+func (b *Bus) readNES(addr uint16) uint8 {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
-	case addr <= 0x1FFF:
+	case addr <= MAX_NES_BASE_RAM:
 		// 0x800-0x1FFF mirrors 0x0000-0x07FF
-		return b.mapper.ReadBaseRAM(addr % 0x800)
+		return b.ram[addr%0x800]
 	case addr < MAX_IO_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
 		return b.ppu.ReadReg(0x2000 + ((addr - 0x2000) % 0x8))
@@ -46,12 +70,24 @@ func (b *Bus) Read(addr uint16) uint8 {
 	panic("should never happen") // hah, prod crashes await!
 }
 
-func (b *Bus) Write(addr uint16, val uint8) {
+func (b *Bus) readReg(addr uint16) uint8 {
+	return b.ram[addr]
+}
+
+func (b *Bus) Read(addr uint16) uint8 {
+	if b.mode == NES_MODE {
+		return b.readNES(addr)
+	}
+
+	return b.readReg(addr)
+}
+
+func (b *Bus) writeNES(addr uint16, val uint8) {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
-	case addr <= 0x1FFF:
+	case addr <= MAX_NES_BASE_RAM:
 		// 0x800-0x1FFF mirrors 0x0000-0x07FF
-		b.mapper.WriteBaseRAM(addr%0x800, val)
+		b.ram[addr%0x800] = val
 	case addr < MAX_IO_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
 		b.ppu.WriteReg(0x2000+((addr-0x2000)%0x8), val)
@@ -61,6 +97,29 @@ func (b *Bus) Write(addr uint16, val uint8) {
 		// nothing for now
 	case addr <= MAX_ADDRESS:
 		b.mapper.PrgWrite(addr, val)
+	}
+}
+
+func (b *Bus) LoadMem(start uint8, mem []uint8) {
+	for i, m := range mem {
+		b.ram[int(start)+i] = m
+	}
+}
+
+func (b *Bus) ClearMem() {
+	b.ram = make([]uint8, len(b.ram))
+}
+
+func (b *Bus) writeReg(addr uint16, val uint8) {
+	b.ram[addr] = val
+}
+
+func (b *Bus) Write(addr uint16, val uint8) {
+	switch b.mode {
+	case NES_MODE:
+		b.writeNES(addr, val)
+	default:
+		b.writeReg(addr, val)
 	}
 }
 
