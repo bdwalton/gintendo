@@ -118,7 +118,7 @@ func (c *CPU) getInst() (opcode, error) {
 	m := c.read(c.pc)
 	op, ok := opcodes[m]
 	if !ok {
-		return opcodes[0x00], fmt.Errorf("pc: 0x%04x, inst: 0x%02x - %w", c.pc, m, invalidInstruction)
+		return opcode{}, fmt.Errorf("pc: 0x%04x, inst: 0x%02x - %w", c.pc, m, invalidInstruction)
 	}
 
 	return op, nil

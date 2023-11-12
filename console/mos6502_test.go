@@ -248,7 +248,7 @@ func TestGetInst(t *testing.T) {
 	}{
 		{0x00, opcode{BRK, "BRK", IMPLICIT, 2, 7}, nil},
 		{0x24, opcode{BIT, "BIT", ZERO_PAGE, 2, 3}, nil},
-		{0x02, opcode{BRK, "BRK", IMPLICIT, 2, 7}, invalidInstruction},
+		{0x02, opcode{}, invalidInstruction},
 	}
 
 	for i, tc := range cases {
