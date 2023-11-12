@@ -404,6 +404,7 @@ func (c *CPU) addWithOverflow(b uint8) {
 // baseCMP does comparison operations on a and b, setting flags
 // accordingly.
 func (c *CPU) baseCMP(a, b uint8) {
+	c.flagsOff(STATUS_FLAG_ZERO | STATUS_FLAG_NEGATIVE | STATUS_FLAG_CARRY)
 	c.setNegativeAndZeroFlags(a - b)
 	if a >= b {
 		c.flagsOn(STATUS_FLAG_CARRY)
