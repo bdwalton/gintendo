@@ -16,7 +16,7 @@ func memInit(c *CPU, val uint8) {
 	return
 }
 
-var mach *machine = New(mappers.Dummy)
+var bus *Bus = New(mappers.Dummy)
 
 func TestBaseMapping(t *testing.T) {
 	c := newCPU(nil, mappers.Dummy)
@@ -37,7 +37,7 @@ func TestBaseMapping(t *testing.T) {
 }
 
 func TestCycles(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	memInit(c, 0xEA)
 
 	cases := []struct {
@@ -1121,7 +1121,7 @@ func TestOpLSR(t *testing.T) {
 }
 
 func TestOpNOP(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	memInit(c, 0xEA) // NOP
 
 	cases := []struct {
@@ -1146,7 +1146,7 @@ func TestOpNOP(t *testing.T) {
 }
 
 func TestPCWithStep(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	memInit(c, 0xEA)
 
 	cases := []struct {
@@ -1191,7 +1191,7 @@ func TestPCWithStep(t *testing.T) {
 }
 
 func TestOpORA(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -1218,7 +1218,7 @@ func TestOpORA(t *testing.T) {
 }
 
 func TestOpPHA(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc    uint8
 		wantSP uint8
@@ -1242,7 +1242,7 @@ func TestOpPHA(t *testing.T) {
 }
 
 func TestOpPHP(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		status uint8
 		wantSP uint8
@@ -1266,7 +1266,7 @@ func TestOpPHP(t *testing.T) {
 }
 
 func TestOpPLA(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc        uint8
 		wantSP     uint8
@@ -1299,7 +1299,7 @@ func TestOpPLA(t *testing.T) {
 }
 
 func TestOpPLP(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		status     uint8
 		wantSP     uint8
@@ -1331,7 +1331,7 @@ func TestOpPLP(t *testing.T) {
 }
 
 func TestOpROL(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -1378,7 +1378,7 @@ func TestOpROL(t *testing.T) {
 }
 
 func TestOpROR(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -1423,7 +1423,7 @@ func TestOpROR(t *testing.T) {
 }
 
 func TestOpRTI(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		stack      []uint8 // pc and status as 3 uint8 values
 		wantPC     uint16
@@ -1449,7 +1449,7 @@ func TestOpRTI(t *testing.T) {
 }
 
 func TestOpRTS(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		pc     uint16
 		target uint16
@@ -1473,7 +1473,7 @@ func TestOpRTS(t *testing.T) {
 }
 
 func TestOpSBC(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, op1, status uint8
 		want, wantStatus uint8
@@ -1497,7 +1497,7 @@ func TestOpSBC(t *testing.T) {
 }
 
 func TestOpSEC(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1518,7 +1518,7 @@ func TestOpSEC(t *testing.T) {
 }
 
 func TestOpSED(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1539,7 +1539,7 @@ func TestOpSED(t *testing.T) {
 }
 
 func TestOpSEI(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1561,7 +1561,7 @@ func TestOpSEI(t *testing.T) {
 }
 
 func TestOpSTA(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, status      uint8
 		want, wantStatus uint8
@@ -1583,7 +1583,7 @@ func TestOpSTA(t *testing.T) {
 }
 
 func TestOpSTX(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		x, status        uint8
 		want, wantStatus uint8
@@ -1605,7 +1605,7 @@ func TestOpSTX(t *testing.T) {
 }
 
 func TestOpSTY(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		y, status        uint8
 		want, wantStatus uint8
@@ -1627,7 +1627,7 @@ func TestOpSTY(t *testing.T) {
 }
 
 func TestOpTAX(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, x     uint8
 		wantX      uint8
@@ -1649,7 +1649,7 @@ func TestOpTAX(t *testing.T) {
 }
 
 func TestOpTAY(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, y     uint8
 		wantY      uint8
@@ -1671,7 +1671,7 @@ func TestOpTAY(t *testing.T) {
 }
 
 func TestOpTSX(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		sp, x      uint8
 		wantX      uint8
@@ -1693,7 +1693,7 @@ func TestOpTSX(t *testing.T) {
 }
 
 func TestOpTXA(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, x     uint8
 		want       uint8
@@ -1716,7 +1716,7 @@ func TestOpTXA(t *testing.T) {
 }
 
 func TestOpTXS(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		sp, x, status uint8
 		wantSP        uint8
@@ -1739,7 +1739,7 @@ func TestOpTXS(t *testing.T) {
 }
 
 func TestOpTYA(t *testing.T) {
-	c := mach.cpu
+	c := bus.cpu
 	cases := []struct {
 		acc, y     uint8
 		want       uint8
@@ -1772,7 +1772,7 @@ func TestFunctionsBin(t *testing.T) {
 	d.LoadMem(0x000A, bin)
 	defer d.ClearMem()
 
-	c := mach.cpu
+	c := bus.cpu
 	c.pc = 0x0400
 
 	// t.Errorf("%02x", c.read(0x0800))

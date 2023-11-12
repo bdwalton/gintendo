@@ -24,7 +24,7 @@ const (
 )
 
 type PPU struct {
-	mach         *machine
+	bus          *Bus
 	m            mappers.Mapper
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
@@ -33,9 +33,9 @@ type PPU struct {
 	registers    map[uint16]uint8
 }
 
-func newPPU(mach *machine, m mappers.Mapper) *PPU {
+func newPPU(bus *Bus, m mappers.Mapper) *PPU {
 	return &PPU{
-		mach:      mach,
+		bus:       bus,
 		m:         m,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),

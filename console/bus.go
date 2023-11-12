@@ -11,35 +11,67 @@ import (
 	"github.com/bdwalton/gintendo/mappers"
 )
 
-type machine struct {
-	cpu *CPU
-	ppu *PPU
+type Bus struct {
+	cpu    *CPU
+	ppu    *PPU
+	mapper mappers.Mapper
 }
 
-func New(m mappers.Mapper) *machine {
-	mach := &machine{}
-	mach.cpu = newCPU(mach, m)
-	mach.ppu = newPPU(mach, m)
+func New(m mappers.Mapper) *Bus {
+	bus := &Bus{mapper: m}
+	bus.cpu = newCPU(bus, m)
+	bus.ppu = newPPU(bus, m)
 
-	return mach
+	return bus
 }
 
-func (mach *machine) WritePPU(reg uint16, val uint8) {
-	mach.ppu.WriteReg(reg, val)
+func (b *Bus) Read(addr uint16) uint8 {
+	// https://www.nesdev.org/wiki/CPU_memory_map
+	switch {
+	case addr <= 0x1FFF:
+		// 0x800-0x1FFF mirrors 0x0000-0x07FF
+		return b.mapper.ReadBaseRAM(addr % 0x800)
+	case addr < MAX_IO_REG_MIRRORED:
+		// PPU registers are mirrored between 0x2000 and 0x4000
+		return b.ppu.ReadReg(0x2000 + ((addr - 0x2000) % 0x8))
+	case addr < MAX_IO_REG:
+		// handle joysticks
+		return 0
+	case addr <= MAX_SRAM:
+		return 0
+	case addr <= MAX_ADDRESS:
+		return b.mapper.PrgRead(addr)
+	}
+
+	panic("should never happen") // hah, prod crashes await!
 }
 
-func (mach *machine) ReadPPU(reg uint16) uint8 {
-	return mach.ppu.ReadReg(reg)
+func (b *Bus) Write(addr uint16, val uint8) {
+	// https://www.nesdev.org/wiki/CPU_memory_map
+	switch {
+	case addr <= 0x1FFF:
+		// 0x800-0x1FFF mirrors 0x0000-0x07FF
+		b.mapper.WriteBaseRAM(addr%0x800, val)
+	case addr < MAX_IO_REG_MIRRORED:
+		// PPU registers are mirrored between 0x2000 and 0x4000
+		b.ppu.WriteReg(0x2000+((addr-0x2000)%0x8), val)
+	case addr < MAX_IO_REG:
+		// handle joysticks
+	case addr <= MAX_SRAM:
+		// nothing for now
+	case addr <= MAX_ADDRESS:
+		b.mapper.PrgWrite(addr, val)
+	}
 }
 
-func (mach *machine) BIOS(ctx context.Context) {
+func (b *Bus) BIOS(ctx context.Context) {
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
 
 	breaks := make(map[uint16]struct{})
 
 	for {
-		fmt.Printf("%s\n\n", mach.cpu)
+		fmt.Printf("%s\n\n", b.cpu)
 		fmt.Println("(B)reak - add breakpoint")
 		fmt.Println("(C)lear - cleear breakpoints")
 		fmt.Println("(R)un - run to completion")
@@ -61,7 +93,7 @@ func (mach *machine) BIOS(ctx context.Context) {
 		case 'c', 'C':
 			breaks = make(map[uint16]struct{})
 		case 'p', 'P':
-			mach.cpu.pc = readAddress("Set PC to what address (eg: 0400)?: ")
+			b.cpu.pc = readAddress("Set PC to what address (eg: 0400)?: ")
 		case 'q', 'Q':
 			return
 		case 'r', 'R':
@@ -76,15 +108,15 @@ func (mach *machine) BIOS(ctx context.Context) {
 					}
 				}
 			}(cctx)
-			mach.cpu.Run(cctx, breaks)
+			b.cpu.Run(cctx, breaks)
 		case 's', 'S':
-			mach.cpu.step()
+			b.cpu.step()
 		case 't', 'T':
 			fmt.Println()
 			i := 0
 			for {
-				m := mach.cpu.getStackAddr() + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.read(m))
+				m := b.cpu.getStackAddr() + uint16(i)
+				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.read(m))
 				if m == 0x00ff || i == 2 {
 					break
 				}
@@ -93,14 +125,14 @@ func (mach *machine) BIOS(ctx context.Context) {
 			fmt.Printf("\n\n")
 		case 'i', 'I':
 			fmt.Println()
-			op := opcodes[mach.cpu.read(mach.cpu.pc)]
+			op := opcodes[b.cpu.read(b.cpu.pc)]
 			for i := 0; i < int(op.bytes); i++ {
-				m := mach.cpu.pc + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, mach.cpu.read(m))
+				m := b.cpu.pc + uint16(i)
+				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.read(m))
 			}
 			fmt.Printf("\n\n")
 		case 'e', 'E':
-			mach.cpu.reset()
+			b.cpu.reset()
 		case 'm', 'M':
 			fmt.Println()
 			low := readAddress("Low address (eg f00d): ")
@@ -110,7 +142,7 @@ func (mach *machine) BIOS(ctx context.Context) {
 			x := 1
 			i := low
 			for {
-				fmt.Printf("0x%04x: 0x%02x ", i, mach.cpu.read(i))
+				fmt.Printf("0x%04x: 0x%02x ", i, b.cpu.read(i))
 				if x%5 == 0 {
 					fmt.Println()
 				}

@@ -83,7 +83,7 @@ func statusString(p uint8) string {
 
 // type cpu implements all of the machine state for the 6502
 type CPU struct {
-	mach   *machine
+	bus    *Bus
 	acc    uint8          // main register
 	x, y   uint8          // index registers
 	status uint8          // a register for storing various status bits
@@ -97,13 +97,13 @@ func (c *CPU) String() string {
 	return fmt.Sprintf("A,X,Y: %4d, %4d, %4d; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.read(c.pc)])
 }
 
-func newCPU(mach *machine, m mappers.Mapper) *CPU {
+func newCPU(bus *Bus, m mappers.Mapper) *CPU {
 	// Power on state values from:
 	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
 	// B is not normally visible in the register, but per docs, is
 	// set at startup.
 	c := &CPU{
-		mach:   mach,
+		bus:    bus,
 		sp:     0xFD,
 		mem:    m,
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
@@ -143,7 +143,7 @@ func (c *CPU) read(addr uint16) uint8 {
 		return c.mem.ReadBaseRAM(addr % 0x800)
 	case addr < MAX_IO_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
-		return c.mach.ReadPPU(0x2000 + ((addr - 0x2000) % 0x8))
+		return c.bus.ReadPPU(0x2000 + ((addr - 0x2000) % 0x8))
 	case addr < MAX_IO_REG:
 		// handle joysticks
 		return 0
@@ -223,7 +223,7 @@ func (c *CPU) write(addr uint16, val uint8) {
 		c.mem.WriteBaseRAM(addr%0x800, val)
 	case addr < MAX_IO_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
-		c.mach.WritePPU(0x2000+((addr-0x2000)%0x8), val)
+		c.bus.WritePPU(0x2000+((addr-0x2000)%0x8), val)
 	case addr < MAX_IO_REG:
 		// handle joysticks
 	case addr <= MAX_SRAM:
