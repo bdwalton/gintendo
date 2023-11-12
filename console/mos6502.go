@@ -136,24 +136,7 @@ func (c *CPU) memRange(low, high uint16) []uint8 {
 }
 
 func (c *CPU) read(addr uint16) uint8 {
-	// https://www.nesdev.org/wiki/CPU_memory_map
-	switch {
-	case addr <= 0x1FFF:
-		// 0x800-0x1FFF mirrors 0x0000-0x07FF
-		return c.mem.ReadBaseRAM(addr % 0x800)
-	case addr < MAX_IO_REG_MIRRORED:
-		// PPU registers are mirrored between 0x2000 and 0x4000
-		return c.bus.ReadPPU(0x2000 + ((addr - 0x2000) % 0x8))
-	case addr < MAX_IO_REG:
-		// handle joysticks
-		return 0
-	case addr <= MAX_SRAM:
-		return 0
-	case addr <= MAX_ADDRESS:
-		return c.mem.PrgRead(addr)
-	}
-
-	panic("should never happen") // hah, prod crashes await!
+	return c.bus.Read(addr)
 }
 
 // read16 returns the two bytes from memory at addr (lower byte is
@@ -216,21 +199,7 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 }
 
 func (c *CPU) write(addr uint16, val uint8) {
-	// https://www.nesdev.org/wiki/CPU_memory_map
-	switch {
-	case addr <= 0x1FFF:
-		// 0x800-0x1FFF mirrors 0x0000-0x07FF
-		c.mem.WriteBaseRAM(addr%0x800, val)
-	case addr < MAX_IO_REG_MIRRORED:
-		// PPU registers are mirrored between 0x2000 and 0x4000
-		c.bus.WritePPU(0x2000+((addr-0x2000)%0x8), val)
-	case addr < MAX_IO_REG:
-		// handle joysticks
-	case addr <= MAX_SRAM:
-		// nothing for now
-	case addr <= MAX_ADDRESS:
-		c.mem.PrgWrite(addr, val)
-	}
+	c.bus.Write(addr, val)
 }
 
 // write16 stores val at addr (lower byte is first).
