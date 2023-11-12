@@ -2,6 +2,8 @@ package console
 
 import (
 	"errors"
+	// "fmt"
+	"os"
 	"testing"
 
 	"github.com/bdwalton/gintendo/mappers"
@@ -1756,5 +1758,36 @@ func TestOpTYA(t *testing.T) {
 		if c.TYA(IMPLICIT); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
 		}
+	}
+}
+
+func TestFunctionsBin(t *testing.T) {
+	tf := "../testdata/6502_functional_test.bin"
+	bin, err := os.ReadFile(tf)
+	if err != nil {
+		t.Errorf("Couldn't read testdata file %q: %v", tf, err)
+	}
+
+	d := mappers.Dummy
+	d.LoadMem(0x000A, bin)
+	defer d.ClearMem()
+
+	c := mach.cpu
+	c.pc = 0x0400
+
+	// t.Errorf("%02x", c.read(0x0800))
+
+	for {
+		prev_pc := c.pc
+		// op, err := c.getInst()
+		// fmt.Printf("stepping 0x%04x - %s (%v)\n", c.pc, op, err)
+		if c.step(); c.pc == prev_pc {
+			break
+		}
+	}
+
+	var want uint16 = 0x3469
+	if got := c.pc; got != want {
+		t.Errorf("PC = 0x%04x, wanted 0x%04x", got, want)
 	}
 }
