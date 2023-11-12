@@ -265,7 +265,7 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 		}
 
 		if _, ok := breaks[c.pc]; ok {
-			fmt.Printf("Hit breakpoint at 0%04x\n", c.pc)
+			fmt.Printf("Hit breakpoint at 0x%04x\n", c.pc)
 			return
 		}
 	}
