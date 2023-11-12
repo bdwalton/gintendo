@@ -216,6 +216,7 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	// https://www.nesdev.org/wiki/CPU#Frequencies
 	t := time.NewTicker(time.Nanosecond * 559)
 	for {
+		prev_pc := c.pc
 		select {
 		case <-t.C:
 			c.step()
@@ -226,6 +227,11 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 
 		if _, ok := breaks[c.pc]; ok {
 			fmt.Printf("Hit breakpoint at 0x%04x\n", c.pc)
+			return
+		}
+
+		if c.pc == prev_pc {
+			fmt.Println("TRAP detected. Breaking")
 			return
 		}
 	}
