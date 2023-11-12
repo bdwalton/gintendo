@@ -631,6 +631,7 @@ func (c *CPU) PLA(mode uint8) {
 
 func (c *CPU) PLP(mode uint8) {
 	c.status = c.popStack() & ^uint8(STATUS_FLAG_BREAK)
+	c.flagsOn(UNUSED_STATUS_FLAG)
 }
 
 func (c *CPU) ROL(mode uint8) {
