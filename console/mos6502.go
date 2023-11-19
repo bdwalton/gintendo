@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/bits"
 	"reflect"
 	"time"
 
@@ -605,20 +604,20 @@ func (c *CPU) ROL(mode uint8) {
 	switch mode {
 	case ACCUMULATOR:
 		ov = c.acc
-		c.acc = bits.RotateLeft8(ov, 1) | (c.status & STATUS_FLAG_CARRY)
+		c.acc = (c.acc << 1) | (c.status & STATUS_FLAG_CARRY)
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
 		ov = c.read(addr)
-		c.write(addr, bits.RotateLeft8(ov, 1)|(c.status&STATUS_FLAG_CARRY))
+		c.write(addr, ((ov << 1) | (c.status & STATUS_FLAG_CARRY)))
 		nv = c.read(addr)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
-	c.setNegativeAndZeroFlags(nv)
-	if ov&0x80 != 0 {
+	if ov&STATUS_FLAG_NEGATIVE != 0 {
 		c.flagsOn(STATUS_FLAG_CARRY)
 	}
+	c.setNegativeAndZeroFlags(nv)
 }
 
 func (c *CPU) ROR(mode uint8) {
@@ -626,12 +625,12 @@ func (c *CPU) ROR(mode uint8) {
 	switch mode {
 	case ACCUMULATOR:
 		ov = c.acc
-		c.acc = bits.RotateLeft8(ov, -1) | ((c.status & STATUS_FLAG_CARRY) << 7)
+		c.acc = ov>>1 | ((c.status & STATUS_FLAG_CARRY) << 7)
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
 		ov = c.read(addr)
-		c.write(addr, bits.RotateLeft8(ov, -1)|((c.status&STATUS_FLAG_CARRY)<<7))
+		c.write(addr, ((ov >> 1) | ((c.status & STATUS_FLAG_CARRY) << 7)))
 		nv = c.read(addr)
 	}
 
