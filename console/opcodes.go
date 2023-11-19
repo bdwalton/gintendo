@@ -201,7 +201,7 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0xEA: opcode{NOP, "NOP", IMPLICIT, 1, 2},
 	0x09: opcode{ORA, "ORA", IMMEDIATE, 2, 2},
 	0x05: opcode{ORA, "ORA", ZERO_PAGE, 2, 3},
-	0x15: opcode{ORA, "ORA", ZERO_PAGE_X, 3, 4},
+	0x15: opcode{ORA, "ORA", ZERO_PAGE_X, 2, 4},
 	0x0D: opcode{ORA, "ORA", ABSOLUTE, 3, 4},
 	0x1D: opcode{ORA, "ORA", ABSOLUTE_X, 3, 4 /* +1 if page crossed */},
 	0x19: opcode{ORA, "ORA", ABSOLUTE_Y, 3, 4 /* +1 if page crossed */},
