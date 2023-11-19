@@ -176,7 +176,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 			for {
 				m := b.cpu.getStackAddr() + uint16(i)
 				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.read(m))
-				if m == 0x00ff || i == 2 {
+				if m == 0x01ff || i == 2 {
 					break
 				}
 				i += 1
