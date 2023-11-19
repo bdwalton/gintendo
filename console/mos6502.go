@@ -267,16 +267,15 @@ func (c *CPU) step() {
 // STATUS_FLAG_ZERO bits of the status register accordingly for the
 // value specified in n.
 func (c *CPU) setNegativeAndZeroFlags(n uint8) {
+	c.flagsOff(STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
 	if n == 0 {
 		c.flagsOn(STATUS_FLAG_ZERO)
-	} else {
-		c.flagsOff(STATUS_FLAG_ZERO)
 	}
 
-	if n&0b1000_0000 != 0 {
+	// SFN is convenitently the same bitmask we'd use to check the
+	// msb in a uint8.
+	if n&STATUS_FLAG_NEGATIVE != 0 {
 		c.flagsOn(STATUS_FLAG_NEGATIVE)
-	} else {
-		c.flagsOff(STATUS_FLAG_NEGATIVE)
 	}
 }
 
