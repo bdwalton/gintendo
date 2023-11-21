@@ -57,6 +57,42 @@ func TestCycles(t *testing.T) {
 	}
 }
 
+func TestEncodeBCD(t *testing.T) {
+	cases := []struct {
+		decimal, bcd uint8
+	}{
+		{99, 0x99},
+		{70, 0x70},
+		{85, 0x85},
+		{1, 0x01},
+		{00, 0x00},
+	}
+
+	for i, tc := range cases {
+		if got := encodeBCD(tc.decimal); got != tc.bcd {
+			t.Errorf("%d: Got 0x%02x from %d, wanted 0x%02x", i, got, tc.decimal, tc.bcd)
+		}
+	}
+}
+
+func TestDecodeBCD(t *testing.T) {
+	cases := []struct {
+		bcd, decimal uint8
+	}{
+		{0x99, 99},
+		{0x70, 70},
+		{0x85, 85},
+		{0x01, 1},
+		{0x00, 00},
+	}
+
+	for i, tc := range cases {
+		if got := decodeBCD(tc.bcd); got != tc.decimal {
+			t.Errorf("%d: Got %d from 0x%02x, wanted %d", i, got, tc.bcd, tc.decimal)
+		}
+	}
+}
+
 func TestMemRead(t *testing.T) {
 	c := bus.cpu
 	cases := []struct {

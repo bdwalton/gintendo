@@ -365,6 +365,17 @@ func (c *CPU) addWithOverflow(b uint8) {
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
+func encodeBCD(val uint8) uint8 {
+	return ((uint8(val / 10)) << 4) + (uint8(val % 10))
+}
+
+
+}
+
+func decodeBCD(val uint8) uint8 {
+	return uint8((val>>4)*10) + (val & 0x0F)
+}
+
 // baseCMP does comparison operations on a and b, setting flags
 // accordingly.
 func (c *CPU) baseCMP(a, b uint8) {
