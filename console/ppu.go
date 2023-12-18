@@ -1,9 +1,5 @@
 package console
 
-import (
-	"github.com/bdwalton/gintendo/mappers"
-)
-
 const (
 	VRAM_SIZE    = 2048
 	OAM_SIZE     = 256
@@ -24,8 +20,7 @@ const (
 )
 
 type PPU struct {
-	bus          *Bus
-	m            mappers.Mapper
+	mem          Memory
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
@@ -33,10 +28,9 @@ type PPU struct {
 	registers    map[uint16]uint8
 }
 
-func newPPU(bus *Bus, m mappers.Mapper) *PPU {
+func newPPU(m Memory) *PPU {
 	return &PPU{
-		bus:       bus,
-		m:         m,
+		mem:       m,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
 	}

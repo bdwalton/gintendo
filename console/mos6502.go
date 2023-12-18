@@ -7,10 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"time"
-
-	"github.com/bdwalton/gintendo/mappers"
 	"strings"
+	"time"
 )
 
 // 6502 Interrupt Vectors
@@ -71,29 +69,32 @@ func statusString(p uint8) string {
 	return sb.String()
 }
 
+type Memory interface {
+	Read(uint16) uint8
+	Write(uint16, uint8)
+}
+
 // type cpu implements all of the machine state for the 6502
 type CPU struct {
-	bus    *Bus
-	acc    uint8          // main register
-	x, y   uint8          // index registers
-	status uint8          // a register for storing various status bits
-	sp     uint8          // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
-	pc     uint16         // the program counter
-	mem    mappers.Mapper // 64k addressable memory, all via the mapper
-	cycles uint8          // how many cycles to wait until next instruction
+	acc    uint8  // main register
+	x, y   uint8  // index registers
+	status uint8  // a register for storing various status bits
+	sp     uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
+	pc     uint16 // the program counter
+	mem    Memory // 64k addressable memory, often backed by a mapper.
+	cycles uint8  // how many cycles to wait until next instruction
 }
 
 func (c *CPU) String() string {
 	return fmt.Sprintf("A,X,Y: 0x%02x, 0x%02x, 0x%02x; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.read(c.pc)])
 }
 
-func newCPU(bus *Bus, m mappers.Mapper) *CPU {
+func newCPU(m Memory) *CPU {
 	// Power on state values from:
 	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
 	// B is not normally visible in the register, but per docs, is
 	// set at startup.
 	c := &CPU{
-		bus:    bus,
 		sp:     0xFD,
 		mem:    m,
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
@@ -126,7 +127,7 @@ func (c *CPU) memRange(low, high uint16) []uint8 {
 }
 
 func (c *CPU) read(addr uint16) uint8 {
-	return c.bus.Read(addr)
+	return c.mem.Read(addr)
 }
 
 // read16 returns the two bytes from memory at addr (lower byte is
@@ -189,7 +190,7 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 }
 
 func (c *CPU) write(addr uint16, val uint8) {
-	c.bus.Write(addr, val)
+	c.mem.Write(addr, val)
 }
 
 // write16 stores val at addr (lower byte is first).

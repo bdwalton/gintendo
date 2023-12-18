@@ -43,8 +43,8 @@ func New(m mappers.Mapper, mode int) *Bus {
 		bus.ram = make([]uint8, REG_BASE_MEMORY)
 	}
 
-	bus.cpu = newCPU(bus, m)
-	bus.ppu = newPPU(bus, m)
+	bus.cpu = newCPU(bus)
+	bus.ppu = newPPU(bus)
 
 	return bus
 }
