@@ -344,6 +344,26 @@ func (c *CPU) branch(mask uint8, predicate bool) {
 	}
 }
 
+func encodeBCD(val uint8) uint8 {
+	return ((uint8(val / 10)) << 4) + (uint8(val % 10))
+}
+
+func decodeBCD(val uint8) uint8 {
+	return uint8((val>>4)*10) + (val & 0x0F)
+}
+
+func (c *CPU) addBCD(val uint8) {
+	var res int16
+	res = int16(decodeBCD(c.acc)) + int16(decodeBCD(val)) + int16(c.status&STATUS_FLAG_CARRY)
+	c.flagsOff(STATUS_FLAG_CARRY)
+	if res > 99 {
+		res -= 100
+		c.flagsOn(STATUS_FLAG_CARRY)
+	}
+	c.acc = encodeBCD(uint8(res))
+	c.setNegativeAndZeroFlags(c.acc)
+}
+
 // addWithOverflow adds b to c.acc handling overflow, carry and ZN
 // flag setting as appropriate.
 func (c *CPU) addWithOverflow(b uint8) {
@@ -365,15 +385,21 @@ func (c *CPU) addWithOverflow(b uint8) {
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
-func encodeBCD(val uint8) uint8 {
-	return ((uint8(val / 10)) << 4) + (uint8(val % 10))
-}
+func (c *CPU) subBCD(val uint8) {
+	var res int16
+	res = int16(decodeBCD(c.acc)) - int16(decodeBCD(val))
+	if c.status&STATUS_FLAG_CARRY == 0 {
+		res -= 1
+	}
 
+	c.flagsOn(STATUS_FLAG_CARRY)
+	if res < 0 {
+		res = 100 - (-1 * res)
+		c.flagsOff(STATUS_FLAG_CARRY)
+	}
 
-}
-
-func decodeBCD(val uint8) uint8 {
-	return uint8((val>>4)*10) + (val & 0x0F)
+	c.acc = encodeBCD(uint8(res))
+	c.setNegativeAndZeroFlags(c.acc)
 }
 
 // baseCMP does comparison operations on a and b, setting flags
@@ -386,8 +412,19 @@ func (c *CPU) baseCMP(a, b uint8) {
 	}
 }
 
+func (c *CPU) useDecimalMode() bool {
+	return c.status&STATUS_FLAG_DECIMAL != 0
+}
+
 func (c *CPU) ADC(mode uint8) {
-	c.addWithOverflow(c.read(c.getOperandAddr(mode)))
+	v := c.read(c.getOperandAddr(mode))
+	switch c.useDecimalMode() {
+	case false:
+		c.addWithOverflow(v)
+	default:
+		c.addBCD(v)
+
+	}
 }
 
 func (c *CPU) AND(mode uint8) {
@@ -661,7 +698,12 @@ func (c *CPU) RTS(mode uint8) {
 }
 
 func (c *CPU) SBC(mode uint8) {
-	c.addWithOverflow(^c.read(c.getOperandAddr(mode)))
+	v := c.read(c.getOperandAddr(mode))
+	if c.useDecimalMode() {
+		c.subBCD(v)
+	} else {
+		c.addWithOverflow(^v)
+	}
 }
 
 func (c *CPU) SEC(mode uint8) {
