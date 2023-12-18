@@ -84,7 +84,7 @@ type CPU struct {
 }
 
 func (c *CPU) String() string {
-	return fmt.Sprintf("A,X,Y: %4d, %4d, %4d; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.read(c.pc)])
+	return fmt.Sprintf("A,X,Y: 0x%02x, 0x%02x, 0x%02x; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.read(c.pc)])
 }
 
 func newCPU(bus *Bus, m mappers.Mapper) *CPU {
