@@ -19,6 +19,11 @@ const (
 	OAMDMA    = 0x4014
 )
 
+type Memory interface {
+	Read(uint16) uint8
+	Write(uint16, uint8)
+}
+
 type PPU struct {
 	mem          Memory
 	paletteTable [PALETTE_SIZE]uint8

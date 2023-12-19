@@ -1,14 +1,19 @@
-// Package console implements the Nintendo Entertainment System
-// It include an MOS6502 CPU, PPU and APU
-package console
+// Package mos6502 implements the MOS Technologies 6502 processor.
+package mos6502
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	"time"
+)
+
+const (
+	MAX_ADDRESS = math.MaxUint16
+	MEM_SIZE    = MAX_ADDRESS + 1
 )
 
 // 6502 Interrupt Vectors
@@ -86,10 +91,10 @@ type CPU struct {
 }
 
 func (c *CPU) String() string {
-	return fmt.Sprintf("A,X,Y: 0x%02x, 0x%02x, 0x%02x; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.read(c.pc)])
+	return fmt.Sprintf("A,X,Y: 0x%02x, 0x%02x, 0x%02x; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.Read(c.pc)])
 }
 
-func newCPU(m Memory) *CPU {
+func New(m Memory) *CPU {
 	// Power on state values from:
 	// https://nesdev-wiki.nes.science/wikipages/CPU_ALL.xhtml#Power_up_state
 	// B is not normally visible in the register, but per docs, is
@@ -99,14 +104,14 @@ func newCPU(m Memory) *CPU {
 		mem:    m,
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
-	c.pc = c.read16(INT_RESET)
+	c.pc = c.Read16(INT_RESET)
 	return c
 }
 
 var invalidInstruction = errors.New("invalid instruction")
 
 func (c *CPU) getInst() (opcode, error) {
-	m := c.read(c.pc)
+	m := c.Read(c.pc)
 	op, ok := opcodes[m]
 	if !ok {
 		return opcode{}, fmt.Errorf("pc: 0x%04x, inst: 0x%02x - %w", c.pc, m, invalidInstruction)
@@ -120,21 +125,21 @@ func (c *CPU) getInst() (opcode, error) {
 func (c *CPU) memRange(low, high uint16) []uint8 {
 	ret := make([]uint8, high-low)
 	for i := low; i <= high; i += 1 {
-		ret = append(ret, c.read(uint16(i)))
+		ret = append(ret, c.Read(uint16(i)))
 	}
 
 	return ret
 }
 
-func (c *CPU) read(addr uint16) uint8 {
+func (c *CPU) Read(addr uint16) uint8 {
 	return c.mem.Read(addr)
 }
 
 // read16 returns the two bytes from memory at addr (lower byte is
 // first).
-func (c *CPU) read16(addr uint16) uint16 {
-	lsb := uint16(c.read(addr))
-	msb := uint16(c.read(addr + 1))
+func (c *CPU) Read16(addr uint16) uint16 {
+	lsb := uint16(c.Read(addr))
+	msb := uint16(c.Read(addr + 1))
 
 	return (msb << 8) | lsb
 }
@@ -152,27 +157,27 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	case IMMEDIATE:
 		addr = c.pc
 	case ZERO_PAGE:
-		addr = uint16(c.read(c.pc))
+		addr = uint16(c.Read(c.pc))
 	case ZERO_PAGE_X:
-		return uint16(c.read(c.pc) + c.x)
+		return uint16(c.Read(c.pc) + c.x)
 	case ZERO_PAGE_Y:
-		return uint16(c.read(c.pc) + c.y)
+		return uint16(c.Read(c.pc) + c.y)
 	case ABSOLUTE:
-		return c.read16(c.pc)
+		return c.Read16(c.pc)
 	case ABSOLUTE_X:
-		a := c.read16(c.pc)
+		a := c.Read16(c.pc)
 		addr = a + uint16(c.x)
 		c.cycles += extraCycles(a, addr)
 	case ABSOLUTE_Y:
-		a := c.read16(c.pc)
+		a := c.Read16(c.pc)
 		addr = a + uint16(c.y)
 		c.cycles += extraCycles(a, addr)
 	case INDIRECT:
-		return c.read16(c.read16(c.pc))
+		return c.Read16(c.Read16(c.pc))
 	case INDIRECT_X:
-		return c.read16(uint16(c.read(c.pc) + c.x))
+		return c.Read16(uint16(c.Read(c.pc) + c.x))
 	case INDIRECT_Y:
-		a := c.read16(uint16(c.read(c.pc)))
+		a := c.Read16(uint16(c.Read(c.pc)))
 		addr = a + uint16(c.y)
 		c.cycles += extraCycles(a, addr)
 	case RELATIVE:
@@ -181,7 +186,7 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 		// from memory to decode the instruction, so we need
 		// to account for that here and step over the relative
 		// argument while calculating the new target address.
-		addr = (c.pc + 1) + uint16(int8(c.read(c.pc)))
+		addr = (c.pc + 1) + uint16(int8(c.Read(c.pc)))
 	default:
 		panic("Invalid addressing mode")
 	}
@@ -189,27 +194,44 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	return addr
 }
 
-func (c *CPU) write(addr uint16, val uint8) {
+func (c *CPU) Write(addr uint16, val uint8) {
 	c.mem.Write(addr, val)
 }
 
 // write16 stores val at addr (lower byte is first).
-func (c *CPU) write16(addr, val uint16) {
-	c.write(addr, uint8(val&0x00FF))
-	c.write(addr+1, uint8(val>>8))
+func (c *CPU) Write16(addr, val uint16) {
+	c.Write(addr, uint8(val&0x00FF))
+	c.Write(addr+1, uint8(val>>8))
 }
 
-func (c *CPU) reset() {
+func (c *CPU) Reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
-	c.pc = c.read16(INT_RESET)
+	c.pc = c.Read16(INT_RESET)
 }
 
-func readAddress(prompt string) uint16 {
-	var a uint16
-	fmt.Printf(prompt)
-	fmt.Scanf("%04x\n", &a)
-	return a
+func (c *CPU) PC() uint16 {
+	return c.pc
+}
+
+func (c *CPU) SetPC(addr uint16) {
+	c.pc = addr
+}
+
+func (c *CPU) Inst() string {
+	var sb strings.Builder
+	op := opcodes[c.Read(c.pc)]
+	for i := 0; i < int(op.bytes); i++ {
+		m := c.pc + uint16(i)
+		sb.WriteString(fmt.Sprintf("%04x: 0x%02x ", m, c.Read(m)))
+	}
+	return sb.String()
+}
+
+func (c *CPU) LoadMem(start uint16, mem []uint8) {
+	for i, m := range mem {
+		c.Write(start+uint16(i), m)
+	}
 }
 
 func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
@@ -219,7 +241,7 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 		prev_pc := c.pc
 		select {
 		case <-t.C:
-			c.step()
+			c.Step()
 			fmt.Println(c)
 		case <-ctx.Done():
 			return
@@ -237,7 +259,7 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	}
 }
 
-func (c *CPU) step() {
+func (c *CPU) Step() {
 	// if c.cycles > 0 {
 	// 	c.cycles -= 1
 	// 	return
@@ -280,18 +302,18 @@ func (c *CPU) setNegativeAndZeroFlags(n uint8) {
 	}
 }
 
-func (c *CPU) getStackAddr() uint16 {
+func (c *CPU) StackAddr() uint16 {
 	return STACK_PAGE + uint16(c.sp)
 }
 
 func (c *CPU) pushStack(val uint8) {
-	c.write(c.getStackAddr(), val)
+	c.Write(c.StackAddr(), val)
 	c.sp -= 1
 }
 
 func (c *CPU) popStack() uint8 {
 	c.sp += 1
-	return c.read(c.getStackAddr())
+	return c.Read(c.StackAddr())
 }
 
 func (c *CPU) pushAddress(addr uint16) {
@@ -418,7 +440,7 @@ func (c *CPU) useDecimalMode() bool {
 }
 
 func (c *CPU) ADC(mode uint8) {
-	v := c.read(c.getOperandAddr(mode))
+	v := c.Read(c.getOperandAddr(mode))
 	switch c.useDecimalMode() {
 	case false:
 		c.addWithOverflow(v)
@@ -429,7 +451,7 @@ func (c *CPU) ADC(mode uint8) {
 }
 
 func (c *CPU) AND(mode uint8) {
-	c.acc = c.acc & c.read(c.getOperandAddr(mode))
+	c.acc = c.acc & c.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
@@ -442,9 +464,9 @@ func (c *CPU) ASL(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.read(addr)
+		ov = c.Read(addr)
 		nv = ov << 1
-		c.write(addr, nv)
+		c.Write(addr, nv)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -467,7 +489,7 @@ func (c *CPU) BEQ(mode uint8) {
 }
 
 func (c *CPU) BIT(mode uint8) {
-	o := c.read(c.getOperandAddr(mode))
+	o := c.Read(c.getOperandAddr(mode))
 
 	c.flagsOff(STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW | STATUS_FLAG_ZERO)
 	var flags uint8
@@ -495,7 +517,7 @@ func (c *CPU) BRK(mode uint8) {
 	// BRK is 2 bytes
 	c.pushAddress(c.pc + 1)
 	c.pushStack(c.status | STATUS_FLAG_BREAK)
-	c.pc = c.read16(INT_BRK)
+	c.pc = c.Read16(INT_BRK)
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 
@@ -524,21 +546,21 @@ func (c *CPU) CLV(mode uint8) {
 }
 
 func (c *CPU) CMP(mode uint8) {
-	c.baseCMP(c.acc, c.read(c.getOperandAddr(mode)))
+	c.baseCMP(c.acc, c.Read(c.getOperandAddr(mode)))
 }
 
 func (c *CPU) CPX(mode uint8) {
-	c.baseCMP(c.x, c.read(c.getOperandAddr(mode)))
+	c.baseCMP(c.x, c.Read(c.getOperandAddr(mode)))
 }
 
 func (c *CPU) CPY(mode uint8) {
-	c.baseCMP(c.y, c.read(c.getOperandAddr(mode)))
+	c.baseCMP(c.y, c.Read(c.getOperandAddr(mode)))
 }
 
 func (c *CPU) DEC(mode uint8) {
 	a := c.getOperandAddr(mode)
-	c.write(a, c.read(a)-1)
-	c.setNegativeAndZeroFlags(c.read(a))
+	c.Write(a, c.Read(a)-1)
+	c.setNegativeAndZeroFlags(c.Read(a))
 }
 
 func (c *CPU) DEX(mode uint8) {
@@ -552,14 +574,14 @@ func (c *CPU) DEY(mode uint8) {
 }
 
 func (c *CPU) EOR(mode uint8) {
-	c.acc = c.acc ^ c.read(c.getOperandAddr(mode))
+	c.acc = c.acc ^ c.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *CPU) INC(mode uint8) {
 	a := c.getOperandAddr(mode)
-	c.write(a, c.read(a)+1)
-	c.setNegativeAndZeroFlags(c.read(a))
+	c.Write(a, c.Read(a)+1)
+	c.setNegativeAndZeroFlags(c.Read(a))
 }
 
 func (c *CPU) INX(mode uint8) {
@@ -582,17 +604,17 @@ func (c *CPU) JSR(mode uint8) {
 }
 
 func (c *CPU) LDA(mode uint8) {
-	c.acc = c.read(c.getOperandAddr(mode))
+	c.acc = c.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *CPU) LDX(mode uint8) {
-	c.x = c.read(c.getOperandAddr(mode))
+	c.x = c.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.x)
 }
 
 func (c *CPU) LDY(mode uint8) {
-	c.y = c.read(c.getOperandAddr(mode))
+	c.y = c.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.y)
 }
 
@@ -605,9 +627,9 @@ func (c *CPU) LSR(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.read(addr)
+		ov = c.Read(addr)
 		nv = ov >> 1
-		c.write(addr, nv)
+		c.Write(addr, nv)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -623,7 +645,7 @@ func (c *CPU) NOP(mode uint8) {
 }
 
 func (c *CPU) ORA(mode uint8) {
-	c.acc = c.acc | c.read(c.getOperandAddr(mode))
+	c.acc = c.acc | c.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
@@ -656,9 +678,9 @@ func (c *CPU) ROL(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.read(addr)
-		c.write(addr, ((ov << 1) | (c.status & STATUS_FLAG_CARRY)))
-		nv = c.read(addr)
+		ov = c.Read(addr)
+		c.Write(addr, ((ov << 1) | (c.status & STATUS_FLAG_CARRY)))
+		nv = c.Read(addr)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -677,9 +699,9 @@ func (c *CPU) ROR(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.read(addr)
-		c.write(addr, ((ov >> 1) | ((c.status & STATUS_FLAG_CARRY) << 7)))
-		nv = c.read(addr)
+		ov = c.Read(addr)
+		c.Write(addr, ((ov >> 1) | ((c.status & STATUS_FLAG_CARRY) << 7)))
+		nv = c.Read(addr)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -699,7 +721,7 @@ func (c *CPU) RTS(mode uint8) {
 }
 
 func (c *CPU) SBC(mode uint8) {
-	v := c.read(c.getOperandAddr(mode))
+	v := c.Read(c.getOperandAddr(mode))
 	if c.useDecimalMode() {
 		c.subBCD(v)
 	} else {
@@ -720,15 +742,15 @@ func (c *CPU) SEI(mode uint8) {
 }
 
 func (c *CPU) STA(mode uint8) {
-	c.write(c.getOperandAddr(mode), c.acc)
+	c.Write(c.getOperandAddr(mode), c.acc)
 }
 
 func (c *CPU) STX(mode uint8) {
-	c.write(c.getOperandAddr(mode), c.x)
+	c.Write(c.getOperandAddr(mode), c.x)
 }
 
 func (c *CPU) STY(mode uint8) {
-	c.write(c.getOperandAddr(mode), c.y)
+	c.Write(c.getOperandAddr(mode), c.y)
 }
 
 func (c *CPU) TAX(mode uint8) {

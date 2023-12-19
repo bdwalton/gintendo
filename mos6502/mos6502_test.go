@@ -1,24 +1,38 @@
-package console
+package mos6502
 
 import (
 	"errors"
 	"os"
 	"testing"
-
-	"github.com/bdwalton/gintendo/mappers"
 )
 
 func memInit(c *CPU, val uint8) {
 	for i := 0; i < MEM_SIZE; i++ {
-		c.write(uint16(i), val)
+		c.Write(uint16(i), val)
 	}
 	return
 }
 
-var bus *Bus = New(mappers.Dummy, REG_MODE)
+type mem struct {
+	data []uint8
+}
+
+func (m *mem) Read(addr uint16) uint8 {
+	return m.data[addr]
+}
+
+func (m *mem) Write(addr uint16, val uint8) {
+	m.data[addr] = val
+}
+
+func NewMem() *mem {
+	return &mem{data: make([]uint8, MEM_SIZE)}
+}
+
+var cpu *CPU = New(NewMem())
 
 func TestCycles(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	memInit(c, 0xEA)
 
 	cases := []struct {
@@ -42,13 +56,13 @@ func TestCycles(t *testing.T) {
 		c.acc = tc.acc
 		c.x = tc.x
 		c.y = tc.y
-		c.write(c.pc, tc.op)
-		c.write(c.pc+1, tc.arg1)
-		c.write(c.pc+2, tc.arg2)
+		c.Write(c.pc, tc.op)
+		c.Write(c.pc+1, tc.arg1)
+		c.Write(c.pc+2, tc.arg2)
 
 		c.cycles = 0 // So we execute op
 
-		c.step()
+		c.Step()
 
 		if c.cycles != tc.wantCycles || c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, cycles = %d, wanted PC = 0x%04x, cycles %d.", i, c.pc, c.cycles, tc.wantPC, tc.wantCycles)
@@ -93,7 +107,7 @@ func TestDecodeBCD(t *testing.T) {
 }
 
 func TestMemRead(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		mem1 uint8
 		want uint8
@@ -103,16 +117,16 @@ func TestMemRead(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.write(uint16(i), tc.mem1)
+		c.Write(uint16(i), tc.mem1)
 		c.pc = uint16(i)
-		if got := c.read(c.pc); got != tc.want {
+		if got := c.Read(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
 }
 
 func TestMemWrite(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		mem1 uint8
 		want uint8
@@ -123,15 +137,15 @@ func TestMemWrite(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = uint16(i)
-		c.write(c.pc, tc.mem1)
-		if got := c.read(c.pc); got != tc.want {
+		c.Write(c.pc, tc.mem1)
+		if got := c.Read(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%02x, want 0x%02x", i, got, tc.want)
 		}
 	}
 }
 
 func TestMemRead16(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		mem1, mem2 uint8
 		want       uint16
@@ -141,17 +155,17 @@ func TestMemRead16(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c.write(uint16(i), tc.mem1)
-		c.write(uint16(i+1), tc.mem2)
+		c.Write(uint16(i), tc.mem1)
+		c.Write(uint16(i+1), tc.mem2)
 		c.pc = uint16(i)
-		if got := c.read16(c.pc); got != tc.want {
+		if got := c.Read16(c.pc); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
 }
 
 func TestMemWrite16(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		val        uint16
 		mem1, mem2 uint8
@@ -162,11 +176,11 @@ func TestMemWrite16(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = uint16(i)
-		c.write16(c.pc, tc.val)
-		c.write(uint16(i), tc.mem1)
-		c.write(uint16(i+1), tc.mem2)
+		c.Write16(c.pc, tc.val)
+		c.Write(uint16(i), tc.mem1)
+		c.Write(uint16(i+1), tc.mem2)
 
-		m1, m2 := c.read(uint16(i)), c.read(uint16(i+1))
+		m1, m2 := c.Read(uint16(i)), c.Read(uint16(i+1))
 		if m1 != tc.mem1 || m2 != tc.mem2 {
 			t.Errorf("%d: Got (0x%02x, 0x%02x), want (0x%02x, 0x%02x)", i, m1, m2, tc.mem1, tc.mem2)
 		}
@@ -174,7 +188,7 @@ func TestMemWrite16(t *testing.T) {
 }
 
 func TestPushAddress(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		addr                   uint16
 		sp                     uint8
@@ -187,8 +201,8 @@ func TestPushAddress(t *testing.T) {
 	for i, tc := range cases {
 		c.sp = tc.sp
 		c.pushAddress(tc.addr)
-		if c.sp != tc.wantSP || c.read(c.getStackAddr()+2) != tc.wantHI || c.read(c.getStackAddr()+1) != tc.wantLO {
-			top := c.getStackAddr() + 2
+		if c.sp != tc.wantSP || c.Read(c.StackAddr()+2) != tc.wantHI || c.Read(c.StackAddr()+1) != tc.wantLO {
+			top := c.StackAddr() + 2
 			bottom := top - 1
 			t.Errorf("%d: Got 0x%02x %v, want 0x%02x %v", i, c.sp, c.memRange(bottom, top), tc.wantSP, []uint8{tc.wantLO, tc.wantHI})
 		}
@@ -197,7 +211,7 @@ func TestPushAddress(t *testing.T) {
 }
 
 func TestPopAddress(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		addr     uint16
 		sp       uint8
@@ -221,13 +235,13 @@ func TestPopAddress(t *testing.T) {
 }
 
 func TestGetOperandAddr(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 
-	c.write16(0x000F, 0x5544)
-	c.write16(0x0064, 0x110F)
-	c.write16(0x001F, 0x0055)
-	c.write16(0x110F, 0xBBFA)
-	c.write(0xFF66, 0x82)
+	c.Write16(0x000F, 0x5544)
+	c.Write16(0x0064, 0x110F)
+	c.Write16(0x001F, 0x0055)
+	c.Write16(0x110F, 0xBBFA)
+	c.Write(0xFF66, 0x82)
 	c.x = 0x10
 	c.y = 0xAC
 
@@ -259,7 +273,7 @@ func TestGetOperandAddr(t *testing.T) {
 }
 
 func TestGetInst(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		val     uint8
 		want    opcode
@@ -273,7 +287,7 @@ func TestGetInst(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.cycles = 0
-		c.write(0, tc.val)
+		c.Write(0, tc.val)
 		got, err := c.getInst()
 		if got != tc.want || (err != nil && tc.wantErr == nil) || !errors.Is(err, tc.wantErr) {
 			t.Errorf("%d: got %s, want %s; err %v, wantErr %v", i, got, tc.want, err, tc.wantErr)
@@ -283,7 +297,7 @@ func TestGetInst(t *testing.T) {
 }
 
 func TestReset(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		int_reset_pc uint16
 		wantPC       uint16
@@ -295,8 +309,8 @@ func TestReset(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write16(INT_RESET, tc.int_reset_pc)
-		c.reset()
+		c.Write16(INT_RESET, tc.int_reset_pc)
+		c.Reset()
 
 		if c.pc != tc.wantPC || c.status != 0x24 {
 			t.Errorf("%d: PC = 0x%04x (status 0x%02x), wanted 0x%04x (status 0x%02x)", i, c.pc, c.status, tc.wantPC, 0x24)
@@ -305,7 +319,7 @@ func TestReset(t *testing.T) {
 }
 
 func TestOpADC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, op1, status uint8
 		want, wantStatus uint8
@@ -330,7 +344,7 @@ func TestOpADC(t *testing.T) {
 		c.pc = 0x7780
 		c.acc = tc.acc
 		c.status = tc.status
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		if c.ADC(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (status 0x%02x), wanted 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
@@ -339,7 +353,7 @@ func TestOpADC(t *testing.T) {
 }
 
 func TestOpAND(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -354,7 +368,7 @@ func TestOpAND(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		if c.AND(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
@@ -364,7 +378,7 @@ func TestOpAND(t *testing.T) {
 }
 
 func TestOpASL(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		val, mode        uint8 // ACCUMULATOR and ZERO_PAGE are what we use for testing
 		want, wantStatus uint8
@@ -384,7 +398,7 @@ func TestOpASL(t *testing.T) {
 		case ACCUMULATOR:
 			c.acc = tc.val
 		default:
-			c.write(c.getOperandAddr(tc.mode), tc.val)
+			c.Write(c.getOperandAddr(tc.mode), tc.val)
 		}
 
 		c.ASL(tc.mode)
@@ -394,7 +408,7 @@ func TestOpASL(t *testing.T) {
 		case ACCUMULATOR:
 			got = c.acc
 		default:
-			got = c.read(c.getOperandAddr(tc.mode))
+			got = c.Read(c.getOperandAddr(tc.mode))
 		}
 		if got != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, status 0x%02x; Want 0x%02x, status 0x%02x", i, got, c.status, tc.want, tc.wantStatus)
@@ -403,7 +417,7 @@ func TestOpASL(t *testing.T) {
 }
 
 func TestOpBCC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16 // operand, so 1 beyond pc for op
 		offset uint8
@@ -419,7 +433,7 @@ func TestOpBCC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BCC(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -429,7 +443,7 @@ func TestOpBCC(t *testing.T) {
 }
 
 func TestOpBCS(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16
 		offset uint8
@@ -445,7 +459,7 @@ func TestOpBCS(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BCS(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -455,7 +469,7 @@ func TestOpBCS(t *testing.T) {
 }
 
 func TestOpBEQ(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16
 		offset uint8
@@ -471,7 +485,7 @@ func TestOpBEQ(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BEQ(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -481,7 +495,7 @@ func TestOpBEQ(t *testing.T) {
 }
 
 func TestOpBIT(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, op    uint8
 		wantStatus uint8
@@ -499,7 +513,7 @@ func TestOpBIT(t *testing.T) {
 		c.pc = 0x0300
 		c.status = 0 // Clear processor init defaults
 		c.acc = tc.acc
-		c.write(c.getOperandAddr(ZERO_PAGE), tc.op)
+		c.Write(c.getOperandAddr(ZERO_PAGE), tc.op)
 
 		if c.BIT(ZERO_PAGE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got status = 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
@@ -508,7 +522,7 @@ func TestOpBIT(t *testing.T) {
 }
 
 func TestOpBMI(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16
 		offset uint8
@@ -524,7 +538,7 @@ func TestOpBMI(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BMI(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -533,7 +547,7 @@ func TestOpBMI(t *testing.T) {
 }
 
 func TestOpBNE(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -549,7 +563,7 @@ func TestOpBNE(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BNE(RELATIVE)
 
 		if c.pc != tc.wantPC {
@@ -559,7 +573,7 @@ func TestOpBNE(t *testing.T) {
 }
 
 func TestOpBPL(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -575,7 +589,7 @@ func TestOpBPL(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BPL(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -584,7 +598,7 @@ func TestOpBPL(t *testing.T) {
 }
 
 func TestOpBRK(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc         uint16
 		brk        uint16
@@ -601,7 +615,7 @@ func TestOpBRK(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write16(INT_BRK, tc.brk)
+		c.Write16(INT_BRK, tc.brk)
 		c.BRK(IMPLICIT)
 		stStat := c.popStack()
 		ret := c.popAddress()
@@ -612,7 +626,7 @@ func TestOpBRK(t *testing.T) {
 }
 
 func TestOpBVC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -628,7 +642,7 @@ func TestOpBVC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BVC(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -637,7 +651,7 @@ func TestOpBVC(t *testing.T) {
 }
 
 func TestOpBVS(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16 // first operand, not op, so branching from pc-1
 		offset uint8
@@ -652,7 +666,7 @@ func TestOpBVS(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = tc.pc
 		c.status = tc.status
-		c.write(c.pc, tc.offset)
+		c.Write(c.pc, tc.offset)
 		c.BVS(RELATIVE)
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, want 0x%04x", i, c.pc, tc.wantPC)
@@ -661,7 +675,7 @@ func TestOpBVS(t *testing.T) {
 }
 
 func TestOpCLC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -682,7 +696,7 @@ func TestOpCLC(t *testing.T) {
 }
 
 func TestOpCLD(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -703,7 +717,7 @@ func TestOpCLD(t *testing.T) {
 }
 
 func TestOpCLI(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -724,7 +738,7 @@ func TestOpCLI(t *testing.T) {
 }
 
 func TestOpCLV(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -745,7 +759,7 @@ func TestOpCLV(t *testing.T) {
 }
 
 func TestOpCMP(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, m     uint8
 		wantStatus uint8
@@ -759,7 +773,7 @@ func TestOpCMP(t *testing.T) {
 		c.pc = 0
 		c.status = 0 // Clear processor init defaults
 		c.acc = tc.acc
-		c.write(c.pc, tc.m)
+		c.Write(c.pc, tc.m)
 		if c.CMP(IMMEDIATE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
 		}
@@ -767,7 +781,7 @@ func TestOpCMP(t *testing.T) {
 }
 
 func TestOpCPX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		x, m       uint8
 		wantStatus uint8
@@ -781,7 +795,7 @@ func TestOpCPX(t *testing.T) {
 		c.pc = 0
 		c.status = 0 // Clear processor init defaults
 		c.x = tc.x
-		c.write(c.pc, tc.m)
+		c.Write(c.pc, tc.m)
 		if c.CPX(IMMEDIATE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
 		}
@@ -789,7 +803,7 @@ func TestOpCPX(t *testing.T) {
 }
 
 func TestOpCPY(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		y, m       uint8
 		wantStatus uint8
@@ -803,7 +817,7 @@ func TestOpCPY(t *testing.T) {
 		c.pc = 0
 		c.status = 0 // Clear processor init defaults
 		c.y = tc.y
-		c.write(c.pc, tc.m)
+		c.Write(c.pc, tc.m)
 		if c.CPY(IMMEDIATE); c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.status, tc.wantStatus)
 		}
@@ -811,7 +825,7 @@ func TestOpCPY(t *testing.T) {
 }
 
 func TestOpDEC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -826,17 +840,17 @@ func TestOpDEC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		c.DEC(IMMEDIATE)
-		if m := c.read(c.pc); m != tc.want || c.status != tc.wantStatus {
+		if m := c.Read(c.pc); m != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, m, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpDEX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		x          uint8
 		status     uint8
@@ -860,7 +874,7 @@ func TestOpDEX(t *testing.T) {
 }
 
 func TestOpDEY(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		y          uint8
 		status     uint8
@@ -884,7 +898,7 @@ func TestOpDEY(t *testing.T) {
 }
 
 func TestOpEOR(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -900,7 +914,7 @@ func TestOpEOR(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		c.EOR(IMMEDIATE)
@@ -911,7 +925,7 @@ func TestOpEOR(t *testing.T) {
 }
 
 func TestOpINX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		x          uint8
 		status     uint8
@@ -935,7 +949,7 @@ func TestOpINX(t *testing.T) {
 }
 
 func TestOpINY(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		y          uint8
 		status     uint8
@@ -959,7 +973,7 @@ func TestOpINY(t *testing.T) {
 }
 
 func TestOpINC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -973,17 +987,17 @@ func TestOpINC(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		c.INC(IMMEDIATE)
-		if m := c.read(c.pc); m != tc.want || c.status != tc.wantStatus {
+		if m := c.Read(c.pc); m != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, m, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpJMP(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc              uint16
 		mode            uint8
@@ -997,8 +1011,8 @@ func TestOpJMP(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = tc.pc
-		c.write16(c.pc, tc.target)
-		c.write16(c.getOperandAddr(ABSOLUTE), tc.target2)
+		c.Write16(c.pc, tc.target)
+		c.Write16(c.getOperandAddr(ABSOLUTE), tc.target2)
 
 		c.JMP(tc.mode)
 		if c.pc != tc.wantPC {
@@ -1008,7 +1022,7 @@ func TestOpJMP(t *testing.T) {
 }
 
 func TestOpJSR(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc               uint16
 		target           uint16
@@ -1021,7 +1035,7 @@ func TestOpJSR(t *testing.T) {
 
 	for i, tc := range cases {
 		c.pc = tc.pc
-		c.write16(c.pc, tc.target)
+		c.Write16(c.pc, tc.target)
 		c.sp = tc.sp
 
 		c.JSR(ABSOLUTE)
@@ -1033,7 +1047,7 @@ func TestOpJSR(t *testing.T) {
 }
 
 func TestOpLDA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -1048,7 +1062,7 @@ func TestOpLDA(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		if c.LDA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (0x%02x), want 0x%02x (0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
@@ -1057,7 +1071,7 @@ func TestOpLDA(t *testing.T) {
 }
 
 func TestOpLDX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -1072,7 +1086,7 @@ func TestOpLDX(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		c.LDX(IMMEDIATE)
 		if c.x != tc.want || c.status != tc.wantStatus {
@@ -1082,7 +1096,7 @@ func TestOpLDX(t *testing.T) {
 }
 
 func TestOpLDY(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		op1        uint8
 		want       uint8
@@ -1097,7 +1111,7 @@ func TestOpLDY(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		c.LDY(IMMEDIATE)
 		if c.y != tc.want || c.status != tc.wantStatus {
@@ -1107,7 +1121,7 @@ func TestOpLDY(t *testing.T) {
 }
 
 func TestOpLSR(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		val, mode        uint8 // ACCUMULATOR and ZERO_PAGE are what we use for testing
 		want, wantStatus uint8
@@ -1127,7 +1141,7 @@ func TestOpLSR(t *testing.T) {
 		case ACCUMULATOR:
 			c.acc = tc.val
 		default:
-			c.write(c.getOperandAddr(tc.mode), tc.val)
+			c.Write(c.getOperandAddr(tc.mode), tc.val)
 		}
 
 		c.LSR(tc.mode)
@@ -1137,7 +1151,7 @@ func TestOpLSR(t *testing.T) {
 		case ACCUMULATOR:
 			got = c.acc
 		default:
-			got = c.read(c.getOperandAddr(tc.mode))
+			got = c.Read(c.getOperandAddr(tc.mode))
 		}
 		if got != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x, status 0x%02x; Want 0x%02x, status 0x%02x", i, got, c.status, tc.want, tc.wantStatus)
@@ -1146,7 +1160,7 @@ func TestOpLSR(t *testing.T) {
 }
 
 func TestOpNOP(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	memInit(c, 0xEA) // NOP
 
 	cases := []struct {
@@ -1163,7 +1177,7 @@ func TestOpNOP(t *testing.T) {
 		c.cycles = 0
 		c.pc = tc.pc
 		c.status = tc.status
-		c.step()
+		c.Step()
 		if c.pc != tc.wantPC || c.status != tc.wantStatus {
 			t.Errorf("%d: Wanted %d (status 0x%02x), got %d (status: 0x%02x)", i, tc.wantPC, tc.wantStatus, c.pc, c.status)
 		}
@@ -1171,7 +1185,7 @@ func TestOpNOP(t *testing.T) {
 }
 
 func TestPCWithStep(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	memInit(c, 0xEA)
 
 	cases := []struct {
@@ -1204,11 +1218,11 @@ func TestPCWithStep(t *testing.T) {
 		c.cycles = 0
 		c.pc = 0 // first operand, not op, so branching from pc-1
 		c.status = tc.status
-		c.write(c.pc, tc.inst)
-		c.write(c.pc+1, tc.m1)
-		c.write(c.pc+2, tc.m2)
+		c.Write(c.pc, tc.inst)
+		c.Write(c.pc+1, tc.m1)
+		c.Write(c.pc+2, tc.m2)
 
-		c.step()
+		c.Step()
 		if c.pc != tc.wantPC {
 			t.Errorf("%d: PC = 0x%04x, wanted 0x%04x.", i, c.pc, tc.wantPC)
 		}
@@ -1216,7 +1230,7 @@ func TestPCWithStep(t *testing.T) {
 }
 
 func TestOpORA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc        uint8
 		op1        uint8
@@ -1233,7 +1247,7 @@ func TestOpORA(t *testing.T) {
 	for i, tc := range cases {
 		c.pc = 0
 		c.status = 0
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 		c.acc = tc.acc
 
 		if c.ORA(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
@@ -1243,7 +1257,7 @@ func TestOpORA(t *testing.T) {
 }
 
 func TestOpPHA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc    uint8
 		wantSP uint8
@@ -1260,14 +1274,14 @@ func TestOpPHA(t *testing.T) {
 	for i, tc := range cases {
 		c.acc = tc.acc
 		c.PHA(IMPLICIT)
-		if m := c.read(c.getStackAddr() + 1); m != tc.acc || c.sp != tc.wantSP {
+		if m := c.Read(c.StackAddr() + 1); m != tc.acc || c.sp != tc.wantSP {
 			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, m, tc.acc)
 		}
 	}
 }
 
 func TestOpPHP(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		wantSP uint8
@@ -1284,14 +1298,14 @@ func TestOpPHP(t *testing.T) {
 	for i, tc := range cases {
 		c.status = tc.status
 		c.PHP(IMPLICIT)
-		if m := c.read(c.getStackAddr() + 1); m != (tc.status|STATUS_FLAG_BREAK) || c.sp != tc.wantSP {
+		if m := c.Read(c.StackAddr() + 1); m != (tc.status|STATUS_FLAG_BREAK) || c.sp != tc.wantSP {
 			t.Errorf("%d: SP=0x%02x, want 0x%02x; Mem = 0x%02x, want 0x%02x", i, c.sp, tc.wantSP, m, tc.status)
 		}
 	}
 }
 
 func TestOpPLA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc        uint8
 		wantSP     uint8
@@ -1324,7 +1338,7 @@ func TestOpPLA(t *testing.T) {
 }
 
 func TestOpPLP(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status     uint8
 		wantSP     uint8
@@ -1356,7 +1370,7 @@ func TestOpPLP(t *testing.T) {
 }
 
 func TestOpROL(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -1385,7 +1399,7 @@ func TestOpROL(t *testing.T) {
 		c.pc = 0x10 // memory addr 0x10 should always be 0 on init
 		c.acc = tc.acc
 		if tc.mode != ACCUMULATOR {
-			c.write(c.getOperandAddr(tc.mode), tc.op1)
+			c.Write(c.getOperandAddr(tc.mode), tc.op1)
 		}
 
 		c.status = tc.status
@@ -1393,7 +1407,7 @@ func TestOpROL(t *testing.T) {
 		c.ROL(tc.mode)
 		v := c.acc
 		if tc.mode == ZERO_PAGE {
-			v = c.read(c.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
+			v = c.Read(c.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
 		}
 
 		if v != tc.want || c.status != tc.wantStatus {
@@ -1403,7 +1417,7 @@ func TestOpROL(t *testing.T) {
 }
 
 func TestOpROR(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, op1   uint8 // Seeded acc and memory location 0
 		mode       uint8 // Addressing mode (ACCUMULATOR or ZERO_PAGE)
@@ -1431,14 +1445,14 @@ func TestOpROR(t *testing.T) {
 		c.pc = 0x10 // memory addr 0x10 should always be 0 on init
 		c.acc = tc.acc
 		if tc.mode != ACCUMULATOR {
-			c.write(c.getOperandAddr(tc.mode), tc.op1)
+			c.Write(c.getOperandAddr(tc.mode), tc.op1)
 		}
 		c.status = tc.status
 
 		c.ROR(tc.mode)
 		v := c.acc
 		if tc.mode == ZERO_PAGE {
-			v = c.read(c.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
+			v = c.Read(c.getOperandAddr(tc.mode)) // We don't run step(), so PC isn't updated
 		}
 
 		if v != tc.want || c.status != tc.wantStatus {
@@ -1448,7 +1462,7 @@ func TestOpROR(t *testing.T) {
 }
 
 func TestOpRTI(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		stack      []uint8 // pc and status as 3 uint8 values
 		wantPC     uint16
@@ -1474,7 +1488,7 @@ func TestOpRTI(t *testing.T) {
 }
 
 func TestOpRTS(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		pc     uint16
 		target uint16
@@ -1498,7 +1512,7 @@ func TestOpRTS(t *testing.T) {
 }
 
 func TestOpSBC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, op1, status uint8
 		want, wantStatus uint8
@@ -1521,7 +1535,7 @@ func TestOpSBC(t *testing.T) {
 		c.pc = 0x7780
 		c.acc = tc.acc
 		c.status = tc.status
-		c.write(c.pc, tc.op1)
+		c.Write(c.pc, tc.op1)
 
 		if c.SBC(IMMEDIATE); c.acc != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: Got 0x%02x (status 0x%02x), wanted 0x%02x (status 0x%02x)", i, c.acc, c.status, tc.want, tc.wantStatus)
@@ -1530,7 +1544,7 @@ func TestOpSBC(t *testing.T) {
 }
 
 func TestOpSEC(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1551,7 +1565,7 @@ func TestOpSEC(t *testing.T) {
 }
 
 func TestOpSED(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1572,7 +1586,7 @@ func TestOpSED(t *testing.T) {
 }
 
 func TestOpSEI(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		status uint8
 		want   uint8
@@ -1594,7 +1608,7 @@ func TestOpSEI(t *testing.T) {
 }
 
 func TestOpSTA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, status      uint8
 		want, wantStatus uint8
@@ -1609,14 +1623,14 @@ func TestOpSTA(t *testing.T) {
 
 		c.STA(ZERO_PAGE)
 
-		if v := c.read(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
+		if v := c.Read(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpSTX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		x, status        uint8
 		want, wantStatus uint8
@@ -1631,14 +1645,14 @@ func TestOpSTX(t *testing.T) {
 
 		c.STX(ZERO_PAGE)
 
-		if v := c.read(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
+		if v := c.Read(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpSTY(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		y, status        uint8
 		want, wantStatus uint8
@@ -1653,14 +1667,14 @@ func TestOpSTY(t *testing.T) {
 
 		c.STY(ZERO_PAGE)
 
-		if v := c.read(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
+		if v := c.Read(c.getOperandAddr(ZERO_PAGE)); v != tc.want || c.status != tc.wantStatus {
 			t.Errorf("%d: got 0x%02x (status 0x%02x), want 0x%02x (status 0x%02x)", i, v, c.status, tc.want, tc.wantStatus)
 		}
 	}
 }
 
 func TestOpTAX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, x     uint8
 		wantX      uint8
@@ -1682,7 +1696,7 @@ func TestOpTAX(t *testing.T) {
 }
 
 func TestOpTAY(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, y     uint8
 		wantY      uint8
@@ -1704,7 +1718,7 @@ func TestOpTAY(t *testing.T) {
 }
 
 func TestOpTSX(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		sp, x      uint8
 		wantX      uint8
@@ -1726,7 +1740,7 @@ func TestOpTSX(t *testing.T) {
 }
 
 func TestOpTXA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, x     uint8
 		want       uint8
@@ -1749,7 +1763,7 @@ func TestOpTXA(t *testing.T) {
 }
 
 func TestOpTXS(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		sp, x, status uint8
 		wantSP        uint8
@@ -1772,7 +1786,7 @@ func TestOpTXS(t *testing.T) {
 }
 
 func TestOpTYA(t *testing.T) {
-	c := bus.cpu
+	c := cpu
 	cases := []struct {
 		acc, y     uint8
 		want       uint8
@@ -1801,15 +1815,15 @@ func TestFunctionsBin(t *testing.T) {
 		t.Errorf("Couldn't read testdata file %q: %v", tf, err)
 	}
 
-	bus := New(mappers.Dummy, REG_MODE)
-	bus.LoadMem(0x000A, bin)
+	c := cpu
+	c.Reset()
+	c.LoadMem(0x000A, bin)
 
-	c := bus.cpu
-	c.pc = 0x0400
+	c.SetPC(0x0400)
 
 	for {
-		prev_pc := c.pc
-		if c.step(); c.pc == prev_pc {
+		prev_pc := c.PC()
+		if c.Step(); c.PC() == prev_pc {
 			break
 		}
 	}

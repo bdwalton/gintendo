@@ -1,4 +1,4 @@
-package console
+package mos6502
 
 import (
 	"fmt"

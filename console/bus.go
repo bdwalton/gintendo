@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/bdwalton/gintendo/mappers"
+	"github.com/bdwalton/gintendo/mos6502"
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 )
 
 type Bus struct {
-	cpu    *CPU
+	cpu    *mos6502.CPU
 	ppu    *PPU
 	mapper mappers.Mapper
 	mode   int // NES or regular computer
@@ -43,7 +44,7 @@ func New(m mappers.Mapper, mode int) *Bus {
 		bus.ram = make([]uint8, REG_BASE_MEMORY)
 	}
 
-	bus.cpu = newCPU(bus)
+	bus.cpu = mos6502.New(bus)
 	bus.ppu = newPPU(bus)
 
 	return bus
@@ -100,10 +101,8 @@ func (b *Bus) writeNES(addr uint16, val uint8) {
 	}
 }
 
-func (b *Bus) LoadMem(start uint8, mem []uint8) {
-	for i, m := range mem {
-		b.ram[int(start)+i] = m
-	}
+func (b *Bus) LoadMem(start uint16, mem []uint8) {
+	b.cpu.LoadMem(start, mem)
 }
 
 func (b *Bus) ClearMem() {
@@ -121,6 +120,13 @@ func (b *Bus) Write(addr uint16, val uint8) {
 	default:
 		b.writeReg(addr, val)
 	}
+}
+
+func readAddress(prompt string) uint16 {
+	var a uint16
+	fmt.Printf(prompt)
+	fmt.Scanf("%04x\n", &a)
+	return a
 }
 
 func (b *Bus) BIOS(ctx context.Context) {
@@ -152,7 +158,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 		case 'c', 'C':
 			breaks = make(map[uint16]struct{})
 		case 'p', 'P':
-			b.cpu.pc = readAddress("Set PC to what address (eg: 0400)?: ")
+			b.cpu.SetPC(readAddress("Set PC to what address (eg: 0400)?: "))
 		case 'q', 'Q':
 			return
 		case 'r', 'R':
@@ -169,13 +175,13 @@ func (b *Bus) BIOS(ctx context.Context) {
 			}(cctx)
 			b.cpu.Run(cctx, breaks)
 		case 's', 'S':
-			b.cpu.step()
+			b.cpu.Step()
 		case 't', 'T':
 			fmt.Println()
 			i := 0
 			for {
-				m := b.cpu.getStackAddr() + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.read(m))
+				m := b.cpu.StackAddr() + uint16(i)
+				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.Read(m))
 				if m == 0x01ff || i == 2 {
 					break
 				}
@@ -183,15 +189,9 @@ func (b *Bus) BIOS(ctx context.Context) {
 			}
 			fmt.Printf("\n\n")
 		case 'i', 'I':
-			fmt.Println()
-			op := opcodes[b.cpu.read(b.cpu.pc)]
-			for i := 0; i < int(op.bytes); i++ {
-				m := b.cpu.pc + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.read(m))
-			}
-			fmt.Printf("\n\n")
+			fmt.Printf("\n%s\n\n", b.cpu.Inst())
 		case 'e', 'E':
-			b.cpu.reset()
+			b.cpu.Reset()
 		case 'm', 'M':
 			fmt.Println()
 			low := readAddress("Low address (eg f00d): ")
@@ -201,7 +201,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 			x := 1
 			i := low
 			for {
-				fmt.Printf("0x%04x: 0x%02x ", i, b.cpu.read(i))
+				fmt.Printf("0x%04x: 0x%02x ", i, b.cpu.Read(i))
 				if x%5 == 0 {
 					fmt.Println()
 				}
