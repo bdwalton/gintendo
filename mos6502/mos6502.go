@@ -131,11 +131,12 @@ func (c *CPU) memRange(low, high uint16) []uint8 {
 	return ret
 }
 
+// Read returns the value stored in memory location addr
 func (c *CPU) Read(addr uint16) uint8 {
 	return c.mem.Read(addr)
 }
 
-// read16 returns the two bytes from memory at addr (lower byte is
+// Read16 returns the two bytes from memory at addr (lower byte is
 // first).
 func (c *CPU) Read16(addr uint16) uint16 {
 	lsb := uint16(c.Read(addr))
@@ -194,11 +195,12 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	return addr
 }
 
+// Write will store val in memory location addr
 func (c *CPU) Write(addr uint16, val uint8) {
 	c.mem.Write(addr, val)
 }
 
-// write16 stores val at addr (lower byte is first).
+// Write16 stores val at addr (lower byte is first).
 func (c *CPU) Write16(addr, val uint16) {
 	c.Write(addr, uint8(val&0x00FF))
 	c.Write(addr+1, uint8(val>>8))
@@ -210,14 +212,18 @@ func (c *CPU) Reset() {
 	c.pc = c.Read16(INT_RESET)
 }
 
+// PC returns the current value of the program counter
 func (c *CPU) PC() uint16 {
 	return c.pc
 }
 
+// SetPC will set the program counter to the specified address
 func (c *CPU) SetPC(addr uint16) {
 	c.pc = addr
 }
 
+// Inst returns a string version of the current instruction. Useful
+// for debugging utilities or (eg) a BIOS loop.
 func (c *CPU) Inst() string {
 	var sb strings.Builder
 	op := opcodes[c.Read(c.pc)]
@@ -228,12 +234,17 @@ func (c *CPU) Inst() string {
 	return sb.String()
 }
 
+// LoadMem will write out mem to the CPU's memory, starting at address
+// 'start'.
 func (c *CPU) LoadMem(start uint16, mem []uint8) {
 	for i, m := range mem {
 		c.Write(start+uint16(i), m)
 	}
 }
 
+// Run will step the CPU until a breakpoint is reached or a trap is
+// detected. Traps are simply infinite loops running the same
+// instruction over and over.
 func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	// https://www.nesdev.org/wiki/CPU#Frequencies
 	t := time.NewTicker(time.Nanosecond * 559)
@@ -259,6 +270,8 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	}
 }
 
+// Step will single step the CPU forward. It executes the current
+// instruction (at PC) and advances PC when finished.
 func (c *CPU) Step() {
 	// if c.cycles > 0 {
 	// 	c.cycles -= 1
@@ -302,6 +315,7 @@ func (c *CPU) setNegativeAndZeroFlags(n uint8) {
 	}
 }
 
+// StackAddr returns the address of the stack pointer.
 func (c *CPU) StackAddr() uint16 {
 	return STACK_PAGE + uint16(c.sp)
 }
