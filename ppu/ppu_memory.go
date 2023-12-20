@@ -1,4 +1,4 @@
-package console
+package ppu
 
 import (
 	"github.com/bdwalton/gintendo/mappers"

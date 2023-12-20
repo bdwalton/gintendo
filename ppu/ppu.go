@@ -1,4 +1,5 @@
-package console
+// Package ppu implements the PPU hardward in the NES
+package ppu
 
 const (
 	VRAM_SIZE    = 2048
@@ -33,7 +34,7 @@ type PPU struct {
 	registers    map[uint16]uint8
 }
 
-func newPPU(m Memory) *PPU {
+func New(m Memory) *PPU {
 	return &PPU{
 		mem:       m,
 		ppuAddr:   &addrReg{},

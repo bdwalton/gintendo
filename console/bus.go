@@ -10,6 +10,7 @@ import (
 
 	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/mos6502"
+	"github.com/bdwalton/gintendo/ppu"
 )
 
 const (
@@ -29,7 +30,7 @@ const (
 
 type Bus struct {
 	cpu    *mos6502.CPU
-	ppu    *PPU
+	ppu    *ppu.PPU
 	mapper mappers.Mapper
 	mode   int // NES or regular computer
 	ram    []uint8
@@ -45,7 +46,7 @@ func New(m mappers.Mapper, mode int) *Bus {
 	}
 
 	bus.cpu = mos6502.New(bus)
-	bus.ppu = newPPU(bus)
+	bus.ppu = ppu.New(bus)
 
 	return bus
 }
