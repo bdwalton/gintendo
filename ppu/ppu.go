@@ -20,23 +20,24 @@ const (
 	OAMDMA    = 0x4014
 )
 
-type Memory interface {
-	Read(uint16) uint8
-	Write(uint16, uint8)
+type Bus interface {
+	ChrRead(uint16) uint8
+	TriggerNMI()
 }
 
 type PPU struct {
-	mem          Memory
+	bus          Bus
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
 	ppuAddr      *addrReg
+	mirrorMode   uint8
 	registers    map[uint16]uint8
 }
 
-func New(m Memory) *PPU {
+func New(b Bus) *PPU {
 	return &PPU{
-		mem:       m,
+		bus:       b,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
 	}

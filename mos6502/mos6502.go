@@ -207,6 +207,14 @@ func (c *CPU) Write16(addr, val uint16) {
 	c.Write(addr+1, uint8(val>>8))
 }
 
+func (c *CPU) TriggerNMI() {
+	c.cycles += 7
+	c.pushAddress(c.pc)
+	c.pushStack(c.status)
+	c.pc = c.Read16(INT_NMI)
+	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
+}
+
 func (c *CPU) Reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)

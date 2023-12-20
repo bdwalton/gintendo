@@ -51,6 +51,11 @@ func New(m mappers.Mapper, mode int) *Bus {
 	return bus
 }
 
+// TriggerNMI is used by the PPU to signal the CPU that it is in vblank.
+func (b *Bus) TriggerNMI() {
+	b.cpu.TriggerNMI()
+}
+
 func (b *Bus) readNES(addr uint16) uint8 {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
@@ -74,6 +79,11 @@ func (b *Bus) readNES(addr uint16) uint8 {
 
 func (b *Bus) readReg(addr uint16) uint8 {
 	return b.ram[addr]
+}
+
+// ChrRead is used by the PPU to access CHR-ROM in the loaded Mapper
+func (b *Bus) ChrRead(addr uint16) uint8 {
+	return 0
 }
 
 func (b *Bus) Read(addr uint16) uint8 {

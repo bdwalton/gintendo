@@ -1,19 +1,8 @@
 package ppu
 
 import (
-	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/nesrom"
 )
-
-type ppuMemory struct {
-	size   uint16  // The size of vram in words
-	ram    []uint8 // The actual vram memory
-	mapper mappers.Mapper
-}
-
-func newPPUMemory(size uint16, m mappers.Mapper) *ppuMemory {
-	return &ppuMemory{size: size, ram: make([]uint8, size), mapper: m}
-}
 
 const (
 	PATTERN_TABLE_0  = 0x0000
@@ -55,36 +44,19 @@ func topRangeMap(addr uint16) uint16 {
 	return addr
 }
 
-func (m *ppuMemory) read(addr uint16) uint8 {
+func (p *PPU) read(addr uint16) uint8 {
 	a := topRangeMap(addr)
 
 	switch {
 	case a < NAMETABLE_0:
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
-		return m.mapper.ChrRead(a)
+		return p.bus.ChrRead(a)
 	case a < PALETTE_RAM:
-		return m.ram[tileMapAddr(a, m.mapper.MirroringMode())]
+		return p.vram[tileMapAddr(a, p.mirrorMode)]
 	case a < PALETTE_MIRROR:
-		return m.ram[a-PALETTE_RAM]
+		return p.vram[a-PALETTE_RAM]
 	default:
 		x := (a - PALETTE_RAM) % 0x0020
-		return m.ram[PALETTE_RAM+x]
-	}
-}
-
-func (m *ppuMemory) write(addr uint16, val uint8) {
-	a := topRangeMap(addr)
-
-	switch {
-	case a < NAMETABLE_0:
-		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
-		m.mapper.ChrWrite(a, val)
-	case a < PALETTE_RAM:
-		m.ram[tileMapAddr(a, m.mapper.MirroringMode())] = val
-	case a < PALETTE_MIRROR:
-		m.ram[a-PALETTE_RAM] = val
-	default:
-		x := (a - PALETTE_RAM) % 0x0020
-		m.ram[PALETTE_RAM+x] = val
+		return p.vram[PALETTE_RAM+x]
 	}
 }
