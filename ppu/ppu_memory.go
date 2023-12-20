@@ -1,7 +1,10 @@
 package ppu
 
-import (
-	"github.com/bdwalton/gintendo/nesrom"
+// Mirroring mode
+const (
+	MIRROR_HORIZONTAL = iota
+	MIRROR_VERTICAL
+	MIRROR_FOUR_SCREEN
 )
 
 const (
@@ -21,14 +24,14 @@ func tileMapAddr(addr uint16, mm uint8) uint16 {
 	a := addr - NAMETABLE_0
 	// https://www.nesdev.org/wiki/Mirroring#Nametable_Mirroring
 	switch mm {
-	case nesrom.MIRROR_FOUR_SCREEN:
+	case MIRROR_FOUR_SCREEN:
 		panic("we don't have mapper support to leverage vram on catridge")
-	case nesrom.MIRROR_HORIZONTAL:
+	case MIRROR_HORIZONTAL:
 		if a >= 0x800 {
 			return 0x0400 + ((a - 0x800) % 0x400)
 		}
 		return a % 0x0400
-	case nesrom.MIRROR_VERTICAL:
+	case MIRROR_VERTICAL:
 		return a % 0x800
 	}
 
