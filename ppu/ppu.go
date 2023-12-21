@@ -107,6 +107,15 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 			p.t = (uint16(val)&0x0007)<<12 | (p.t & 0x0C00) | (uint16(val)&0x00F8)<<2 | (p.t & 0x001F)
 			p.w = 0
 		}
+	case PPUADDR:
+		if p.w == 0 {
+			p.t = (p.t & 0b10111111_11111111) | (uint16(val&0x3F) << 8)
+			p.w = 1
+		} else {
+			p.t = (p.t & 0xFF00) | uint16(val)
+			p.v = p.t
+			p.w = 0
+		}
 	}
 }
 

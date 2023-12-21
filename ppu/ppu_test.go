@@ -93,3 +93,29 @@ func TestWriteRegPPUSCROLL(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteRegPPUADDR(t *testing.T) {
+	cases := []struct {
+		val    uint8
+		startT uint16
+		wantT  uint16
+		wantV  uint16
+		wantW  uint8
+	}{
+		// These are cumulative
+		{0b11001100, 0b1000000_00000000, 0b00001100_00000000, 0x0000, 1},
+		{0b11001100, 0b00001100_00000000, 0b00001100_11001100, 0b00001100_11001100, 0},
+		{0b11111111, 0b00001100_11001100, 0b00111111_11001100, 0b00001100_11001100, 1},
+		{0b10001110, 0b00111111_11001100, 0b00111111_10001110, 0b00111111_10001110, 0},
+	}
+
+	p := New(&testBus{})
+
+	for i, tc := range cases {
+		p.t = tc.startT
+		p.WriteReg(PPUADDR, tc.val)
+		if p.t != tc.wantT || p.v != tc.wantV || p.w != tc.wantW {
+			t.Errorf("%d: Got t,v,w=%015b,%015b,%d,\n\t\t   wanted %015b,%015b,%d", i, p.t, p.v, p.w, tc.wantT, tc.wantV, tc.wantW)
+		}
+	}
+}
