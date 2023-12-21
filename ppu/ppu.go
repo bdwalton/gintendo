@@ -121,6 +121,11 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 
 // readReg returns the current value of a register.
 func (p *PPU) ReadReg(r uint16) uint8 {
+	switch r {
+	case PPUSTATUS:
+		p.w = 0
+	}
+
 	return p.registers[r]
 }
 
