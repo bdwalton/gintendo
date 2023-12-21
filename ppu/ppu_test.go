@@ -47,6 +47,28 @@ func TestAddrReg(t *testing.T) {
 	}
 }
 
+func TestWriteRegPPUCTRL(t *testing.T) {
+	cases := []struct {
+		val   uint8
+		wantT uint16
+	}{
+		// These are cumulative
+		{0b11001100, 0b00000000_00000000},
+		{0b01010101, 0b00000100_00000000},
+		{0b01010111, 0b00001100_00000000},
+		{0b01010100, 0b00000000_00000000},
+		{0b01010110, 0b00001000_00000000},
+	}
+
+	p := New(&testBus{})
+	for i, tc := range cases {
+		p.WriteReg(PPUCTRL, tc.val)
+		if p.t != tc.wantT {
+			t.Errorf("%d: Got t=%015b wanted %015b", i, p.t, tc.wantT)
+		}
+	}
+}
+
 func TestWriteRegPPUSCROLL(t *testing.T) {
 	cases := []struct {
 		val   uint8

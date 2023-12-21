@@ -96,7 +96,7 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 
 	switch r {
 	case PPUCTRL:
-		p.t |= (uint16(val) & 0x03) << 10
+		p.t = (p.t & 0xF3FF) | (uint16(val&0x03) << 10)
 	case PPUSCROLL:
 		if p.w == 0 {
 			p.t = (p.t & 0xFFE0) | (uint16(val&0xF8) >> 3)
