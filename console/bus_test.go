@@ -4,10 +4,18 @@ import (
 	"testing"
 
 	"github.com/bdwalton/gintendo/mappers"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
+func init() {
+	sdl.Init(sdl.INIT_EVERYTHING)
+	window, _ = sdl.CreateWindow("gintendo-test", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 256, 240, sdl.WINDOW_HIDDEN)
+}
+
+var window *sdl.Window
+
 func TestBaseNESMapping(t *testing.T) {
-	b := New(mappers.Dummy, NES_MODE)
+	b, _ := New(mappers.Dummy, NES_MODE, window)
 	c := b.cpu
 
 	for i := 0; i < 10; i++ {

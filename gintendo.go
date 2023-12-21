@@ -9,6 +9,7 @@ import (
 	"github.com/bdwalton/gintendo/console"
 	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/nesrom"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var (
@@ -37,7 +38,20 @@ func main() {
 		m = mappers.Dummy
 	}
 
-	gintendo = console.New(m, mode)
+	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
+		log.Fatalf("Couldn't initialize SDL: %v", err)
+	}
+
+	window, err := sdl.CreateWindow("Gintendo", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 256, 240, sdl.WINDOW_SHOWN)
+	if err != nil {
+		panic(err)
+	}
+	defer window.Destroy()
+
+	gintendo, err = console.New(m, mode, window)
+	if err != nil {
+		log.Fatalf("Couldn't create console object: %v", err)
+	}
 
 	if !*nesMode {
 		bin, err := os.ReadFile(*romFile)

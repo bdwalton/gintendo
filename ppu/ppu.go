@@ -1,6 +1,12 @@
 // Package ppu implements the PPU hardward in the NES
 package ppu
 
+import (
+	"fmt"
+
+	"github.com/veandco/go-sdl2/sdl"
+)
+
 const (
 	VRAM_SIZE    = 2048
 	OAM_SIZE     = 256
@@ -62,6 +68,7 @@ type Bus interface {
 
 type PPU struct {
 	bus          Bus
+	screen       *sdl.Surface
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
@@ -78,12 +85,17 @@ type PPU struct {
 
 }
 
-func New(b Bus) *PPU {
+func New(b Bus, w *sdl.Window) (*PPU, error) {
+	s, err := w.GetSurface()
+	if err != nil {
+		return nil, fmt.Errorf("couldn't obtain SDL surface: %v", err)
+	}
 	return &PPU{
 		bus:       b,
+		screen:    s,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
-	}
+	}, nil
 }
 
 func (p *PPU) WriteReg(r uint16, val uint8) {

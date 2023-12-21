@@ -11,6 +11,7 @@ import (
 	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/mos6502"
 	"github.com/bdwalton/gintendo/ppu"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -34,9 +35,10 @@ type Bus struct {
 	mapper mappers.Mapper
 	mode   int // NES or regular computer
 	ram    []uint8
+	screen *sdl.Window
 }
 
-func New(m mappers.Mapper, mode int) *Bus {
+func New(m mappers.Mapper, mode int, window *sdl.Window) (*Bus, error) {
 	bus := &Bus{mapper: m, mode: mode}
 	switch mode {
 	case NES_MODE:
@@ -46,9 +48,14 @@ func New(m mappers.Mapper, mode int) *Bus {
 	}
 
 	bus.cpu = mos6502.New(bus)
-	bus.ppu = ppu.New(bus)
 
-	return bus
+	var err error
+	bus.ppu, err = ppu.New(bus, window)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't create PPU: %v", err)
+	}
+
+	return bus, nil
 }
 
 // TriggerNMI is used by the PPU to signal the CPU that it is in vblank.
