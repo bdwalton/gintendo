@@ -8,6 +8,7 @@ import (
 func init() {
 	sdl.Init(sdl.INIT_EVERYTHING)
 	window, _ = sdl.CreateWindow("gintendo-test", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 256, 240, sdl.WINDOW_HIDDEN)
+	sdl.EnableScreenSaver()
 }
 
 type testBus struct {

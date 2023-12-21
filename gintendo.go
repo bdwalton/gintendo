@@ -47,6 +47,8 @@ func main() {
 		panic(err)
 	}
 	defer window.Destroy()
+	sdl.DisableScreenSaver()
+	defer sdl.EnableScreenSaver()
 
 	gintendo, err = console.New(m, mode, window)
 	if err != nil {
