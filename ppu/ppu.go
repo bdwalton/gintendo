@@ -20,6 +20,41 @@ const (
 	OAMDMA    = 0x4014
 )
 
+// PPUCTRL bit flags
+// 7  bit  0
+// ---- ----
+// VPHB SINN
+// |||| ||||
+// |||| ||++- Base nametable address
+// |||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+// |||| |+--- VRAM address increment per CPU read/write of PPUDATA
+// |||| |     (0: add 1, going across; 1: add 32, going down)
+// |||| +---- Sprite pattern table address for 8x8 sprites
+// ||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
+// |||+------ Background pattern table address (0: $0000; 1: $1000)
+// ||+------- Sprite size (0: 8x8 pixels; 1: 8x16 pixels)
+// |+-------- PPU master/slave select
+// |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
+// +--------- Generate an NMI at the start of the
+//
+//	vertical blanking interval (0: off; 1: on)
+const (
+	CTRL_NAMETABLE1             = 1
+	CTRL_NAMETABLE2             = 1 << 1
+	CTRL_VRAM_ADD_INCREMENT     = 1 << 2
+	CTRL_SPRITE_PATTERN_ADDR    = 1 << 3
+	CTRL_BACKROUND_PATTERN_ADDR = 1 << 4
+	CTRL_SPRITE_SIZE            = 1 << 5
+	CTRL_MASTER_SLAVE_SELECT    = 1 << 6
+	CTRL_GENERATE_NMI           = 1 << 7
+)
+
+// VRAM increment options
+const (
+	CTRL_INCR_ACROSS = 1
+	CTRL_INCR_DOWN   = 32
+)
+
 type Bus interface {
 	ChrRead(uint16) uint8
 	TriggerNMI()
@@ -30,9 +65,17 @@ type PPU struct {
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
-	ppuAddr      *addrReg
 	mirrorMode   uint8
-	registers    map[uint16]uint8
+	// The memory mapped registered that the CPU can read/write
+	// from. PPUADDR is special because it needs to handle 2
+	// writes to form a 16-bit address
+	ppuAddr   *addrReg
+	registers map[uint16]uint8
+	// internal registers
+	v, t uint16 // current vram addr, temp vram addr; only 15 bits used
+	x    uint8  // fine x scroll, only 3 bits used
+	w    uint8  // first or second write toggle; 1 bit
+
 }
 
 func New(b Bus) *PPU {
@@ -50,26 +93,27 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 	default:
 		p.registers[r] = val
 	}
+
+	switch r {
+	case PPUCTRL:
+		p.t |= (uint16(val) & 0x03) << 10
+	case PPUSCROLL:
+		if p.w == 0 {
+			p.t = (p.t & 0xFFE0) | (uint16(val&0xF8) >> 3)
+			p.x = (val & 0x07)
+			p.w = 1
+		} else {
+
+			p.t = (uint16(val)&0x0007)<<12 | (p.t & 0x0C00) | (uint16(val)&0x00F8)<<2 | (p.t & 0x001F)
+			p.w = 0
+		}
+	}
 }
 
 // readReg returns the current value of a register.
 func (p *PPU) ReadReg(r uint16) uint8 {
 	return p.registers[r]
 }
-
-const (
-	CTRL_NAMETABLE1             = 1
-	CTRL_NAMETABLE2             = 1 << 1
-	CTRL_VRAM_ADD_INCREMENT     = 1 << 2
-	CTRL_SPRITE_PATTERN_ADDR    = 1 << 3
-	CTRL_BACKROUND_PATTERN_ADDR = 1 << 4
-	CTRL_SPRITE_SIZE            = 1 << 5
-	CTRL_MASTER_SLAVE_SELECT    = 1 << 6
-	CTRL_GENERATE_NMI           = 1 << 7
-
-	CTRL_INCR_ACROSS = 1
-	CTRL_INCR_DOWN   = 32
-)
 
 func (p *PPU) vram_increment() uint8 {
 	if p.ReadReg(PPUCTRL)&CTRL_VRAM_ADD_INCREMENT > 1 {
@@ -159,4 +203,25 @@ func (p *PPU) read(addr uint16) uint8 {
 		x := (a - PALETTE_RAM) % 0x0020
 		return p.vram[PALETTE_RAM+x]
 	}
+}
+
+func (p *PPU) generateNMI() bool {
+	return p.registers[PPUCTRL]&CTRL_GENERATE_NMI > 0
+}
+
+// Tick executes n cycles. We call it tick instead of step because
+// there is no real logic. It's just a fixed loop in the hardware.
+func (p *PPU) Tick(n int) {
+	if p.generateNMI() {
+		p.bus.TriggerNMI()
+	}
+
+	for i := 0; i < n; i++ {
+		p.tick()
+	}
+}
+
+// This is the main execution logic for the PPU
+func (p *PPU) tick() {
+
 }
