@@ -52,6 +52,11 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 	}
 }
 
+// readReg returns the current value of a register.
+func (p *PPU) ReadReg(r uint16) uint8 {
+	return p.registers[r]
+}
+
 const (
 	CTRL_NAMETABLE1             = 1
 	CTRL_NAMETABLE2             = 1 << 1
@@ -65,11 +70,6 @@ const (
 	CTRL_INCR_ACROSS = 1
 	CTRL_INCR_DOWN   = 32
 )
-
-// readReg returns the current value of a register.
-func (p *PPU) ReadReg(r uint16) uint8 {
-	return p.registers[r]
-}
 
 func (p *PPU) vram_increment() uint8 {
 	if p.ReadReg(PPUCTRL)&CTRL_VRAM_ADD_INCREMENT > 1 {
@@ -102,4 +102,61 @@ func (ar *addrReg) set(val uint8) {
 func (ar *addrReg) reset() {
 	ar.low, ar.high = 0, 0
 	ar.lowB = false
+}
+
+// Mirroring mode
+const (
+	MIRROR_HORIZONTAL = iota
+	MIRROR_VERTICAL
+	MIRROR_FOUR_SCREEN
+)
+
+const (
+	PATTERN_TABLE_0  = 0x0000
+	PATTERN_TABLE_1  = 0x1000
+	NAMETABLE_0      = 0x2000
+	NAMETABLE_1      = 0x2400
+	NAMETABLE_2      = 0x2800
+	NAMETABLE_3      = 0x2C00
+	NAMETABLE_MIRROR = 0x3EFF
+	PALETTE_RAM      = 0x3F00
+	PALETTE_MIRROR   = 0x3F20
+)
+
+func (p *PPU) tileMapAddr(addr uint16) uint16 {
+	// Now we have a as the base of our internal memory
+	a := addr - NAMETABLE_0
+	// https://www.nesdev.org/wiki/Mirroring#Nametable_Mirroring
+	switch p.mirrorMode {
+	case MIRROR_FOUR_SCREEN:
+		panic("we don't have mapper support to leverage vram on catridge")
+	case MIRROR_HORIZONTAL:
+		if a >= 0x800 {
+			return 0x0400 + ((a - 0x800) % 0x400)
+		}
+		return a % 0x0400
+	case MIRROR_VERTICAL:
+		return a % 0x800
+	}
+
+	panic("unkown mirroring mode")
+}
+
+func (p *PPU) read(addr uint16) uint8 {
+	a := addr % 0x4000
+
+	switch {
+	case a < NAMETABLE_0:
+		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
+		return p.bus.ChrRead(a)
+	case a < PALETTE_RAM:
+		return p.vram[p.tileMapAddr(a)]
+	case a < NAMETABLE_MIRROR:
+		return p.vram[p.tileMapAddr(a-NAMETABLE_0)]
+	case a < PALETTE_MIRROR:
+		return p.vram[a-PALETTE_RAM]
+	default:
+		x := (a - PALETTE_RAM) % 0x0020
+		return p.vram[PALETTE_RAM+x]
+	}
 }
