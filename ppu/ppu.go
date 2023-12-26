@@ -2,8 +2,6 @@
 package ppu
 
 import (
-	"fmt"
-
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -62,13 +60,13 @@ const (
 )
 
 type Bus interface {
-	ChrRead(uint16) uint8
+	ChrRead(uint16, uint16) []uint8
 	TriggerNMI()
 }
 
 type PPU struct {
 	bus          Bus
-	screen       *sdl.Surface
+	screen       *sdl.Window
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
@@ -85,17 +83,13 @@ type PPU struct {
 
 }
 
-func New(b Bus, w *sdl.Window) (*PPU, error) {
-	s, err := w.GetSurface()
-	if err != nil {
-		return nil, fmt.Errorf("couldn't obtain SDL surface: %v", err)
-	}
+func New(b Bus, w *sdl.Window) *PPU {
 	return &PPU{
 		bus:       b,
-		screen:    s,
+		screen:    w,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
-	}, nil
+	}
 }
 
 func (p *PPU) WriteReg(r uint16, val uint8) {
@@ -218,7 +212,7 @@ func (p *PPU) read(addr uint16) uint8 {
 	switch {
 	case a < NAMETABLE_0:
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
-		return p.bus.ChrRead(a)
+		return p.bus.ChrRead(a, a)[0]
 	case a < PALETTE_RAM:
 		return p.vram[p.tileMapAddr(a)]
 	case a < NAMETABLE_MIRROR:

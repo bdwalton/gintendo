@@ -31,8 +31,8 @@ func (dm *dummyMapper) PrgWrite(addr uint16, val uint8) {
 	dm.memory[addr] = val
 }
 
-func (dm *dummyMapper) ChrRead(addr uint16) uint8 {
-	return dm.memory[addr]
+func (dm *dummyMapper) ChrRead(start, end uint16) []uint8 {
+	return dm.memory[start:end]
 }
 
 func (dm *dummyMapper) ChrWrite(addr uint16, val uint8) {

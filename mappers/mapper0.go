@@ -40,8 +40,8 @@ func (m *mapper0) PrgRead(addr uint16) uint8 {
 	panic("mapper0: PrgRead() doing bad things.")
 }
 
-func (m *mapper0) ChrRead(addr uint16) uint8 {
-	return m.rom.ChrRead(addr)
+func (m *mapper0) ChrRead(start, end uint16) []uint8 {
+	return m.rom.ChrRead(start, end)
 }
 
 func (m *mapper0) ChrWrite(addr uint16, val uint8) {

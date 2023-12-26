@@ -44,7 +44,7 @@ func main() {
 
 	window, err := sdl.CreateWindow("Gintendo", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 256, 240, sdl.WINDOW_SHOWN)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Couldn't create sdl window: %v", err)
 	}
 	defer window.Destroy()
 	sdl.DisableScreenSaver()

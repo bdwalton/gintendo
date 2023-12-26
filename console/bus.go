@@ -50,7 +50,7 @@ func New(m mappers.Mapper, mode int, window *sdl.Window) (*Bus, error) {
 	bus.cpu = mos6502.New(bus)
 
 	var err error
-	bus.ppu, err = ppu.New(bus, window)
+	bus.ppu = ppu.New(bus, window)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't create PPU: %v", err)
 	}
@@ -89,8 +89,8 @@ func (b *Bus) readReg(addr uint16) uint8 {
 }
 
 // ChrRead is used by the PPU to access CHR-ROM in the loaded Mapper
-func (b *Bus) ChrRead(addr uint16) uint8 {
-	return 0
+func (b *Bus) ChrRead(start, end uint16) []uint8 {
+	return b.mapper.ChrRead(start, end)
 }
 
 func (b *Bus) Read(addr uint16) uint8 {

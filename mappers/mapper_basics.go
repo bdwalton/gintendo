@@ -35,12 +35,12 @@ type Mapper interface {
 	ID() uint16
 	Init(*nesrom.ROM)
 	Name() string
-	PrgRead(uint16) uint8   // Read PRG data
-	PrgWrite(uint16, uint8) // Write PRG data
-	ChrRead(uint16) uint8   // Read CHR data
-	ChrWrite(uint16, uint8) // Write CHR data
-	MirroringMode() uint8   // Which mirroring mode is tilemap data stored in
-	HasSaveRAM() bool       // Whether or not the cartridge exposes Save RAM at 0x6000-0x7999
+	PrgRead(uint16) uint8           // Read PRG data
+	PrgWrite(uint16, uint8)         // Write PRG data
+	ChrRead(uint16, uint16) []uint8 // Read CHR data
+	ChrWrite(uint16, uint8)         // Write CHR data
+	MirroringMode() uint8           // Which mirroring mode is tilemap data stored in
+	HasSaveRAM() bool               // Whether or not the cartridge exposes Save RAM at 0x6000-0x7999
 }
 
 type baseMapper struct {

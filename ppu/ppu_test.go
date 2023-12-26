@@ -15,8 +15,8 @@ type testBus struct {
 	nmiTriggered bool
 }
 
-func (tb *testBus) ChrRead(uint16) uint8 {
-	return 0
+func (tb *testBus) ChrRead(start, end uint16) []uint8 {
+	return []uint8{0}
 }
 
 func (tb *testBus) TriggerNMI() {
@@ -69,7 +69,8 @@ func TestWriteRegPPUCTRL(t *testing.T) {
 		{0b01010110, 0b00001000_00000000},
 	}
 
-	p, _ := New(&testBus{}, window)
+	p := New(&testBus{}, window)
+
 	for i, tc := range cases {
 		p.WriteReg(PPUCTRL, tc.val)
 		if p.t != tc.wantT {
@@ -94,7 +95,7 @@ func TestWriteRegPPUSCROLL(t *testing.T) {
 		{0b01101010, 0b00100001_10101101, 0b00000010, 0},
 	}
 
-	p, _ := New(&testBus{}, window)
+	p := New(&testBus{}, window)
 	for i, tc := range cases {
 		p.WriteReg(PPUSCROLL, tc.val)
 		if p.t != tc.wantT || p.x != tc.wantX || p.w != tc.wantW {
@@ -118,7 +119,7 @@ func TestWriteRegPPUADDR(t *testing.T) {
 		{0b10001110, 0b00111111_11001100, 0b00111111_10001110, 0b00111111_10001110, 0},
 	}
 
-	p, _ := New(&testBus{}, window)
+	p := New(&testBus{}, window)
 
 	for i, tc := range cases {
 		p.t = tc.startT

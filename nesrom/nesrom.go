@@ -17,9 +17,9 @@ type ROM struct {
 	path      string
 	h         *header
 	trainer   []byte          // if present
-	prg       []byte          // 16384 * x bytes; x from header
-	chr       []byte          // 8192 * y bytes; y from header
-	pcInstRom []byte          // if present
+	prg       []uint8         // 16384 * x bytes; x from header (stored as uint8)
+	chr       []uint8         // 8192 * y bytes; y from header (stored as uint8)
+	pcInstRom []uint8         // if present (stored as uint8)
 	pcPROM    *PlayChoicePROM // if present; often missing - see PC10 ROM-Images
 }
 
@@ -111,8 +111,8 @@ func (r *ROM) PrgWrite(addr uint16, val uint8) {
 	r.prg[addr] = val
 }
 
-func (r *ROM) ChrRead(addr uint16) uint8 {
-	return r.chr[addr]
+func (r *ROM) ChrRead(start, end uint16) []uint8 {
+	return r.chr[start:end]
 }
 
 func (r *ROM) ChrWrite(addr uint16, val uint8) {

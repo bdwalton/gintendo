@@ -16,7 +16,10 @@ func init() {
 var window *sdl.Window
 
 func TestBaseNESMapping(t *testing.T) {
-	b, _ := New(mappers.Dummy, NES_MODE, window)
+	b, err := New(mappers.Dummy, NES_MODE, window)
+	if err != nil {
+		t.Errorf("couldn't initialize bus: %v", err)
+	}
 	c := b.cpu
 
 	for i := 0; i < 10; i++ {
