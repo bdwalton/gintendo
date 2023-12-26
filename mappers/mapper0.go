@@ -29,7 +29,7 @@ func (m *mapper0) PrgRead(addr uint16) uint8 {
 	a := addr - 0x8000
 	switch m.rom.NumPrgBlocks() {
 	case 1:
-		m.rom.PrgRead(a % 0x4000)
+		return m.rom.PrgRead(a % 0x4000)
 	case 2:
 		return m.rom.PrgRead(a)
 	default:
