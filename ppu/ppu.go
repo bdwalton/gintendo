@@ -1,10 +1,6 @@
 // Package ppu implements the PPU hardward in the NES
 package ppu
 
-import (
-	"github.com/veandco/go-sdl2/sdl"
-)
-
 const (
 	VRAM_SIZE    = 2048
 	OAM_SIZE     = 256
@@ -66,7 +62,6 @@ type Bus interface {
 
 type PPU struct {
 	bus          Bus
-	screen       *sdl.Window
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
@@ -83,10 +78,9 @@ type PPU struct {
 
 }
 
-func New(b Bus, w *sdl.Window) *PPU {
+func New(b Bus) *PPU {
 	return &PPU{
 		bus:       b,
-		screen:    w,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
 	}
@@ -246,11 +240,13 @@ func (p *PPU) tick() {
 
 }
 
-func newColor(r, g, b uint8) sdl.Color {
-	return sdl.Color{R: r, G: g, B: b}
+type color []uint8
+
+func newColor(r, g, b uint8) color {
+	return []uint8{r, g, b, 0xff}
 }
 
-var SYSTEM_PALETTE [64]sdl.Color = [64]sdl.Color{
+var SYSTEM_PALETTE [64]color = [64]color{
 	newColor(0x80, 0x80, 0x80), newColor(0x00, 0x3D, 0xA6), newColor(0x00, 0x12, 0xB0), newColor(0x44, 0x00, 0x96), newColor(0xA1, 0x00, 0x5E),
 	newColor(0xC7, 0x00, 0x28), newColor(0xBA, 0x06, 0x00), newColor(0x8C, 0x17, 0x00), newColor(0x5C, 0x2F, 0x00), newColor(0x10, 0x45, 0x00),
 	newColor(0x05, 0x4A, 0x00), newColor(0x00, 0x47, 0x2E), newColor(0x00, 0x41, 0x66), newColor(0x00, 0x00, 0x00), newColor(0x05, 0x05, 0x05),
