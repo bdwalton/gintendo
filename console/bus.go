@@ -11,6 +11,7 @@ import (
 	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/mos6502"
 	"github.com/bdwalton/gintendo/ppu"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -26,6 +27,9 @@ const (
 	MAX_IO_REG_MIRRORED = 0x4000
 	MAX_IO_REG          = 0x4020
 	MAX_SRAM            = 0x6000
+
+	NES_RES_WIDTH  = 256
+	NES_RES_HEIGHT = 240
 )
 
 type Bus struct {
@@ -37,6 +41,10 @@ type Bus struct {
 }
 
 func New(m mappers.Mapper, mode int) *Bus {
+	ebiten.SetWindowSize(NES_RES_WIDTH*2, NES_RES_HEIGHT*2)
+	ebiten.SetWindowTitle("Gintendo")
+	ebiten.SetWindowResizable(true)
+
 	bus := &Bus{mapper: m, mode: mode}
 	switch mode {
 	case NES_MODE:
@@ -49,6 +57,25 @@ func New(m mappers.Mapper, mode int) *Bus {
 	bus.ppu = ppu.New(bus)
 
 	return bus
+}
+
+// Layout returns the constant resolution of the NES and is part of
+// the ebiten.Game interface. By returning constants here, we will
+// force ebiten to scale the display when the window size changes.
+func (b *Bus) Layout(w, h int) (int, int) {
+	return NES_RES_WIDTH, NES_RES_HEIGHT
+}
+
+// Draw updates the displayed ebiten window with the current state of
+// the PPU.
+func (b *Bus) Draw(screen *ebiten.Image) {
+	return
+}
+
+// Update is called by ebiten roughly every 1/60s and will be our
+// driver for the emulation.
+func (b *Bus) Update() error {
+	return nil
 }
 
 // TriggerNMI is used by the PPU to signal the CPU that it is in vblank.

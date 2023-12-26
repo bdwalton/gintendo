@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"github.com/bdwalton/gintendo/console"
 	"github.com/bdwalton/gintendo/mappers"
 	"github.com/bdwalton/gintendo/nesrom"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var (
@@ -47,5 +47,7 @@ func main() {
 		gintendo.LoadMem(0x000A, bin)
 	}
 
-	gintendo.BIOS(context.Background())
+	if err := ebiten.RunGame(gintendo); err != nil {
+		log.Fatal(err)
+	}
 }
