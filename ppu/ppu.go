@@ -68,6 +68,7 @@ type Bus interface {
 
 type PPU struct {
 	bus          Bus
+	pixels       []color
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
@@ -85,11 +86,21 @@ type PPU struct {
 }
 
 func New(b Bus) *PPU {
+	ps := NES_RES_WIDTH * NES_RES_HEIGHT
+	px := make([]color, ps, ps)
+	for i := 0; i < ps; i++ {
+		px[i] = color{0, 0, 0, 0xff} // Black
+	}
 	return &PPU{
 		bus:       b,
+		pixels:    px,
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
 	}
+}
+
+func (p *PPU) GetPixels() []color {
+	return p.pixels
 }
 
 func (p *PPU) GetResolution() (int, int) {

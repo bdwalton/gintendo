@@ -67,7 +67,18 @@ func (b *Bus) Layout(w, h int) (int, int) {
 // Draw updates the displayed ebiten window with the current state of
 // the PPU.
 func (b *Bus) Draw(screen *ebiten.Image) {
-	return
+	w, h := b.ppu.GetResolution()
+	s := w * h * 4
+	upd := make([]byte, s, s)
+	for i, p := range b.ppu.GetPixels() {
+		n := i * 4
+		upd[n] = p[0]
+		upd[n+1] = p[1]
+		upd[n+2] = p[2]
+		upd[n+3] = p[3]
+	}
+
+	screen.WritePixels(upd)
 }
 
 // Update is called by ebiten roughly every 1/60s and will be our
