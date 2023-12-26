@@ -27,9 +27,6 @@ const (
 	MAX_IO_REG_MIRRORED = 0x4000
 	MAX_IO_REG          = 0x4020
 	MAX_SRAM            = 0x6000
-
-	NES_RES_WIDTH  = 256
-	NES_RES_HEIGHT = 240
 )
 
 type Bus struct {
@@ -41,10 +38,6 @@ type Bus struct {
 }
 
 func New(m mappers.Mapper, mode int) *Bus {
-	ebiten.SetWindowSize(NES_RES_WIDTH*2, NES_RES_HEIGHT*2)
-	ebiten.SetWindowTitle("Gintendo")
-	ebiten.SetWindowResizable(true)
-
 	bus := &Bus{mapper: m, mode: mode}
 	switch mode {
 	case NES_MODE:
@@ -56,6 +49,11 @@ func New(m mappers.Mapper, mode int) *Bus {
 	bus.cpu = mos6502.New(bus)
 	bus.ppu = ppu.New(bus)
 
+	w, h := bus.ppu.GetResolution()
+	ebiten.SetWindowSize(w*2, h*2) // Start with 2x the screen size
+	ebiten.SetWindowTitle("Gintendo")
+	ebiten.SetWindowResizable(true)
+
 	return bus
 }
 
@@ -63,7 +61,7 @@ func New(m mappers.Mapper, mode int) *Bus {
 // the ebiten.Game interface. By returning constants here, we will
 // force ebiten to scale the display when the window size changes.
 func (b *Bus) Layout(w, h int) (int, int) {
-	return NES_RES_WIDTH, NES_RES_HEIGHT
+	return b.ppu.GetResolution()
 }
 
 // Draw updates the displayed ebiten window with the current state of

@@ -7,6 +7,12 @@ const (
 	PALETTE_SIZE = 32
 )
 
+// Display constants
+const (
+	NES_RES_WIDTH  = 256
+	NES_RES_HEIGHT = 240
+)
+
 // Special Registers
 const (
 	PPUCTRL   = 0x2000
@@ -84,6 +90,10 @@ func New(b Bus) *PPU {
 		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
 	}
+}
+
+func (p *PPU) GetResolution() (int, int) {
+	return NES_RES_WIDTH, NES_RES_HEIGHT
 }
 
 func (p *PPU) WriteReg(r uint16, val uint8) {
