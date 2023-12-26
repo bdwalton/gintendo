@@ -258,7 +258,26 @@ func (p *PPU) Tick(n int) {
 
 // This is the main execution logic for the PPU
 func (p *PPU) tick() {
+	bank := 0
 
+	for tile_n := 0; tile_n < 32; tile_n++ {
+		s := uint16(bank + (tile_n * 16))
+		e := uint16(s+15) + 1
+		tile := p.bus.ChrRead(s, e)
+
+		for y := 0; y < 8; y++ {
+			u, l := tile[y], tile[y+8]
+			for x := 7; x > 0; x-- {
+				val := (1&u)<<1 | (1 & l)
+				u >>= 1
+				l >>= 1
+
+				posx := x + (tile_n*8)%NES_RES_WIDTH
+				posy := (y * NES_RES_WIDTH)
+				p.pixels[posy+posx] = SYSTEM_PALETTE[val]
+			}
+		}
+	}
 }
 
 type color []uint8
