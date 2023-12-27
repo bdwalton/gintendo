@@ -94,6 +94,7 @@ type Bus interface {
 
 type PPU struct {
 	bus          Bus
+	ticks        int64
 	pixels       []color
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
@@ -265,6 +266,8 @@ func (p *PPU) Tick(n int) {
 
 // This is the main execution logic for the PPU
 func (p *PPU) tick() {
+	p.ticks += 1
+
 	bank := 0
 
 	for tile_n := 0; tile_n < 32; tile_n++ {
