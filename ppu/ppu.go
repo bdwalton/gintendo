@@ -99,10 +99,7 @@ type PPU struct {
 	oamData      [OAM_SIZE]uint8
 	vram         [VRAM_SIZE]uint8
 	mirrorMode   uint8
-	// The memory mapped registered that the CPU can read/write
-	// from. PPUADDR is special because it needs to handle 2
-	// writes to form a 16-bit address
-	ppuAddr   uint16 // Stores 2 writes to PPUADDR
+
 	registers map[uint16]uint8
 	// internal registers
 	v, t   uint16 // current vram addr, temp vram addr; only 15 bits used
@@ -150,17 +147,15 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 		}
 	case PPUADDR:
 		if p.wLatch == 0 {
-			p.ppuAddr = (p.ppuAddr & 0x00FF) | (uint16(val) << 8)
 			p.t = (p.t & 0b10111111_11111111) | (uint16(val&0x3F) << 8)
 			p.wLatch = 1
 		} else {
-			p.ppuAddr = (p.ppuAddr & 0xFF00) | uint16(val)
 			p.t = (p.t & 0xFF00) | uint16(val)
 			p.v = p.t
 			p.wLatch = 0
 		}
 	case PPUDATA:
-		p.read(p.ppuAddr)
+		p.read(p.v)
 		p.vramIncrement()
 	}
 
@@ -178,7 +173,7 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 		p.wLatch = 0
 		return (p.registers[r] & 0xE0) | (p.bufferData & 0x1F)
 	case PPUDATA:
-		data := p.read(p.ppuAddr)
+		data := p.read(p.v)
 		p.vramIncrement()
 		return data
 	}
@@ -192,7 +187,7 @@ func (p *PPU) vramIncrement() {
 		x = CTRL_INCR_DOWN
 	}
 
-	p.ppuAddr += x
+	p.v += x
 }
 
 // Mirroring mode
