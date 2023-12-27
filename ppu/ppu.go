@@ -175,7 +175,7 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 			p.wLatch = 0
 		}
 	case PPUDATA:
-		p.read(p.v)
+		p.write(p.v, val)
 		p.vramIncrement()
 	}
 }
@@ -268,6 +268,25 @@ func (p *PPU) read(addr uint16) uint8 {
 	default:
 		x := (a - PALETTE_RAM) % 0x0020
 		return p.vram[PALETTE_RAM+x]
+	}
+}
+
+func (p *PPU) write(addr uint16, val uint8) {
+	a := addr % 0x4000
+
+	switch {
+	case a < NAMETABLE_0:
+		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
+		panic("we don't support writting to CHR ROM")
+	case a < PALETTE_RAM:
+		p.vram[p.tileMapAddr(a)] = val
+	case a < NAMETABLE_MIRROR:
+		p.vram[p.tileMapAddr(a-NAMETABLE_0)] = val
+	case a < PALETTE_MIRROR:
+		p.vram[a-PALETTE_RAM] = val
+	default:
+		x := (a - PALETTE_RAM) % 0x0020
+		p.vram[PALETTE_RAM+x] = val
 	}
 }
 
