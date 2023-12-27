@@ -107,6 +107,9 @@ type PPU struct {
 	x      uint8  // fine x scroll, only 3 bits used
 	wLatch uint8  // first or second write toggle; 1 bit
 
+	scanline int16 // -1 through 261 (0 - 239 are visible)
+	scandot  int16 // 0 through 320 (1 - 256 are visible)
+
 	// For reads from registers that are delayed due to cycle counts
 	bufferData uint8
 }
@@ -118,6 +121,7 @@ func New(b Bus) *PPU {
 		px[i] = color{0, 0, 0, 0xff} // Black
 	}
 	return &PPU{
+		scanline:  -1, // we always start in vblank
 		bus:       b,
 		pixels:    px,
 		registers: make(map[uint16]uint8),
