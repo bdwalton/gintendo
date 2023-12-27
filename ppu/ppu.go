@@ -268,8 +268,22 @@ func (p *PPU) Tick(n int) {
 	}
 }
 
+func (p *PPU) clearVBlank() {
+	p.registers[PPUSTATUS] &^= STATUS_VERTICAL_BLANK
+}
+
+func (p *PPU) setVBlank() {
+	p.registers[PPUSTATUS] |= STATUS_VERTICAL_BLANK
+}
+
 // This is the main execution logic for the PPU
 func (p *PPU) tick() {
+	// Do real work here
+	if p.scanline >= -1 && p.scanline < 240 {
+		if p.scanline == -1 && p.scandot == 1 {
+			p.clearVBlank()
+		}
+	}
 	p.ticks += 1
 
 	bank := 0
