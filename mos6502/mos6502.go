@@ -88,7 +88,7 @@ type CPU struct {
 	sp     uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
 	pc     uint16 // the program counter
 	mem    Bus    // 64k addressable memory, often backed by a mapper.
-	cycles uint8  // how many cycles to wait until next instruction
+	cycles int    // how many cycles an instruction consumes
 }
 
 func (c *CPU) String() string {
@@ -279,20 +279,18 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 	}
 }
 
-// Step will single step the CPU forward. It executes the current
-// instruction (at PC) and advances PC when finished.
-func (c *CPU) Step() {
-	// if c.cycles > 0 {
-	// 	c.cycles -= 1
-	// 	return
-	// }
-
+// Step will single step the CPU forward, returning the number of
+// cycles consumed to complete the execution of the instruction. It
+// executes the current instruction (at PC) and advances PC when
+// finished.
+func (c *CPU) Step() int {
+	c.cycles = 0 // We return the cycles consumed at the end, so start from 0
 	op, err := c.getInst()
 	if err != nil {
 		panic(err)
 	}
 
-	c.cycles += op.cycles
+	c.cycles += int(op.cycles)
 	c.pc += 1
 	opc := c.pc
 
@@ -306,6 +304,8 @@ func (c *CPU) Step() {
 	if c.pc == opc {
 		c.pc += uint16(op.bytes) - 1
 	}
+
+	return c.cycles
 }
 
 // setNegativeAndZeroFlags sets the STATUS_FLAG_NEGATIVE and
@@ -364,7 +364,7 @@ func (c *CPU) flagsOff(mask uint8) {
 // otherwise. This is useful for instructions that take a variable
 // number of cycles, depending on whether or not a page boundary is
 // crossed.
-func extraCycles(addr1, addr2 uint16) uint8 {
+func extraCycles(addr1, addr2 uint16) int {
 	if addr1&0xFF00 != addr2&0xFF00 {
 		return 1
 	}
