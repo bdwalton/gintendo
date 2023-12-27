@@ -149,6 +149,8 @@ func (p *PPU) GetResolution() (int, int) {
 func (p *PPU) WriteReg(r uint16, val uint8) {
 	switch r {
 	case PPUCTRL:
+		p.ctrl = val
+		// we set loopy t's nametable x and y
 		p.t = (p.t & 0xF3FF) | (uint16(val&0x03) << 10)
 	case PPUMASK:
 		p.mask = val
@@ -159,6 +161,7 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 			p.wLatch = 1
 		} else {
 
+			// we set loopy t's coarse y and fine y
 			p.t = (uint16(val)&0x0007)<<12 | (p.t & 0x0C00) | (uint16(val)&0x00F8)<<2 | (p.t & 0x001F)
 			p.wLatch = 0
 		}
@@ -187,7 +190,13 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 		p.wLatch = 0
 		return uint8((p.status & 0xE0) | (p.bufferData & 0x1F))
 	case PPUDATA:
-		data := p.read(p.v)
+		data := p.bufferData
+		p.bufferData = p.read(p.v)
+		// When reading from palette range, we don't suffer
+		// the cycle delay that we do when reading other data.
+		if p.v > 0x3F00 {
+			data = p.bufferData
+		}
 		p.vramIncrement()
 		return data
 	}
