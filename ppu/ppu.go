@@ -102,13 +102,15 @@ type PPU struct {
 	// The memory mapped registered that the CPU can read/write
 	// from. PPUADDR is special because it needs to handle 2
 	// writes to form a 16-bit address
-	ppuAddr   *addrReg
+	ppuAddr   uint16 // Stores 2 writes to PPUADDR
 	registers map[uint16]uint8
 	// internal registers
-	v, t uint16 // current vram addr, temp vram addr; only 15 bits used
-	x    uint8  // fine x scroll, only 3 bits used
-	w    uint8  // first or second write toggle; 1 bit
+	v, t   uint16 // current vram addr, temp vram addr; only 15 bits used
+	x      uint8  // fine x scroll, only 3 bits used
+	wLatch uint8  // first or second write toggle; 1 bit
 
+	// For reads from registers that are delayed due to cycle counts
+	bufferData uint8
 }
 
 func New(b Bus) *PPU {
@@ -120,7 +122,6 @@ func New(b Bus) *PPU {
 	return &PPU{
 		bus:       b,
 		pixels:    px,
-		ppuAddr:   &addrReg{},
 		registers: make(map[uint16]uint8),
 	}
 }
@@ -135,78 +136,63 @@ func (p *PPU) GetResolution() (int, int) {
 
 func (p *PPU) WriteReg(r uint16, val uint8) {
 	switch r {
-	case PPUADDR:
-		p.ppuAddr.set(val)
-	default:
-		p.registers[r] = val
-	}
-
-	switch r {
 	case PPUCTRL:
 		p.t = (p.t & 0xF3FF) | (uint16(val&0x03) << 10)
 	case PPUSCROLL:
-		if p.w == 0 {
+		if p.wLatch == 0 {
 			p.t = (p.t & 0xFFE0) | (uint16(val&0xF8) >> 3)
 			p.x = (val & 0x07)
-			p.w = 1
+			p.wLatch = 1
 		} else {
 
 			p.t = (uint16(val)&0x0007)<<12 | (p.t & 0x0C00) | (uint16(val)&0x00F8)<<2 | (p.t & 0x001F)
-			p.w = 0
+			p.wLatch = 0
 		}
 	case PPUADDR:
-		if p.w == 0 {
+		if p.wLatch == 0 {
+			p.ppuAddr = (p.ppuAddr & 0x00FF) | (uint16(val) << 8)
 			p.t = (p.t & 0b10111111_11111111) | (uint16(val&0x3F) << 8)
-			p.w = 1
+			p.wLatch = 1
 		} else {
+			p.ppuAddr = (p.ppuAddr & 0xFF00) | uint16(val)
 			p.t = (p.t & 0xFF00) | uint16(val)
 			p.v = p.t
-			p.w = 0
+			p.wLatch = 0
 		}
+	case PPUDATA:
+		p.read(p.ppuAddr)
+		p.vramIncrement()
 	}
+
+	// For PPUADDR, this will be meaningless
+	p.registers[r] = val
 }
 
 // readReg returns the current value of a register.
 func (p *PPU) ReadReg(r uint16) uint8 {
 	switch r {
 	case PPUSTATUS:
-		p.w = 0
+		// From NESDev - we fill the status register with the
+		// bottom contents of the buffered data.
+		p.registers[PPUSTATUS] &^= STATUS_VERTICAL_BLANK
+		p.wLatch = 0
+		return (p.registers[r] & 0xE0) | (p.bufferData & 0x1F)
+	case PPUDATA:
+		data := p.read(p.ppuAddr)
+		p.vramIncrement()
+		return data
 	}
 
 	return p.registers[r]
 }
 
-func (p *PPU) vram_increment() uint8 {
-	if p.ReadReg(PPUCTRL)&CTRL_VRAM_ADD_INCREMENT > 1 {
-		return CTRL_INCR_DOWN
+func (p *PPU) vramIncrement() {
+	x := uint16(CTRL_INCR_ACROSS)
+	if p.registers[PPUCTRL]&CTRL_VRAM_ADD_INCREMENT > 0 {
+		x = CTRL_INCR_DOWN
 	}
 
-	return CTRL_INCR_ACROSS
-}
-
-type addrReg struct {
-	high, low uint8
-	lowB      bool // true if we're writing the low byte, false if writing high byte
-}
-
-func (ar *addrReg) get16() uint16 {
-	return (uint16(ar.high) << 8) | uint16(ar.low)
-}
-
-func (ar *addrReg) set(val uint8) {
-	switch ar.lowB {
-	case true:
-		ar.low = val
-	default:
-		ar.high = val
-	}
-
-	ar.lowB = !ar.lowB
-}
-
-func (ar *addrReg) reset() {
-	ar.low, ar.high = 0, 0
-	ar.lowB = false
+	p.ppuAddr += x
 }
 
 // Mirroring mode
