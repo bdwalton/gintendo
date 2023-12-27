@@ -116,6 +116,7 @@ type PPU struct {
 	// registers that maintain state not captured in v, t, etc.
 	ctrl   uint8
 	status uint8
+	mask   uint8
 
 	scanline int16 // -1 through 261 (0 - 239 are visible)
 	scandot  int16 // 0 through 320 (1 - 256 are visible)
@@ -149,6 +150,8 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 	switch r {
 	case PPUCTRL:
 		p.t = (p.t & 0xF3FF) | (uint16(val&0x03) << 10)
+	case PPUMASK:
+		p.mask = val
 	case PPUSCROLL:
 		if p.wLatch == 0 {
 			p.t = (p.t & 0xFFE0) | (uint16(val&0xF8) >> 3)
