@@ -2,6 +2,7 @@
 package ppu
 
 import (
+	"fmt"
 	"image/color"
 )
 
@@ -17,7 +18,9 @@ const (
 	NES_RES_HEIGHT = 240
 )
 
-// Special Registers
+// Special Registers. These are the addresses on which they're exposed
+// to the CPU. When we get calls to WriteReg from the Bus that's
+// driving us, we'll get these values because that's all the CPU knows
 const (
 	PPUCTRL   = 0x2000
 	PPUMASK   = 0x2001
@@ -105,11 +108,14 @@ type PPU struct {
 	vram         [VRAM_SIZE]uint8
 	mirrorMode   uint8
 
-	registers map[uint16]uint8
 	// internal registers
 	v, t   uint16 // current vram addr, temp vram addr; only 15 bits used
 	x      uint8  // fine x scroll, only 3 bits used
 	wLatch uint8  // first or second write toggle; 1 bit
+
+	// registers that maintain state not captured in v, t, etc.
+	ctrl   uint8
+	status uint8
 
 	scanline int16 // -1 through 261 (0 - 239 are visible)
 	scandot  int16 // 0 through 320 (1 - 256 are visible)
@@ -125,10 +131,9 @@ func New(b Bus) *PPU {
 		px[i] = color.RGBA{0, 0, 0, 0xff} // Black
 	}
 	return &PPU{
-		scanline:  -1, // we always start in vblank
-		bus:       b,
-		pixels:    px,
-		registers: make(map[uint16]uint8),
+		scanline: -1, // we always start in vblank
+		bus:      b,
+		pixels:   px,
 	}
 }
 
@@ -167,9 +172,6 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 		p.read(p.v)
 		p.vramIncrement()
 	}
-
-	// For PPUADDR, this will be meaningless
-	p.registers[r] = val
 }
 
 // readReg returns the current value of a register.
@@ -178,21 +180,22 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 	case PPUSTATUS:
 		// From NESDev - we fill the status register with the
 		// bottom contents of the buffered data.
-		p.registers[PPUSTATUS] &^= STATUS_VERTICAL_BLANK
+		p.clearVBlank()
 		p.wLatch = 0
-		return (p.registers[r] & 0xE0) | (p.bufferData & 0x1F)
+		return uint8((p.status & 0xE0) | (p.bufferData & 0x1F))
 	case PPUDATA:
 		data := p.read(p.v)
 		p.vramIncrement()
 		return data
 	}
 
-	return p.registers[r]
+	panic(fmt.Sprintf("ReadReg for 0x%04x not implemented yet", r))
+	return 0
 }
 
 func (p *PPU) vramIncrement() {
 	x := uint16(CTRL_INCR_ACROSS)
-	if p.registers[PPUCTRL]&CTRL_VRAM_ADD_INCREMENT > 0 {
+	if p.ctrl&CTRL_VRAM_ADD_INCREMENT > 0 {
 		x = CTRL_INCR_DOWN
 	}
 
@@ -257,7 +260,7 @@ func (p *PPU) read(addr uint16) uint8 {
 }
 
 func (p *PPU) generateNMI() bool {
-	return p.registers[PPUCTRL]&CTRL_GENERATE_NMI > 0
+	return p.ctrl&CTRL_GENERATE_NMI > 0
 }
 
 // Tick executes n cycles. We call it tick instead of step because
@@ -273,11 +276,11 @@ func (p *PPU) Tick(n int) {
 }
 
 func (p *PPU) clearVBlank() {
-	p.registers[PPUSTATUS] &^= STATUS_VERTICAL_BLANK
+	p.status &^= STATUS_VERTICAL_BLANK
 }
 
 func (p *PPU) setVBlank() {
-	p.registers[PPUSTATUS] |= STATUS_VERTICAL_BLANK
+	p.status |= STATUS_VERTICAL_BLANK
 }
 
 // This is the main execution logic for the PPU
