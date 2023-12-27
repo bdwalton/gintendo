@@ -72,10 +72,10 @@ func (b *Bus) Draw(screen *ebiten.Image) {
 	upd := make([]byte, s, s)
 	for i, p := range b.ppu.GetPixels() {
 		n := i * 4
-		upd[n] = p[0]
-		upd[n+1] = p[1]
-		upd[n+2] = p[2]
-		upd[n+3] = p[3]
+		upd[n] = p.R
+		upd[n+1] = p.G
+		upd[n+2] = p.B
+		upd[n+3] = p.A
 	}
 
 	screen.WritePixels(upd)
