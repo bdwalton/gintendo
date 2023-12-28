@@ -20,11 +20,53 @@ func TestLoopyGet(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		cx, cy, ntx, nty, fy := l.coarseX(), l.coarseY(), l.nametableX(), l.nametableY(), l.fineY()
 		if cx != tc.wantCoarseX || cy != tc.wantCoarseY || ntx != tc.wantNameTableX || nty != tc.wantNameTableY || fy != tc.wantFineY {
 			t.Errorf("%d: Got %016b, %016b, %016b, %016b, %016b, wanted %016b, %016b, %016b, %016b, %016b", i, cx, cy, ntx, nty, fy, tc.wantCoarseX, tc.wantCoarseY, tc.wantNameTableX, tc.wantNameTableY, tc.wantFineY)
+		}
+	}
+}
+
+func TestLoopySet(t *testing.T) {
+	cases := []struct {
+		data uint16
+		newL uint16
+		want uint16
+	}{
+		{0b0000_0000_0000_0000, 0x00F3, 0x00F3},
+		{0b0111_1011_1001_1000, 0x1111, 0x1111},
+	}
+
+	for i, tc := range cases {
+		l := loopy(tc.data)
+
+		l.set(tc.newL)
+		if got := uint16(l); got != tc.want {
+			t.Errorf("%d: Got %16b, wanted %016b", i, got, tc.want)
+
+		}
+	}
+}
+
+func TestLoopyResetCoarseX(t *testing.T) {
+	cases := []struct {
+		data uint16
+		want uint16
+	}{
+		{0b0000_0000_0000_0000, 0},
+		{0b0111_1011_1001_1000, 0b0111_1011_1000_0000},
+		{0b0111_1011_1001_1111, 0b0111_1011_1000_0000},
+	}
+
+	for i, tc := range cases {
+		l := loopy(tc.data)
+
+		l.resetCoarseX()
+		if got := uint16(l); got != tc.want {
+			t.Errorf("%d: Got %16b, wanted %016b", i, got, tc.want)
+
 		}
 	}
 }
@@ -43,7 +85,7 @@ func TestLoopySetCoarseX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ocx := l.coarseX()
 		l.setCoarseX(tc.ncx)
@@ -65,12 +107,32 @@ func TestLoopyIncrementCoarseX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ocx := l.coarseX()
 		l.incrementCoarseX()
 		if got := l.coarseX(); ocx != tc.ocx || got != tc.ncx {
 			t.Errorf("%d: Got ocx = %05b, ncx = %05b, wanted %05b, %05b", i, ocx, got, tc.ocx, tc.ncx)
+
+		}
+	}
+}
+
+func TestLoopyResetCoarseY(t *testing.T) {
+	cases := []struct {
+		data uint16
+		want uint16
+	}{
+		{0b0000_0000_0000_0000, 0},
+		{0b0111_1011_1001_1000, 0b0111_1000_0001_1000},
+	}
+
+	for i, tc := range cases {
+		l := loopy(tc.data)
+
+		l.resetCoarseY()
+		if got := uint16(l); got != tc.want {
+			t.Errorf("%d: Got %16b, wanted %016b", i, got, tc.want)
 
 		}
 	}
@@ -89,7 +151,7 @@ func TestLoopySetCoarseY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ocy := l.coarseY()
 		l.setCoarseY(tc.ncy)
@@ -111,7 +173,7 @@ func TestLoopyIncrementCoarseY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ocy := l.coarseY()
 		l.incrementCoarseY()
@@ -133,12 +195,12 @@ func TestLoopyToggleNametableX(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ox := l.nametableX()
 		l.toggleNametableX()
-		if got := l.nametableX(); ox != tc.ox || got != tc.nx || l.data != tc.wantData {
-			t.Errorf("%d: Got ox = %01b, nx = %01b (%016b), wanted %01b, %01b (%016b)", i, ox, got, l.data, tc.ox, tc.nx, tc.wantData)
+		if got := l.nametableX(); ox != tc.ox || got != tc.nx || uint16(l) != tc.wantData {
+			t.Errorf("%d: Got ox = %01b, nx = %01b (%016b), wanted %01b, %01b (%016b)", i, ox, got, l, tc.ox, tc.nx, tc.wantData)
 
 		}
 	}
@@ -155,12 +217,12 @@ func TestLoopyToggleNametableY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		oy := l.nametableY()
 		l.toggleNametableY()
-		if got := l.nametableY(); oy != tc.oy || got != tc.ny || l.data != tc.wantData {
-			t.Errorf("%d: Got oy = %01b, ny = %01b (%016b), wanted %01b, %01b (%016b)", i, oy, got, l.data, tc.oy, tc.ny, tc.wantData)
+		if got := l.nametableY(); oy != tc.oy || got != tc.ny || uint16(l) != tc.wantData {
+			t.Errorf("%d: Got oy = %01b, ny = %01b (%016b), wanted %01b, %01b (%016b)", i, oy, got, l, tc.oy, tc.ny, tc.wantData)
 
 		}
 	}
@@ -178,7 +240,7 @@ func TestLoopySetFineY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ofy := l.fineY()
 		l.setFineY(tc.nfy)
@@ -200,7 +262,7 @@ func TestLoopyIncrementFineY(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := &loopy{tc.data}
+		l := loopy(tc.data)
 
 		ofy := l.fineY()
 		l.incrementFineY()

@@ -37,7 +37,7 @@ func TestWriteRegPPUCTRL(t *testing.T) {
 
 	for i, tc := range cases {
 		p.WriteReg(PPUCTRL, tc.val)
-		if p.t != tc.wantT {
+		if uint16(p.t) != tc.wantT {
 			t.Errorf("%d: Got t=%015b wanted %015b", i, p.t, tc.wantT)
 		}
 	}
@@ -52,18 +52,18 @@ func TestWriteRegPPUSCROLL(t *testing.T) {
 	}{
 		// These are cumulative
 		{0b11001100, 0b00000000_00011001, 0b00000100, 1},
-		{0b01010101, 0b01010001_01011001, 0b00000100, 0},
-		{0b11111111, 0b01010001_01011111, 0b00000111, 1},
+		{0b01010101, 0b00000001_01011001, 0b00000100, 0},
+		{0b11111111, 0b00000001_01011111, 0b00000111, 1},
 		{0b00000000, 0b00000000_00011111, 0b00000111, 0},
 		{0b01101010, 0b00000000_00001101, 0b00000010, 1},
-		{0b01101010, 0b00100001_10101101, 0b00000010, 0},
+		{0b01101010, 0b00000001_10101101, 0b00000010, 0},
 	}
 
 	p := New(&testBus{})
 	for i, tc := range cases {
 		p.WriteReg(PPUSCROLL, tc.val)
-		if p.t != tc.wantT || p.x != tc.wantX || p.wLatch != tc.wantW {
-			t.Errorf("%d: Got t,x,w=%015b,%03b,%d, wanted %015b,%03b,%d", i, p.t, p.x, p.wLatch, tc.wantT, tc.wantX, tc.wantW)
+		if uint16(p.t) != tc.wantT || p.x != tc.wantX || p.wLatch != tc.wantW {
+			t.Errorf("%d: Got t,x,w=%015b,%03b,%d, wanted:\n\t\t         %015b,%03b,%d", i, p.t, p.x, p.wLatch, tc.wantT, tc.wantX, tc.wantW)
 		}
 	}
 }
@@ -86,9 +86,9 @@ func TestWriteRegPPUADDR(t *testing.T) {
 	p := New(&testBus{})
 
 	for i, tc := range cases {
-		p.t = tc.startT
+		p.t = loopy(tc.startT)
 		p.WriteReg(PPUADDR, tc.val)
-		if p.t != tc.wantT || p.v != tc.wantV || p.wLatch != tc.wantW {
+		if uint16(p.t) != tc.wantT || uint16(p.v) != tc.wantV || p.wLatch != tc.wantW {
 			t.Errorf("%d: Got t,v,w=%015b,%015b,%d,\n\t\t   wanted %015b,%015b,%d", i, p.t, p.v, p.wLatch, tc.wantT, tc.wantV, tc.wantW)
 		}
 	}

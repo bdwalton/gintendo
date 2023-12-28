@@ -109,9 +109,9 @@ type PPU struct {
 	mirrorMode   uint8
 
 	// internal registers
-	v, t   uint16 // current vram addr, temp vram addr; only 15 bits used
-	x      uint8  // fine x scroll, only 3 bits used
-	wLatch uint8  // first or second write toggle; 1 bit
+	v, t   loopy // current vram addr, temp vram addr
+	x      uint8 // fine x scroll, only 3 bits used
+	wLatch uint8 // first or second write toggle; 1 bit
 
 	// registers that maintain state not captured in v, t, etc.
 	ctrl   uint8
@@ -151,31 +151,31 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 	case PPUCTRL:
 		p.ctrl = val
 		// we set loopy t's nametable x and y
-		p.t = (p.t & 0xF3FF) | (uint16(val&0x03) << 10)
+		p.t.set(uint16(p.t)&0xF3FF | (uint16(val&0x03) << 10))
 	case PPUMASK:
 		p.mask = val
 	case PPUSCROLL:
 		if p.wLatch == 0 {
-			p.t = (p.t & 0xFFE0) | (uint16(val&0xF8) >> 3)
+			p.t.setCoarseX(uint16(val) >> 3)
 			p.x = (val & 0x07)
 			p.wLatch = 1
 		} else {
-
 			// we set loopy t's coarse y and fine y
-			p.t = (uint16(val)&0x0007)<<12 | (p.t & 0x0C00) | (uint16(val)&0x00F8)<<2 | (p.t & 0x001F)
+			p.t.setCoarseY(uint16(val) & 0x00F8 >> 3)
+			p.t.setFineY(uint16(val) & 0x0007)
 			p.wLatch = 0
 		}
 	case PPUADDR:
 		if p.wLatch == 0 {
-			p.t = (p.t & 0b10111111_11111111) | (uint16(val&0x3F) << 8)
+			p.t.set(((uint16(p.t) & 0b10111111_11111111) | (uint16(val&0x3F) << 8)))
 			p.wLatch = 1
 		} else {
-			p.t = (p.t & 0xFF00) | uint16(val)
+			p.t.set((uint16(p.t) & 0xFF00) | uint16(val))
 			p.v = p.t
 			p.wLatch = 0
 		}
 	case PPUDATA:
-		p.write(p.v, val)
+		p.write(uint16(p.v), val)
 		p.vramIncrement()
 	}
 }
@@ -191,7 +191,7 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 		return uint8((p.status & 0xE0) | (p.bufferData & 0x1F))
 	case PPUDATA:
 		data := p.bufferData
-		p.bufferData = p.read(p.v)
+		p.bufferData = p.read(uint16(p.v))
 		// When reading from palette range, we don't suffer
 		// the cycle delay that we do when reading other data.
 		if p.v > 0x3F00 {
@@ -211,7 +211,7 @@ func (p *PPU) vramIncrement() {
 		x = CTRL_INCR_DOWN
 	}
 
-	p.v += x
+	p.v = loopy(uint16(p.v) + x)
 }
 
 // Mirroring mode
