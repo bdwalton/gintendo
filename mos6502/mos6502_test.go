@@ -40,7 +40,7 @@ func TestCycles(t *testing.T) {
 		status, acc, x, y uint8
 		op, arg1, arg2    uint8
 		wantPC            uint16
-		wantCycles        uint8
+		wantCycles        int
 	}{
 		{0, 0, 0, 0, 0, 0x69 /* ADC IMM */, 0, 0, 0x02, 2},
 		{0, 0, 0, 0, 0, 0x7D /* ADC ABS_X */, 0, 0, 0x03, 4 /* no page crossed */},

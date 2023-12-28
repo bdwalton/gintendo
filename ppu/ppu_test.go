@@ -20,33 +20,6 @@ func (tb *testBus) reset() {
 	tb.nmiTriggered = false
 }
 
-func TestAddrReg(t *testing.T) {
-	cases := []struct {
-		inputs []uint8  // we'll feed bytes...
-		wants  []uint16 // and check the value after each
-	}{
-		{
-			[]uint8{0x0F, 0x0B, 0x10, 0x02},
-			[]uint16{0x0F00, 0x0F0B, 0x100B, 0x1002},
-		},
-		{
-			[]uint8{0x1F, 0xB0},
-			[]uint16{0x1F00, 0x1FB0},
-		},
-	}
-
-	var ar addrReg
-	for i, tc := range cases {
-		for j, x := range tc.inputs {
-			ar.set(x)
-			if got := ar.get16(); got != tc.wants[j] {
-				t.Errorf("%d: Got %04x, want %04x", i, got, tc.wants[j])
-			}
-		}
-		ar.reset()
-	}
-}
-
 func TestWriteRegPPUCTRL(t *testing.T) {
 	cases := []struct {
 		val   uint8
@@ -89,8 +62,8 @@ func TestWriteRegPPUSCROLL(t *testing.T) {
 	p := New(&testBus{})
 	for i, tc := range cases {
 		p.WriteReg(PPUSCROLL, tc.val)
-		if p.t != tc.wantT || p.x != tc.wantX || p.w != tc.wantW {
-			t.Errorf("%d: Got t,x,w=%015b,%03b,%d, wanted %015b,%03b,%d", i, p.t, p.x, p.w, tc.wantT, tc.wantX, tc.wantW)
+		if p.t != tc.wantT || p.x != tc.wantX || p.wLatch != tc.wantW {
+			t.Errorf("%d: Got t,x,w=%015b,%03b,%d, wanted %015b,%03b,%d", i, p.t, p.x, p.wLatch, tc.wantT, tc.wantX, tc.wantW)
 		}
 	}
 }
@@ -115,8 +88,8 @@ func TestWriteRegPPUADDR(t *testing.T) {
 	for i, tc := range cases {
 		p.t = tc.startT
 		p.WriteReg(PPUADDR, tc.val)
-		if p.t != tc.wantT || p.v != tc.wantV || p.w != tc.wantW {
-			t.Errorf("%d: Got t,v,w=%015b,%015b,%d,\n\t\t   wanted %015b,%015b,%d", i, p.t, p.v, p.w, tc.wantT, tc.wantV, tc.wantW)
+		if p.t != tc.wantT || p.v != tc.wantV || p.wLatch != tc.wantW {
+			t.Errorf("%d: Got t,v,w=%015b,%015b,%d,\n\t\t   wanted %015b,%015b,%d", i, p.t, p.v, p.wLatch, tc.wantT, tc.wantV, tc.wantW)
 		}
 	}
 }
