@@ -94,6 +94,31 @@ const (
 	STATUS_VERTICAL_BLANK  = 1 << 7
 )
 
+// 7  bit  0
+// ---- ----
+// BGRs bMmG
+// |||| ||||
+// |||| |||+- Greyscale (0: normal color, 1: produce a greyscale display)
+// |||| ||+-- 1: Show background in leftmost 8 pixels of screen, 0: Hide
+// |||| |+--- 1: Show sprites in leftmost 8 pixels of screen, 0: Hide
+// |||| +---- 1: Show background
+// |||+------ 1: Show sprites
+// ||+------- Emphasize red (green on PAL/Dendy)
+// |+-------- Emphasize green (red on PAL/Dendy)
+// +--------- Emphasize blue
+
+// Mask flags
+const (
+	MASK_GREYSCALE         = 1 << 0
+	MASK_SHOW_LEFT_TILES   = 1 << 1
+	MASK_SHOW_LEFT_SPRITES = 1 << 2
+	MASK_RENDER_BG         = 1 << 3
+	MASK_RENDER_FG         = 1 << 4
+	MASK_EMPHASIZE_RED     = 1 << 5
+	MASK_EMPHASIZE_GREEN   = 1 << 6
+	MASK_EMPHASIZE_BLUE    = 1 << 7
+)
+
 type Bus interface {
 	ChrRead(uint16, uint16) []uint8
 	TriggerNMI()
