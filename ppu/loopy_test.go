@@ -206,6 +206,31 @@ func TestLoopyToggleNametableX(t *testing.T) {
 	}
 }
 
+func TestLoopySetNametableX(t *testing.T) {
+	cases := []struct {
+		data     uint16
+		ox, nx   uint16
+		val      uint8
+		wantData uint16
+	}{
+		{0b0000_1000_0000_0000, 0, 1, 1, 0b0000_1100_0000_0000},
+		{0b0000_1100_0000_0000, 1, 1, 1, 0b0000_1100_0000_0000},
+		{0b0000_1100_0000_0000, 1, 0, 0, 0b0000_1000_0000_0000},
+		{0b0000_1000_0000_0000, 0, 0, 0, 0b0000_1000_0000_0000},
+	}
+
+	for i, tc := range cases {
+		l := loopy(tc.data)
+
+		ox := l.nametableX()
+		l.setNametableX(tc.val)
+		if got := l.nametableX(); ox != tc.ox || got != tc.nx || uint16(l) != tc.wantData {
+			t.Errorf("%d: Got ox = %01b, nx = %01b (%016b), wanted %01b, %01b (%016b)", i, ox, got, l, tc.ox, tc.nx, tc.wantData)
+
+		}
+	}
+}
+
 func TestLoopyToggleNametableY(t *testing.T) {
 	cases := []struct {
 		data     uint16
@@ -221,6 +246,31 @@ func TestLoopyToggleNametableY(t *testing.T) {
 
 		oy := l.nametableY()
 		l.toggleNametableY()
+		if got := l.nametableY(); oy != tc.oy || got != tc.ny || uint16(l) != tc.wantData {
+			t.Errorf("%d: Got oy = %01b, ny = %01b (%016b), wanted %01b, %01b (%016b)", i, oy, got, l, tc.oy, tc.ny, tc.wantData)
+
+		}
+	}
+}
+
+func TestLoopySetNametableY(t *testing.T) {
+	cases := []struct {
+		data     uint16
+		oy, ny   uint16
+		val      uint8
+		wantData uint16
+	}{
+		{0b0000_0100_0000_0000, 0, 1, 1, 0b0000_1100_0000_0000},
+		{0b0000_1100_0000_0000, 1, 1, 1, 0b0000_1100_0000_0000},
+		{0b0000_1100_0000_0000, 1, 0, 0, 0b0000_0100_0000_0000},
+		{0b0000_1100_0000_0000, 1, 1, 1, 0b0000_1100_0000_0000},
+	}
+
+	for i, tc := range cases {
+		l := loopy(tc.data)
+
+		oy := l.nametableY()
+		l.setNametableY(tc.val)
 		if got := l.nametableY(); oy != tc.oy || got != tc.ny || uint16(l) != tc.wantData {
 			t.Errorf("%d: Got oy = %01b, ny = %01b (%016b), wanted %01b, %01b (%016b)", i, oy, got, l, tc.oy, tc.ny, tc.wantData)
 
