@@ -20,6 +20,46 @@ func (tb *testBus) reset() {
 	tb.nmiTriggered = false
 }
 
+func TestClearVBlank(t *testing.T) {
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x80, 0x00},
+		{0x91, 0x11},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.status = tc.status
+		p.clearVBlank()
+		if p.status != tc.want {
+			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, p.status, tc.want)
+		}
+	}
+
+}
+
+func TestSetVBlank(t *testing.T) {
+	cases := []struct {
+		status uint8
+		want   uint8
+	}{
+		{0x00, 0x80},
+		{0x11, 0x91},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.status = tc.status
+		p.setVBlank()
+		if p.status != tc.want {
+			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, p.status, tc.want)
+		}
+	}
+
+}
+
 func TestWriteRegPPUCTRL(t *testing.T) {
 	cases := []struct {
 		val   uint8
