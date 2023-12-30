@@ -6,6 +6,11 @@ import (
 
 type testBus struct {
 	nmiTriggered bool
+	mirrormode   uint8
+}
+
+func (tb *testBus) MirrorMode() uint8 {
+	return tb.mirrormode
 }
 
 func (tb *testBus) ChrRead(start, end uint16) []uint8 {

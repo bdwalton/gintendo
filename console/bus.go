@@ -57,6 +57,10 @@ func New(m mappers.Mapper, mode int) *Bus {
 	return bus
 }
 
+func (b *Bus) MirrorMode() uint8 {
+	return b.mapper.MirroringMode()
+}
+
 // Layout returns the constant resolution of the NES and is part of
 // the ebiten.Game interface. By returning constants here, we will
 // force ebiten to scale the display when the window size changes.

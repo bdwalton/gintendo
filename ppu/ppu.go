@@ -122,6 +122,7 @@ const (
 type Bus interface {
 	ChrRead(uint16, uint16) []uint8
 	TriggerNMI()
+	MirrorMode() uint8
 }
 
 type PPU struct {
@@ -157,9 +158,10 @@ func New(b Bus) *PPU {
 		px[i] = color.RGBA{0, 0, 0, 0xff} // Black
 	}
 	return &PPU{
-		scanline: -1, // we always start in vblank
-		bus:      b,
-		pixels:   px,
+		scanline:   -1, // we always start in vblank
+		bus:        b,
+		pixels:     px,
+		mirrorMode: b.MirrorMode(),
 	}
 }
 
