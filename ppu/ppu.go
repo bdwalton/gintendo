@@ -260,23 +260,26 @@ const (
 	PALETTE_MIRROR   = 0x3F20
 )
 
+// tileMapAddr handles mirror mode mapping of addresses with the
+// 0x2000-0x2FFF. It takes the natural address and returns the mapped
+// address within the same range.
 func (p *PPU) tileMapAddr(addr uint16) uint16 {
-	// Now we have a as the base of our internal memory
-	a := addr - NAMETABLE_0
+	a := addr - BASE_NAMETABLE
 	// https://www.nesdev.org/wiki/Mirroring#Nametable_Mirroring
 	switch p.mirrorMode {
 	case MIRROR_FOUR_SCREEN:
 		panic("we don't have mapper support to leverage vram on catridge")
 	case MIRROR_HORIZONTAL:
 		if a >= 0x800 {
-			return 0x0400 + ((a - 0x800) % 0x400)
+			a = 0x400 + ((a - 0x800) % 0x400)
+		} else {
+			a %= 0x0400
 		}
-		return a % 0x0400
 	case MIRROR_VERTICAL:
-		return a % 0x800
+		a %= 0x800
 	}
 
-	panic("unkown mirroring mode")
+	return a + BASE_NAMETABLE
 }
 
 func (p *PPU) read(addr uint16) uint8 {
@@ -287,9 +290,9 @@ func (p *PPU) read(addr uint16) uint8 {
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
 		return p.bus.ChrRead(a, a)[0]
 	case a < PALETTE_RAM:
-		return p.vram[p.tileMapAddr(a)]
+		return p.vram[BASE_NAMETABLE-p.tileMapAddr(a)]
 	case a < NAMETABLE_MIRROR:
-		return p.vram[p.tileMapAddr(a-NAMETABLE_0)]
+		return p.vram[BASE_NAMETABLE-p.tileMapAddr(a-NAMETABLE_0)]
 	case a < PALETTE_MIRROR:
 		return p.vram[a-PALETTE_RAM]
 	default:

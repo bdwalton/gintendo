@@ -6,11 +6,11 @@ import (
 
 type testBus struct {
 	nmiTriggered bool
-	mirrormode   uint8
+	mirrorMode   uint8
 }
 
 func (tb *testBus) MirrorMode() uint8 {
-	return tb.mirrormode
+	return tb.mirrorMode
 }
 
 func (tb *testBus) ChrRead(start, end uint16) []uint8 {
@@ -23,6 +23,38 @@ func (tb *testBus) TriggerNMI() {
 
 func (tb *testBus) reset() {
 	tb.nmiTriggered = false
+}
+
+func TestTileMapAddr(t *testing.T) {
+	cases := []struct {
+		addr uint16
+		mm   uint8 // mirror mode
+		want uint16
+	}{
+		{0x2000, MIRROR_HORIZONTAL, 0x2000},
+		{0x2001, MIRROR_HORIZONTAL, 0x2001},
+		{0x2400, MIRROR_HORIZONTAL, 0x2000},
+		{0x2401, MIRROR_HORIZONTAL, 0x2001},
+		{0x2800, MIRROR_HORIZONTAL, 0x2400},
+		{0x2C00, MIRROR_HORIZONTAL, 0x2400},
+		{0x2801, MIRROR_HORIZONTAL, 0x2401},
+		{0x2C01, MIRROR_HORIZONTAL, 0x2401},
+		{0x2000, MIRROR_VERTICAL, 0x2000},
+		{0x2001, MIRROR_VERTICAL, 0x2001},
+		{0x2400, MIRROR_VERTICAL, 0x2400},
+		{0x2401, MIRROR_VERTICAL, 0x2401},
+		{0x2800, MIRROR_VERTICAL, 0x2000},
+		{0x2801, MIRROR_VERTICAL, 0x2001},
+		{0x2C00, MIRROR_VERTICAL, 0x2400},
+		{0x2C01, MIRROR_VERTICAL, 0x2401},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{mirrorMode: tc.mm})
+		if got := p.tileMapAddr(tc.addr); got != tc.want {
+			t.Errorf("%d: Mapped 0x%04x and got 0x%04x, wanted 0x%04x", i, tc.addr, got, tc.want)
+		}
+	}
 }
 
 func TestClearVBlank(t *testing.T) {
