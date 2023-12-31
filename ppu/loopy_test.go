@@ -322,3 +322,26 @@ func TestLoopyIncrementFineY(t *testing.T) {
 		}
 	}
 }
+
+func TestLoopyResetFineY(t *testing.T) {
+	cases := []struct {
+		data     uint16
+		ofy, nfy uint16
+		wantData uint16
+	}{
+		{0b0000_0000_0000_0000, 0, 0, 0},
+		{0b0110_1011_1001_1000, 0b110, 0, 0b0000_1011_1001_1000},
+		{0b0011_0111_1011_0111, 0b011, 0, 0b0000_0111_1011_0111},
+	}
+
+	for i, tc := range cases {
+		l := loopy(tc.data)
+
+		ofy := l.fineY()
+		l.resetFineY()
+		if got := l.fineY(); ofy != tc.ofy || got != tc.nfy || uint16(l) != tc.wantData {
+			t.Errorf("%d: Got data = %015b, ofy = %03b, nfy = %03b, wanted %015b, %03b, %03b", i, l, ofy, got, tc.wantData, tc.ofy, tc.nfy)
+
+		}
+	}
+}

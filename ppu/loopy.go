@@ -102,3 +102,7 @@ func (l *loopy) incrementFineY() {
 func (l *loopy) setFineY(n uint16) {
 	*l = loopy(uint16(*l) & (0x0FFF | (uint16(n) << 12)))
 }
+
+func (l *loopy) resetFineY() {
+	*l = loopy(uint16(*l) & 0x0FFF)
+}
