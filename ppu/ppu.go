@@ -212,27 +212,26 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 
 // readReg returns the current value of a register.
 func (p *PPU) ReadReg(r uint16) uint8 {
+	var ret uint8 = 0x00 // Most regstiers aren't readable, so we'll return 0
 	switch r {
 	case PPUSTATUS:
 		// From NESDev - we fill the status register with the
 		// bottom contents of the buffered data.
+		ret = (p.status & 0xE0) | (p.bufferData & 0x1F)
 		p.clearVBlank()
 		p.wLatch = 0
-		return uint8((p.status & 0xE0) | (p.bufferData & 0x1F))
 	case PPUDATA:
-		data := p.bufferData
+		ret = p.bufferData
 		p.bufferData = p.read(uint16(p.v))
 		// When reading from palette range, we don't suffer
 		// the cycle delay that we do when reading other data.
 		if p.v > 0x3F00 {
-			data = p.bufferData
+			ret = p.bufferData
 		}
 		p.vramIncrement()
-		return data
 	}
 
-	panic(fmt.Sprintf("ReadReg for 0x%04x not implemented yet", r))
-	return 0
+	return ret
 }
 
 func (p *PPU) vramIncrement() {
