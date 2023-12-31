@@ -251,15 +251,19 @@ const (
 )
 
 const (
-	PATTERN_TABLE_0  = 0x0000
-	PATTERN_TABLE_1  = 0x1000
-	NAMETABLE_0      = 0x2000
-	NAMETABLE_1      = 0x2400
-	NAMETABLE_2      = 0x2800
-	NAMETABLE_3      = 0x2C00
-	NAMETABLE_MIRROR = 0x3EFF
-	PALETTE_RAM      = 0x3F00
-	PALETTE_MIRROR   = 0x3F20
+	PATTERN_TABLE_0      = 0x0000
+	PATTERN_TABLE_1      = 0x1000
+	BASE_NAMETABLE       = 0x2000
+	ATTRIBUTE_OFFSET     = 0x03C0 // each nametable has attribute data at the end of it
+	NAMETABLE_0          = BASE_NAMETABLE
+	NAMETABLE_1          = 0x2400
+	NAMETABLE_2          = 0x2800
+	NAMETABLE_3          = 0x2C00
+	NAMETABLE_END        = 0x2FFF
+	NAMETABLE_MIRROR     = 0x3000
+	NAMETABLE_MIRROR_END = 0x3EFF
+	PALETTE_RAM          = 0x3F00
+	PALETTE_MIRROR       = 0x3F20
 )
 
 // tileMapAddr handles mirror mode mapping of addresses with the
