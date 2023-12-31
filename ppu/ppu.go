@@ -158,7 +158,6 @@ func New(b Bus) *PPU {
 		px[i] = color.RGBA{0, 0, 0, 0xff} // Black
 	}
 	return &PPU{
-		scanline:   -1, // we always start in vblank
 		bus:        b,
 		pixels:     px,
 		mirrorMode: b.MirrorMode(),
