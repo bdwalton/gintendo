@@ -200,6 +200,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 		fmt.Println("S(t)ack - show last 3 items on the stack")
 		fmt.Println("(I)instruction - show instruction memory locations")
 		fmt.Println("(P)C - set program counter")
+		fmt.Println("PP(U) - show PPU status")
 		fmt.Println("(Q)uit - shutdown the gintentdo")
 		fmt.Printf("Choice: ")
 
@@ -249,6 +250,8 @@ func (b *Bus) BIOS(ctx context.Context) {
 			fmt.Printf("\n\n")
 		case 'i', 'I':
 			fmt.Printf("\n%s\n\n", b.cpu.Inst())
+		case 'u', 'U':
+			fmt.Println(b.ppu)
 		case 'e', 'E':
 			b.cpu.Reset()
 		case 'm', 'M':
