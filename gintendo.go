@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
@@ -47,7 +48,12 @@ func main() {
 		gintendo.LoadMem(0x000A, bin)
 	}
 
-	if err := ebiten.RunGame(gintendo); err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		if err := ebiten.RunGame(gintendo); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}()
+
+	gintendo.BIOS(context.Background())
 }

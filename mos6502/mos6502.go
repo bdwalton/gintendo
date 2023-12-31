@@ -251,16 +251,18 @@ func (c *CPU) LoadMem(start uint16, mem []uint8) {
 
 // Run will step the CPU until a breakpoint is reached or a trap is
 // detected. Traps are simply infinite loops running the same
-// instruction over and over.
-func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
+// instruction over and over. allowTrap determines whether we'll break
+// if PC isn't advanced. callback allows for driving other
+// functionality beyond the CPU, at the caller's discretion.
+func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}, allowTrap bool, callback func(int)) {
 	// https://www.nesdev.org/wiki/CPU#Frequencies
 	t := time.NewTicker(time.Nanosecond * 559)
+	cycles := 0
 	for {
 		prev_pc := c.pc
 		select {
 		case <-t.C:
-			c.Step()
-			fmt.Println(c)
+			cycles = c.Step()
 		case <-ctx.Done():
 			return
 		}
@@ -270,10 +272,12 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}) {
 			return
 		}
 
-		if c.pc == prev_pc {
+		if c.pc == prev_pc && allowTrap {
 			fmt.Println("TRAP detected. Breaking")
 			return
 		}
+
+		callback(cycles)
 	}
 }
 

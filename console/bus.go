@@ -237,9 +237,14 @@ func (b *Bus) BIOS(ctx context.Context) {
 					}
 				}
 			}(cctx)
-			b.cpu.Run(cctx, breaks)
+
+			runPPU := func(n int) {
+				b.ppu.Tick(n * 3) // 3 ticks per cpu cycle
+			}
+
+			b.cpu.Run(cctx, breaks, false /*no traps*/, runPPU)
 		case 's', 'S':
-			b.cpu.Step()
+			b.ppu.Tick(b.cpu.Step() * 3)
 		case 't', 'T':
 			fmt.Println()
 			i := 0
