@@ -19,6 +19,7 @@ const (
 // 6502 Interrupt Vectors
 // https://en.wikipedia.org/wiki/Interrupts_in_65xx_processors
 const (
+	INT_NONE  = 0x0000 // A dummy value
 	INT_IRQ   = 0xFFFE
 	INT_BRK   = INT_IRQ
 	INT_RESET = 0xFFFC
@@ -82,14 +83,15 @@ type Bus interface {
 
 // Type CPU implements all of the machine state for the 6502
 type CPU struct {
-	acc          uint8  // main register
-	x, y         uint8  // index registers
-	status       uint8  // a register for storing various status bits
-	sp           uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
-	pc           uint16 // the program counter
-	mem          Bus    // 64k addressable memory, often backed by a mapper.
-	cycles       int    // how many cycles an instruction consumes
-	nmiTriggered bool   // Set when NMI was triggered so we know to account for cycles
+	acc              uint8  // main register
+	x, y             uint8  // index registers
+	status           uint8  // a register for storing various status bits
+	sp               uint8  // stack pointer - stack is 0x0100-0x01FF so only 8 bits needed
+	pc               uint16 // the program counter
+	mem              Bus    // 64k addressable memory, often backed by a mapper.
+	cycles           int    // how many cycles an instruction consumes
+	pendingInterrupt int    // 0/INTERRUPT_NONE, INTERRUPT_NMI or INTERRUPT_IRQ
+	nmiTriggered     bool   // Set when NMI was triggered so we know to account for cycles
 }
 
 func (c *CPU) String() string {
@@ -209,8 +211,13 @@ func (c *CPU) Write16(addr, val uint16) {
 }
 
 func (c *CPU) TriggerNMI() {
-	c.nmiTriggered = true
+	c.pendingInterrupt = INT_NMI
+}
 
+func (c *CPU) TriggerIRQ() {
+	if c.status&STATUS_FLAG_INTERRUPT_DISABLE == 0 {
+		c.pendingInterrupt = INT_IRQ
+	}
 }
 
 func (c *CPU) Reset() {
@@ -288,12 +295,12 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}, allowTrap boo
 func (c *CPU) Step() int {
 	c.cycles = 0 // We return the cycles consumed at the end, so zero it to start
 
-	if c.nmiTriggered {
+	if c.pendingInterrupt != INT_NONE {
 		c.pushAddress(c.pc)
 		c.pushStack(c.status)
-		c.pc = c.Read16(INT_NMI)
+		c.pc = c.Read16(uint16(c.pendingInterrupt))
 		c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
-		c.nmiTriggered = false
+		c.pendingInterrupt = INT_NONE
 		return 7 // 7 cycles for the context switch
 	}
 
