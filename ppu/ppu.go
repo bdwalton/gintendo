@@ -181,7 +181,8 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 	case PPUCTRL:
 		p.ctrl = val
 		// we set loopy t's nametable x and y
-		p.t.set(uint16(p.t)&0xF3FF | (uint16(val&0x03) << 10))
+		p.t.setNametableX(val)
+		p.t.setNametableY(val >> 1)
 	case PPUMASK:
 		p.mask = val
 	case PPUSCROLL:
@@ -197,11 +198,11 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 		}
 	case PPUADDR:
 		if p.wLatch == 0 {
-			p.t.set(((uint16(p.t) & 0b10111111_11111111) | (uint16(val&0x3F) << 8)))
+			p.t.set((uint16(val&0x3F) << 8) | (uint16(p.t) & 0x00FF))
 			p.wLatch = 1
 		} else {
 			p.t.set((uint16(p.t) & 0xFF00) | uint16(val))
-			p.v = p.t
+			p.v.set(uint16(p.t))
 			p.wLatch = 0
 		}
 	case PPUDATA:
