@@ -1,5 +1,9 @@
 package ppu
 
+import (
+	"fmt"
+)
+
 // loopy struct will store v and t (loopy registers) and allow
 // extracting and setting the various components as described below:
 // yyy NN YYYYY XXXXX
@@ -8,6 +12,10 @@ package ppu
 // ||| ++-------------- nametable select
 // +++----------------- fine Y scroll
 type loopy uint16
+
+func (l *loopy) String() string {
+	return fmt.Sprintf("%03b:%01b%01b:%05b:%05b", l.fineY(), l.nametableY(), l.nametableX(), l.coarseY(), l.coarseX())
+}
 
 func (l *loopy) set(n uint16) {
 	*l = loopy(n)

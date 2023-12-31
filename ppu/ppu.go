@@ -165,6 +165,10 @@ func New(b Bus) *PPU {
 	}
 }
 
+func (p *PPU) String() string {
+	return fmt.Sprintf("x=%d, y=%d, v=%s fineX=%03b (t=%s), ctrl=%08b,mask=%08b,status=%08b ", p.scandot, p.scanline, p.v.String(), p.x, p.t.String(), p.ctrl, p.mask, p.status)
+}
+
 func (p *PPU) GetPixels() []color.RGBA {
 	return p.pixels
 }
