@@ -290,6 +290,7 @@ func (p *PPU) tileMapAddr(addr uint16) uint16 {
 }
 
 func (p *PPU) read(addr uint16) uint8 {
+	// 0x4000 - 0xFFFF is mirrored to 0x0000 - 0x3FFF
 	a := addr % 0x4000
 
 	switch {
