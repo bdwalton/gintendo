@@ -28,7 +28,7 @@ func init() {
 			R: uint8(c >> 16),
 			G: uint8(c >> 8),
 			B: uint8(c),
-			A: 0xff,
+			A: 0xFF,
 		}
 	}
 }
