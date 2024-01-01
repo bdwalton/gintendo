@@ -188,7 +188,6 @@ func (p *PPU) GetResolution() (int, int) {
 func (p *PPU) WriteReg(r uint16, val uint8) {
 	switch r {
 	case PPUCTRL:
-		fmt.Printf("WriteReg(%04x) -> %08b (NMI: %t)\n", r, val, val&CTRL_GENERATE_NMI > 0)
 		p.ctrl = val
 		// we set loopy t's nametable x and y
 		p.t.setNametableX(val)
@@ -515,7 +514,6 @@ func (p *PPU) tick() {
 			case p.scandot == 256:
 				// Scroll Y, but only if rendering is enabled
 				if p.renderingEnabled() {
-
 					// If possible, just increment the fine y offset
 					if p.v.fineY() < 7 {
 						p.v.incrementFineY()
@@ -552,11 +550,9 @@ func (p *PPU) tick() {
 
 		}
 	case p.scanline >= 241 && p.scanline < 261:
-
 		if p.scanline == 241 && p.scandot == 1 {
 			p.setVBlank()
 			if p.nmiEnabled() {
-				fmt.Println("Triggering NMI")
 				p.bus.TriggerNMI()
 			}
 		}
