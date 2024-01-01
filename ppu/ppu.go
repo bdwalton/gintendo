@@ -269,24 +269,30 @@ const (
 
 // tileMapAddr handles mirror mode mapping of addresses with the
 // 0x2000-0x2FFF. It takes the natural address and returns the mapped
-// address within the same range.
+// address within the vram range (2k).
 func (p *PPU) tileMapAddr(addr uint16) uint16 {
-	a := addr - BASE_NAMETABLE
+	a := addr & 0x0FFF
 	// https://www.nesdev.org/wiki/Mirroring#Nametable_Mirroring
 	switch p.mirrorMode {
 	case MIRROR_FOUR_SCREEN:
 		panic("we don't have mapper support to leverage vram on catridge")
-	case MIRROR_HORIZONTAL:
-		if a >= 0x800 {
-			a = 0x400 + ((a - 0x800) % 0x400)
-		} else {
-			a %= 0x0400
-		}
 	case MIRROR_VERTICAL:
-		a %= 0x800
+		switch {
+		case (a >= 0 && a <= 0x03FF) || (a >= 0x0800 && a <= 0x0BFF): // table 0
+			a &= 0x03FF
+		case (a >= 0x0400 && a <= 0x07FF) || (a >= 0x0C00 && a <= 0x0FFF): // table 1
+			a = (a & 0x03FF) + 0x400
+		}
+	case MIRROR_HORIZONTAL:
+		switch {
+		case (a >= 0 && a <= 0x07FF): // table 0
+			a &= 0x03FF
+		case (a >= 0x0800 && a <= 0x0FFF): // table 1
+			a = (a & 0x03FF) + 0x400
+		}
 	}
 
-	return a + BASE_NAMETABLE
+	return a
 }
 
 func (p *PPU) read(addr uint16) uint8 {
