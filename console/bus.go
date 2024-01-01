@@ -24,7 +24,7 @@ const (
 	MAX_ADDRESS         = math.MaxUint16
 	MEM_SIZE            = MAX_ADDRESS + 1
 	MAX_NES_BASE_RAM    = 0x1FFF
-	MAX_IO_REG_MIRRORED = 0x4000
+	MAX_IO_REG_MIRRORED = 0x3FFF
 	MAX_IO_REG          = 0x4020
 	MAX_SRAM            = 0x6000
 )
@@ -104,10 +104,10 @@ func (b *Bus) readNES(addr uint16) uint8 {
 	switch {
 	case addr <= MAX_NES_BASE_RAM:
 		// 0x800-0x1FFF mirrors 0x0000-0x07FF
-		return b.ram[addr%0x800]
-	case addr < MAX_IO_REG_MIRRORED:
+		return b.ram[addr&0x7FF]
+	case addr <= MAX_IO_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
-		return b.ppu.ReadReg(0x2000 + ((addr - 0x2000) % 0x8))
+		return b.ppu.ReadReg(addr & 0x2007)
 	case addr < MAX_IO_REG:
 		// handle joysticks
 		return 0
@@ -142,10 +142,10 @@ func (b *Bus) writeNES(addr uint16, val uint8) {
 	switch {
 	case addr <= MAX_NES_BASE_RAM:
 		// 0x800-0x1FFF mirrors 0x0000-0x07FF
-		b.ram[addr%0x800] = val
-	case addr < MAX_IO_REG_MIRRORED:
+		b.ram[addr&0x07FF] = val
+	case addr <= MAX_IO_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
-		b.ppu.WriteReg(0x2000+((addr-0x2000)%0x8), val)
+		b.ppu.WriteReg(addr&0x2007, val)
 	case addr < MAX_IO_REG:
 		// handle joysticks
 	case addr <= MAX_SRAM:
