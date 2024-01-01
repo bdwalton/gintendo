@@ -431,18 +431,18 @@ func (p *PPU) tick() {
 			p.clearVBlank()
 		}
 
-		// // From NESDev, frame timing: With rendering disabled
-		// // (background and sprites disabled in PPUMASK
-		// // ($2001)), each PPU frame is 341*262=89342 PPU
-		// // clocks long. There is no skipped clock every other
-		// // frame.  With rendering enabled, each odd PPU frame
-		// // is one PPU clock shorter than normal. This is done
-		// // by skipping the first idle tick on the first
-		// // visible scanline (by jumping directly from
-		// // (339,261) on the pre-render scanline to (0,0) on
-		// // the first visible scanline and doing the last cycle
-		// // of the last dummy nametable fetch there instead;
-		// // see this diagram).
+		// From NESDev, frame timing: With rendering disabled
+		// (background and sprites disabled in PPUMASK
+		// ($2001)), each PPU frame is 341*262=89342 PPU
+		// clocks long. There is no skipped clock every other
+		// frame.  With rendering enabled, each odd PPU frame
+		// is one PPU clock shorter than normal. This is done
+		// by skipping the first idle tick on the first
+		// visible scanline (by jumping directly from
+		// (339,261) on the pre-render scanline to (0,0) on
+		// the first visible scanline and doing the last cycle
+		// of the last dummy nametable fetch there instead;
+		// see this diagram).
 		if p.scanline == 0 && p.scandot == 0 {
 			// May need to test this for "rendering
 			// enabled", but let's build out first.
