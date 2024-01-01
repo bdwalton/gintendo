@@ -48,18 +48,18 @@ const (
 // ||+------- Sprite size (0: 8x8 pixels; 1: 8x16 pixels)
 // |+-------- PPU master/slave select
 // |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
-// +--------- Generate an NMI at the start of the
+// +--------- Generate an NMI at the start of the vertical blanking
 //
-//	vertical blanking interval (0: off; 1: on)
+//	interval (0: off; 1: on)
 const (
-	CTRL_NAMETABLE1             = 1
-	CTRL_NAMETABLE2             = 1 << 1
-	CTRL_VRAM_ADD_INCREMENT     = 1 << 2
-	CTRL_SPRITE_PATTERN_ADDR    = 1 << 3
-	CTRL_BACKROUND_PATTERN_ADDR = 1 << 4
-	CTRL_SPRITE_SIZE            = 1 << 5
-	CTRL_MASTER_SLAVE_SELECT    = 1 << 6
-	CTRL_GENERATE_NMI           = 1 << 7
+	CTRL_NAMETABLE1              = 1
+	CTRL_NAMETABLE2              = 1 << 1
+	CTRL_VRAM_ADD_INCREMENT      = 1 << 2
+	CTRL_SPRITE_PATTERN_ADDR     = 1 << 3
+	CTRL_BACKGROUND_PATTERN_ADDR = 1 << 4
+	CTRL_SPRITE_SIZE             = 1 << 5
+	CTRL_MASTER_SLAVE_SELECT     = 1 << 6
+	CTRL_GENERATE_NMI            = 1 << 7
 )
 
 // VRAM increment options
@@ -127,7 +127,6 @@ type Bus interface {
 
 type PPU struct {
 	bus          Bus
-	ticks        int64
 	pixels       []color.RGBA
 	paletteTable [PALETTE_SIZE]uint8
 	oamData      [OAM_SIZE]uint8
@@ -149,6 +148,16 @@ type PPU struct {
 
 	// For reads from registers that are delayed due to cycle counts
 	bufferData uint8
+
+	// rendering variables for the background
+	bgNextTileID     uint8  // next bg tile id
+	bgNextTileAttrib uint8  // next bg tile attribute
+	bgNextTileLsb    uint8  // next bg tile least significant byte
+	bgNextTileMsb    uint8  // next bg tile most significant byte
+	bgSPLo           uint16 // shift pattern low
+	bgSPHi           uint16 // shift pattern high
+	bgSALo           uint16 // shift attribute low
+	bgSAHi           uint16 // shift attribute low
 }
 
 func New(b Bus) *PPU {
@@ -179,6 +188,7 @@ func (p *PPU) GetResolution() (int, int) {
 func (p *PPU) WriteReg(r uint16, val uint8) {
 	switch r {
 	case PPUCTRL:
+		fmt.Printf("WriteReg(%04x) -> %08b (NMI: %t)\n", r, val, val&CTRL_GENERATE_NMI > 0)
 		p.ctrl = val
 		// we set loopy t's nametable x and y
 		p.t.setNametableX(val)
@@ -358,18 +368,6 @@ func (p *PPU) generateNMI() bool {
 	return p.ctrl&CTRL_GENERATE_NMI > 0
 }
 
-// Tick executes n cycles. We call it tick instead of step because
-// there is no real logic. It's just a fixed loop in the hardware.
-func (p *PPU) Tick(n int) {
-	if p.generateNMI() {
-		p.bus.TriggerNMI()
-	}
-
-	for i := 0; i < n; i++ {
-		p.tick()
-	}
-}
-
 func (p *PPU) clearVBlank() {
 	p.status &^= STATUS_VERTICAL_BLANK
 }
@@ -378,34 +376,236 @@ func (p *PPU) setVBlank() {
 	p.status |= STATUS_VERTICAL_BLANK
 }
 
+func (p *PPU) nmiEnabled() bool {
+	return p.ctrl&CTRL_GENERATE_NMI > 0
+}
+
+func (p *PPU) renderBackground() bool {
+	return p.mask&MASK_RENDER_BG > 0
+}
+
+func (p *PPU) renderForeground() bool {
+	return p.mask&MASK_RENDER_FG > 0
+}
+
+func (p *PPU) renderingEnabled() bool {
+	return p.renderBackground() || p.renderForeground()
+}
+
+func (p *PPU) loadBGShifters() {
+	p.bgSPLo = (p.bgSPLo & 0xFF00) | uint16(p.bgNextTileLsb)
+	p.bgSPHi = (p.bgSPHi & 0xFF00) | uint16(p.bgNextTileMsb)
+
+	p.bgSALo = p.bgSALo & 0xFF00
+	if p.bgNextTileAttrib&0x01 == 1 {
+		p.bgSALo |= 0xFF
+	}
+
+	p.bgSAHi = p.bgSAHi & 0xFF00
+	if p.bgNextTileAttrib&0x02 > 0 {
+		p.bgSAHi |= 0xFF
+	}
+}
+
+func (p *PPU) backgroundTableID() uint8 {
+	return p.ctrl & CTRL_BACKGROUND_PATTERN_ADDR >> 4
+}
+
+// Tick executes n cycles. We call it tick instead of step because
+// there is no real logic. It's just a fixed loop in the hardware.
+func (p *PPU) Tick(n int) {
+	for i := 0; i < n; i++ {
+		p.tick()
+	}
+}
+
 // This is the main execution logic for the PPU
 func (p *PPU) tick() {
-	// Do real work here
-	if p.scanline >= -1 && p.scanline < 240 {
+	// Documented at:
+	// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg We use
+	// -1 - 260 instead of 0 - 261, with our pre-render being -1
+	// instead of 261. Do the real work here
+	switch {
+	case p.scanline >= -1 && p.scanline < 240:
 		if p.scanline == -1 && p.scandot == 1 {
 			p.clearVBlank()
 		}
-	}
-	p.ticks += 1
 
-	bank := 0
+		// // From NESDev, frame timing: With rendering disabled
+		// // (background and sprites disabled in PPUMASK
+		// // ($2001)), each PPU frame is 341*262=89342 PPU
+		// // clocks long. There is no skipped clock every other
+		// // frame.  With rendering enabled, each odd PPU frame
+		// // is one PPU clock shorter than normal. This is done
+		// // by skipping the first idle tick on the first
+		// // visible scanline (by jumping directly from
+		// // (339,261) on the pre-render scanline to (0,0) on
+		// // the first visible scanline and doing the last cycle
+		// // of the last dummy nametable fetch there instead;
+		// // see this diagram).
+		if p.scanline == 0 && p.scandot == 0 {
+			// May need to test this for "rendering
+			// enabled", but let's build out first.
+			p.scandot += 1
+		}
 
-	for tile_n := 0; tile_n < 32; tile_n++ {
-		s := uint16(bank + (tile_n * 16))
-		e := uint16(s+15) + 1
-		tile := p.bus.ChrRead(s, e)
+		if (p.scandot >= 2 && p.scandot < 258) || (p.scandot >= 321 && p.scandot < 338) {
+			if p.renderBackground() {
+				p.bgSPLo <<= 1
+				p.bgSPHi <<= 1
 
-		for y := 0; y < 8; y++ {
-			u, l := tile[y], tile[y+8]
-			for x := 7; x > 0; x-- {
-				val := (1&u)<<1 | (1 & l)
-				u >>= 1
-				l >>= 1
-
-				posx := x + (tile_n*8)%NES_RES_WIDTH
-				posy := (y * NES_RES_WIDTH)
-				p.pixels[posy+posx] = SYSTEM_PALETTE[val]
+				p.bgSAHi <<= 1
+				p.bgSAHi <<= 1
 			}
+
+			switch (p.scandot - 1) % 8 {
+			case 0:
+				// Prime the next 8 pixels worth of tile data
+				p.loadBGShifters()
+				// The next tile is in the nametable
+				// data but only 12 bits of the loopy
+				// v register are useful for
+				// discovering it.
+				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) | 0x0FFF))
+			case 2:
+				coarseY := p.v.coarseY()
+				coarseX := p.v.coarseX()
+
+				a := BASE_NAMETABLE |
+					ATTRIBUTE_OFFSET |
+					(p.v.nametableY() << 11) |
+					(p.v.nametableX() << 10) |
+					((coarseY >> 2) << 3) |
+					(coarseX >> 2)
+				p.bgNextTileAttrib = p.read(a)
+
+				if coarseY&0x02 > 0 {
+					p.bgNextTileAttrib >>= 4
+				}
+				if coarseX&0x02 > 0 {
+					p.bgNextTileAttrib >>= 2
+				}
+
+				p.bgNextTileAttrib &= 0x03
+			case 4:
+				a := (uint16(p.backgroundTableID()) << 12) +
+					(uint16(p.bgNextTileID) << 4) +
+					uint16(p.v.fineY())
+				p.bgNextTileLsb = p.read(a)
+			case 6:
+				a := (uint16(p.backgroundTableID()) << 12) +
+					(uint16(p.bgNextTileID) << 4) +
+					p.v.fineY() +
+					8 // Offset by 8 to select next plane
+				p.bgNextTileMsb = p.read(a)
+			case 7:
+				// Increment X scroll, but only when rendering is enabled
+				if p.renderingEnabled() {
+					if p.v.coarseX() == 31 {
+						p.v.resetCoarseX()
+						p.v.toggleNametableX()
+					} else {
+						p.v.incrementCoarseX()
+					}
+				}
+			}
+
+			// We're now outside of visible dots on this line
+			switch {
+			case p.scandot == 256:
+				// Scroll Y, but only if rendering is enabled
+				if p.renderingEnabled() {
+
+					// If possible, just increment the fine y offset
+					if p.v.fineY() < 7 {
+						p.v.incrementFineY()
+					} else {
+						p.v.resetFineY()
+						switch p.v.coarseY() {
+						case 29:
+							p.v.resetCoarseY()
+							p.v.toggleNametableY()
+						case 31:
+							p.v.resetCoarseY()
+						default:
+							p.v.incrementCoarseY()
+						}
+					}
+				}
+			case p.scandot == 257:
+				p.loadBGShifters()
+				// Only if rendering is enabled
+				if p.renderingEnabled() {
+					p.v.setNametableX(uint8(p.t.nametableX()))
+					p.v.setCoarseX(p.t.coarseX())
+				}
+			case p.scandot == 338 || p.scandot == 349:
+				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0xFFF))
+			case p.scanline == -1 && p.scandot > 280 && p.scandot < 305:
+				// Ony if rendering is enabled
+				if p.renderingEnabled() {
+					p.v.setFineY(p.t.fineY())
+					p.v.setNametableY(uint8(p.t.nametableY()))
+					p.v.setCoarseY(p.t.coarseY())
+				}
+			}
+
+		}
+	case p.scanline >= 241 && p.scanline < 261:
+
+		if p.scanline == 241 && p.scandot == 1 {
+			p.setVBlank()
+			if p.nmiEnabled() {
+				fmt.Println("Triggering NMI")
+				p.bus.TriggerNMI()
+			}
+		}
+	}
+
+	var bgPix uint8 = 0x00 // 2 bit pixel to be rendered
+	var bgPal uint8 = 0x00 // 3 bit index of the palette used by the pixel
+	if p.renderBackground() {
+		var mux uint16 = (0x8000 >> p.x)
+
+		var p0Pix, p1Pix uint8
+
+		if p.bgSPLo&mux > 0 {
+			p0Pix = 1
+		}
+
+		if p.bgSPHi&mux > 0 {
+			p1Pix = 1
+		}
+
+		bgPix = (p1Pix << 1) | p0Pix
+
+		var bgPal0, bgPal1 uint8
+		if p.bgSALo&mux > 0 {
+			bgPal0 = 1
+		}
+		if p.bgSAHi&mux > 0 {
+			bgPal1 = 1
+		}
+		bgPal = (bgPal1 << 1) | bgPal0
+	}
+
+	if p.scanline >= 0 && p.scanline < 240 && p.scandot >= 0 && p.scandot < 256 {
+		addr := uint16(0x3F00) + (uint16(bgPal) << 2) + uint16(bgPix)
+		idx := NES_RES_WIDTH*int(p.scanline) + int(p.scandot)
+		// fmt.Printf("(%d, %d = %d): 0x%04x -> ", p.scandot, p.scanline, idx, addr)
+
+		m := p.read(addr)
+		// fmt.Printf("0x%02x [0x%02x]\n", m, m&0x3F)
+
+		p.pixels[idx] = SYSTEM_PALETTE[m&0x3F]
+	}
+
+	p.scandot += 1
+	if p.scandot >= 341 {
+		p.scandot = 0
+		p.scanline += 1
+		if p.scanline >= 261 {
+			p.scanline = -1
 		}
 	}
 }
