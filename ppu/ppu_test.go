@@ -140,7 +140,7 @@ func TestWriteRegPPUSCROLL(t *testing.T) {
 	for i, tc := range cases {
 		p.WriteReg(PPUSCROLL, tc.val)
 		if uint16(p.t) != tc.wantT || p.x != tc.wantX || p.wLatch != tc.wantW {
-			t.Errorf("%d: Got t,x,w=%015b,%03b,%d, wanted:\n\t\t         %015b,%03b,%d", i, p.t, p.x, p.wLatch, tc.wantT, tc.wantX, tc.wantW)
+			t.Errorf("%d: Got t,x,w=%015b,%03b,%d, wanted:\n\t\t          %015b,%03b,%d", i, p.t, p.x, p.wLatch, tc.wantT, tc.wantX, tc.wantW)
 		}
 	}
 }
