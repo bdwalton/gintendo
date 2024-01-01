@@ -317,7 +317,6 @@ func (p *PPU) read(addr uint16) uint8 {
 			val &= 0x30
 		}
 
-		// fmt.Printf("palette: %02x\n", val)
 		return val
 	}
 
