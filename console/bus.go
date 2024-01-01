@@ -190,10 +190,11 @@ func (b *Bus) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			cpuTicks := b.cpu.Step()
-			// 3 ppu ticks for every system tick
-			b.ppu.Tick(cpuTicks * 3)
-			b.ticks += uint64(cpuTicks * 3)
+			b.ppu.Tick()
+			if b.ticks%3 == 0 {
+				b.cpu.Tick()
+			}
+			b.ticks += 1
 		}
 	}
 }
@@ -246,7 +247,10 @@ func (b *Bus) BIOS(ctx context.Context) {
 
 			b.Run(cctx)
 		case 's', 'S':
-			b.ppu.Tick(b.cpu.Step() * 3)
+			c := b.cpu.Step() * 3
+			for i := 0; i < c; i++ {
+				b.ppu.Tick()
+			}
 		case 't', 'T':
 			fmt.Println()
 			i := 0

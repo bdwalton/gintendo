@@ -2,13 +2,11 @@
 package mos6502
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math"
 	"reflect"
 	"strings"
-	"time"
 )
 
 const (
@@ -224,6 +222,7 @@ func (c *CPU) Reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
 	c.pc = c.Read16(INT_RESET)
+	c.cycles = 0
 }
 
 // PC returns the current value of the program counter
@@ -256,36 +255,16 @@ func (c *CPU) LoadMem(start uint16, mem []uint8) {
 	}
 }
 
-// Run will step the CPU until a breakpoint is reached or a trap is
-// detected. Traps are simply infinite loops running the same
-// instruction over and over. allowTrap determines whether we'll break
-// if PC isn't advanced. callback allows for driving other
-// functionality beyond the CPU, at the caller's discretion.
-func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}, allowTrap bool, callback func(int)) {
-	// https://www.nesdev.org/wiki/CPU#Frequencies
-	t := time.NewTicker(time.Nanosecond * 559)
-	cycles := 0
-	for {
-		prev_pc := c.pc
-		select {
-		case <-t.C:
-			cycles = c.Step()
-		case <-ctx.Done():
-			return
-		}
-
-		if _, ok := breaks[c.pc]; ok {
-			fmt.Printf("Hit breakpoint at 0x%04x\n", c.pc)
-			return
-		}
-
-		if c.pc == prev_pc && allowTrap {
-			fmt.Println("TRAP detected. Breaking")
-			return
-		}
-
-		callback(cycles)
+// Tick should be called by the system bus at machine frequency. It
+// will only execute a CPU instruction when we've paid down the cycle
+// debt from the last one.
+func (c *CPU) Tick() {
+	if c.cycles > 0 {
+		c.cycles -= 1
+		return
 	}
+
+	c.Step()
 }
 
 // Step will single step the CPU forward, returning the number of
@@ -293,15 +272,20 @@ func (c *CPU) Run(ctx context.Context, breaks map[uint16]struct{}, allowTrap boo
 // executes the current instruction (at PC) and advances PC when
 // finished.
 func (c *CPU) Step() int {
-	c.cycles = 0 // We return the cycles consumed at the end, so zero it to start
-
 	if c.pendingInterrupt != INT_NONE {
 		c.pushAddress(c.pc)
 		c.pushStack(c.status)
 		c.pc = c.Read16(uint16(c.pendingInterrupt))
 		c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
+		switch c.pendingInterrupt {
+		case INT_NMI:
+			c.cycles = 7
+		case INT_IRQ:
+			c.cycles = 8
+		}
+
 		c.pendingInterrupt = INT_NONE
-		return 7 // 7 cycles for the context switch
+		return c.cycles
 	}
 
 	op, err := c.getInst()

@@ -410,16 +410,9 @@ func (p *PPU) backgroundTableID() uint8 {
 	return p.ctrl & CTRL_BACKGROUND_PATTERN_ADDR >> 4
 }
 
-// Tick executes n cycles. We call it tick instead of step because
+// Tick executes a PPU cycle. We call it tick instead of step because
 // there is no real logic. It's just a fixed loop in the hardware.
-func (p *PPU) Tick(n int) {
-	for i := 0; i < n; i++ {
-		p.tick()
-	}
-}
-
-// This is the main execution logic for the PPU
-func (p *PPU) tick() {
+func (p *PPU) Tick() {
 	// Documented at:
 	// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg We use
 	// -1 - 260 instead of 0 - 261, with our pre-render being -1
