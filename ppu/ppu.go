@@ -164,7 +164,7 @@ func New(b Bus) *PPU {
 	ps := NES_RES_WIDTH * NES_RES_HEIGHT
 	px := make([]color.RGBA, ps, ps)
 	for i := 0; i < ps; i++ {
-		px[i] = color.RGBA{0, 0, 0, 0xff} // Black
+		px[i] = color.RGBA{0, 0, 0, 0xFF} // Black
 	}
 	return &PPU{
 		bus:        b,
