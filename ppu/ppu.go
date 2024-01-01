@@ -56,12 +56,6 @@ const (
 	CTRL_GENERATE_NMI            = 1 << 7
 )
 
-// VRAM increment options
-const (
-	CTRL_INCR_ACROSS = 1
-	CTRL_INCR_DOWN   = 32
-)
-
 // 7  bit  0
 // ---- ----
 // VSO. ....
@@ -239,9 +233,9 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 }
 
 func (p *PPU) vramIncrement() {
-	x := uint16(CTRL_INCR_ACROSS)
+	x := uint16(1) // Across
 	if p.ctrl&CTRL_VRAM_ADD_INCREMENT > 0 {
-		x = CTRL_INCR_DOWN
+		x = 32 // Down
 	}
 
 	p.v = loopy(uint16(p.v) + x)
@@ -536,7 +530,6 @@ func (p *PPU) Tick() {
 					p.v.setCoarseY(p.t.coarseY())
 				}
 			}
-
 		}
 	case p.scanline >= 241 && p.scanline < 261:
 		if p.scanline == 241 && p.scandot == 1 {
