@@ -13,8 +13,8 @@ func (tb *testBus) MirrorMode() uint8 {
 	return tb.mirrorMode
 }
 
-func (tb *testBus) ChrRead(start, end uint16) []uint8 {
-	return []uint8{0}
+func (tb *testBus) ChrRead(addr uint16) uint8 {
+	return 0
 }
 
 func (tb *testBus) TriggerNMI() {

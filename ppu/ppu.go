@@ -120,7 +120,7 @@ const (
 )
 
 type Bus interface {
-	ChrRead(uint16, uint16) []uint8
+	ChrRead(uint16) uint8
 	TriggerNMI()
 	MirrorMode() uint8
 }
@@ -306,7 +306,7 @@ func (p *PPU) read(addr uint16) uint8 {
 	switch {
 	case a < BASE_NAMETABLE:
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
-		return p.bus.ChrRead(a, a+1)[0]
+		return p.bus.ChrRead(a)
 	case a <= NAMETABLE_MIRROR_END:
 		return p.vram[p.tileMapAddr(a)]
 	case a >= PALETTE_RAM && a <= PALETTE_MIRROR_END: // Palette Table

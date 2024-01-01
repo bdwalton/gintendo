@@ -126,8 +126,8 @@ func (b *Bus) readReg(addr uint16) uint8 {
 }
 
 // ChrRead is used by the PPU to access CHR-ROM in the loaded Mapper
-func (b *Bus) ChrRead(start, end uint16) []uint8 {
-	return b.mapper.ChrRead(start, end)
+func (b *Bus) ChrRead(addr uint16) uint8 {
+	return b.mapper.ChrRead(addr)
 }
 
 func (b *Bus) Read(addr uint16) uint8 {
