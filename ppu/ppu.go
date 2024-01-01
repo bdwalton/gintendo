@@ -302,7 +302,7 @@ func (p *PPU) read(addr uint16) uint8 {
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
 		return p.bus.ChrRead(a)
 	case a <= NAMETABLE_MIRROR_END:
-		return p.vram[p.tileMapAddr(a)]
+		return p.vram[p.tileMapAddr((a&0x0FFF)+BASE_NAMETABLE)]
 	case a >= PALETTE_RAM && a <= PALETTE_MIRROR_END: // Palette Table
 		a &= 0x001F // handle mirroring
 		switch a {
@@ -340,7 +340,7 @@ func (p *PPU) write(addr uint16, val uint8) {
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
 		// TODO(bdwalton): Add write support
 	case a <= NAMETABLE_MIRROR_END:
-		p.vram[p.tileMapAddr(a)] = val
+		p.vram[p.tileMapAddr((a&0x0FFF)+BASE_NAMETABLE)] = val
 	case a >= PALETTE_RAM && a <= PALETTE_MIRROR_END: // Palette Table
 		a &= 0x001F // handle mirroring
 		switch a {
