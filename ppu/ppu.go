@@ -6,12 +6,6 @@ import (
 	"image/color"
 )
 
-const (
-	VRAM_SIZE    = 2048
-	OAM_SIZE     = 256
-	PALETTE_SIZE = 32
-)
-
 // Display constants
 const (
 	NES_RES_WIDTH  = 256
@@ -128,9 +122,9 @@ type Bus interface {
 type PPU struct {
 	bus          Bus
 	pixels       []color.RGBA
-	paletteTable [PALETTE_SIZE]uint8
-	oamData      [OAM_SIZE]uint8
-	vram         [VRAM_SIZE]uint8
+	paletteTable [32]uint8
+	oamData      [256]uint8
+	vram         [2048]uint8 // 2k of video ram
 	mirrorMode   uint8
 
 	// internal registers
