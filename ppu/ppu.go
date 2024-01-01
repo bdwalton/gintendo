@@ -211,7 +211,7 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 	}
 }
 
-// readReg returns the current value of a register.
+// ReadReg returns the current value of a register.
 func (p *PPU) ReadReg(r uint16) uint8 {
 	var ret uint8 = 0x00 // Most regstiers aren't readable, so we'll return 0
 	switch r {
