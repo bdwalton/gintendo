@@ -541,8 +541,8 @@ func (p *PPU) tick() {
 				}
 			case p.scandot == 338 || p.scandot == 349:
 				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0xFFF))
-			case p.scanline == -1 && p.scandot > 280 && p.scandot < 305:
-				// Ony if rendering is enabled
+			case p.scanline == -1 && p.scandot >= 280 && p.scandot < 305:
+				// Only if rendering is enabled
 				if p.renderingEnabled() {
 					p.v.setFineY(p.t.fineY())
 					p.v.setNametableY(uint8(p.t.nametableY()))
