@@ -256,15 +256,10 @@ const (
 	PATTERN_TABLE_1      = 0x1000
 	BASE_NAMETABLE       = 0x2000
 	ATTRIBUTE_OFFSET     = 0x03C0 // each nametable has attribute data at the end of it
-	NAMETABLE_0          = BASE_NAMETABLE
-	NAMETABLE_1          = 0x2400
-	NAMETABLE_2          = 0x2800
-	NAMETABLE_3          = 0x2C00
 	NAMETABLE_END        = 0x2FFF
-	NAMETABLE_MIRROR     = 0x3000
 	NAMETABLE_MIRROR_END = 0x3EFF
 	PALETTE_RAM          = 0x3F00
-	PALETTE_MIRROR       = 0x3F20
+	PALETTE_MIRROR_END   = 0x3FFF
 )
 
 // tileMapAddr handles mirror mode mapping of addresses with the
@@ -297,40 +292,65 @@ func (p *PPU) tileMapAddr(addr uint16) uint16 {
 
 func (p *PPU) read(addr uint16) uint8 {
 	// 0x4000 - 0xFFFF is mirrored to 0x0000 - 0x3FFF
-	a := addr % 0x4000
+	a := addr & 0x3FFF
 
 	switch {
-	case a < NAMETABLE_0:
+	case a < BASE_NAMETABLE:
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
-		return p.bus.ChrRead(a, a)[0]
-	case a < PALETTE_RAM:
-		return p.vram[BASE_NAMETABLE-p.tileMapAddr(a)]
-	case a < NAMETABLE_MIRROR:
-		return p.vram[BASE_NAMETABLE-p.tileMapAddr(a-NAMETABLE_0)]
-	case a < PALETTE_MIRROR:
-		return p.vram[a-PALETTE_RAM]
-	default:
-		x := (a - PALETTE_RAM) % 0x0020
-		return p.vram[PALETTE_RAM+x]
+		return p.bus.ChrRead(a, a+1)[0]
+	case a <= NAMETABLE_MIRROR_END:
+		return p.vram[p.tileMapAddr(a)]
+	case a >= PALETTE_RAM && a <= PALETTE_MIRROR_END: // Palette Table
+		a &= 0x001F // handle mirroring
+		switch a {
+		case 0x0010:
+			a = 0x0000
+		case 0x0014:
+			a = 0x0004
+		case 0x0018:
+			a = 0x0008
+		case 0x001C:
+			a = 0x000C
+		}
+		val := p.paletteTable[a]
+		switch p.mask & MASK_GREYSCALE {
+		case 0:
+			val &= 0x3F
+		case 1:
+			val &= 0x30
+		}
+
+		// fmt.Printf("palette: %02x\n", val)
+		return val
 	}
+
+	panic("Shouldn't be reached")
+	return 0
 }
 
 func (p *PPU) write(addr uint16, val uint8) {
-	a := addr % 0x4000
+	// 0x4000 - 0xFFFF is mirrored to 0x0000 - 0x3FFF
+	a := addr & 0x3FFF
 
 	switch {
-	case a < NAMETABLE_0:
+	case a < BASE_NAMETABLE:
 		// Pattern Table 0 and 1 (upper: 0x0FFF, 0x1FFF)
-		panic("we don't support writting to CHR ROM")
-	case a < PALETTE_RAM:
+		// TODO(bdwalton): Add write support
+	case a <= NAMETABLE_MIRROR_END:
 		p.vram[p.tileMapAddr(a)] = val
-	case a < NAMETABLE_MIRROR:
-		p.vram[p.tileMapAddr(a-NAMETABLE_0)] = val
-	case a < PALETTE_MIRROR:
-		p.vram[a-PALETTE_RAM] = val
-	default:
-		x := (a - PALETTE_RAM) % 0x0020
-		p.vram[PALETTE_RAM+x] = val
+	case a >= PALETTE_RAM && a <= PALETTE_MIRROR_END: // Palette Table
+		a &= 0x001F // handle mirroring
+		switch a {
+		case 0x0010:
+			a = 0x0000
+		case 0x0014:
+			a = 0x0004
+		case 0x0018:
+			a = 0x0008
+		case 0x001C:
+			a = 0x000C
+		}
+		p.paletteTable[a] = val
 	}
 }
 
