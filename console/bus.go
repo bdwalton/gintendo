@@ -35,6 +35,7 @@ type Bus struct {
 	mapper mappers.Mapper
 	mode   int // NES or regular computer
 	ram    []uint8
+	ticks  uint64
 }
 
 func New(m mappers.Mapper, mode int) *Bus {
@@ -183,6 +184,20 @@ func readAddress(prompt string) uint16 {
 	return a
 }
 
+func (b *Bus) Run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			cpuTicks := b.cpu.Step()
+			// 3 ppu ticks for every system tick
+			b.ppu.Tick(cpuTicks * 3)
+			b.ticks += uint64(cpuTicks * 3)
+		}
+	}
+}
+
 func (b *Bus) BIOS(ctx context.Context) {
 	sigQuit := make(chan os.Signal, 1)
 	signal.Notify(sigQuit, syscall.SIGINT, syscall.SIGTERM)
@@ -229,11 +244,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 				}
 			}(cctx)
 
-			runPPU := func(n int) {
-				b.ppu.Tick(n * 3) // 3 ticks per cpu cycle
-			}
-
-			b.cpu.Run(cctx, breaks, false /*no traps*/, runPPU)
+			b.Run(cctx)
 		case 's', 'S':
 			b.ppu.Tick(b.cpu.Step() * 3)
 		case 't', 'T':
