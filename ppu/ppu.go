@@ -233,12 +233,12 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 }
 
 func (p *PPU) vramIncrement() {
-	x := uint16(1) // Across
-	if p.ctrl&CTRL_VRAM_ADD_INCREMENT > 0 {
-		x = 32 // Down
+	switch p.ctrl * CTRL_VRAM_ADD_INCREMENT >> 2 {
+	case 0:
+		p.v.incrementCoarseX() // Move across (== p.v++)
+	case 1:
+		p.v.incrementCoarseY() // Move down (== p.v+=32)
 	}
-
-	p.v = loopy(uint16(p.v) + x)
 }
 
 // Mirroring mode
