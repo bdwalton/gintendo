@@ -471,11 +471,11 @@ func (p *PPU) tick() {
 				coarseX := p.v.coarseX()
 
 				a := BASE_NAMETABLE |
-					ATTRIBUTE_OFFSET |
-					(p.v.nametableY() << 11) |
-					(p.v.nametableX() << 10) |
-					((coarseY >> 2) << 3) |
-					(coarseX >> 2)
+					ATTRIBUTE_OFFSET | // All with the attribute space of nametables
+					(p.v.nametableY() << 11) | // nametable select
+					(p.v.nametableX() << 10) | // nametable select
+					((coarseY >> 2) << 3) | // high 3 bits of coarse Y
+					(coarseX >> 2) // high 3 bits of coarse X
 				p.bgNextTileAttrib = p.read(a)
 
 				if coarseY&0x02 > 0 {
