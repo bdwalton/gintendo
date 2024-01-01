@@ -499,6 +499,7 @@ func (p *PPU) tick() {
 				p.bgNextTileMsb = p.read(a)
 			case 7:
 				// Increment X scroll, but only when rendering is enabled
+				// https://www.nesdev.org/wiki/PPU_scrolling
 				if p.renderingEnabled() {
 					if p.v.coarseX() == 31 {
 						p.v.resetCoarseX()
@@ -512,6 +513,7 @@ func (p *PPU) tick() {
 			// We're now outside of visible dots on this line
 			switch {
 			case p.scandot == 256:
+				// https://www.nesdev.org/wiki/PPU_scrolling
 				// Scroll Y, but only if rendering is enabled
 				if p.renderingEnabled() {
 					// If possible, just increment the fine y offset
