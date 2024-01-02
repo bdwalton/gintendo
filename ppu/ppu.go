@@ -499,7 +499,7 @@ func (p *PPU) Tick() {
 				// data but only 12 bits of the loopy
 				// v register are useful for
 				// discovering it.
-				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) | 0x0FFF))
+				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0x0FFF))
 			case 2:
 				coarseY := p.v.coarseY()
 				coarseX := p.v.coarseX()
