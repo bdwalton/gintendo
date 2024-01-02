@@ -3,6 +3,7 @@ package ppu
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 )
 
@@ -115,7 +116,7 @@ type Bus interface {
 
 type PPU struct {
 	bus          Bus
-	pixels       []color.RGBA
+	pixels       *image.RGBA
 	paletteTable [32]uint8
 	oamData      [256]uint8
 	vram         [2048]uint8 // 2k of video ram
@@ -156,7 +157,7 @@ func New(b Bus) *PPU {
 	}
 	return &PPU{
 		bus:        b,
-		pixels:     px,
+		pixels:     image.NewRGBA(image.Rect(0, 0, NES_RES_WIDTH, NES_RES_HEIGHT)),
 		mirrorMode: b.MirrorMode(),
 	}
 }
@@ -165,7 +166,7 @@ func (p *PPU) String() string {
 	return fmt.Sprintf("x=%d, y=%d, v=%s fineX=%03b (t=%s), ctrl=%08b,mask=%08b,status=%08b ", p.scandot, p.scanline, p.v.String(), p.x, p.t.String(), p.ctrl, p.mask, p.status)
 }
 
-func (p *PPU) GetPixels() []color.RGBA {
+func (p *PPU) GetPixels() *image.RGBA {
 	return p.pixels
 }
 
@@ -579,13 +580,7 @@ func (p *PPU) Tick() {
 
 	if p.scanline >= 0 && p.scanline < 240 && p.scandot >= 0 && p.scandot < 256 {
 		addr := uint16(0x3F00) + (uint16(bgPal) << 2) + uint16(bgPix)
-		idx := NES_RES_WIDTH*int(p.scanline) + int(p.scandot)
-		// fmt.Printf("(%d, %d = %d): 0x%04x -> ", p.scandot, p.scanline, idx, addr)
-
-		m := p.read(addr)
-		// fmt.Printf("0x%02x [0x%02x]\n", m, m&0x3F)
-
-		p.pixels[idx] = SYSTEM_PALETTE[m&0x3F]
+		p.pixels.Set(int(p.scandot), int(p.scanline), SYSTEM_PALETTE[p.read(addr)&0x3F])
 	}
 
 	p.scandot += 1
