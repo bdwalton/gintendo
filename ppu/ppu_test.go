@@ -25,6 +25,25 @@ func (tb *testBus) reset() {
 	tb.nmiTriggered = false
 }
 
+func TestBackgroundTableID(t *testing.T) {
+	cases := []struct {
+		ctrl uint8
+		want uint8
+	}{
+		{0b00010000, 1},
+		{0b00111100, 1},
+		{0b00101100, 0},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.WriteReg(PPUCTRL, tc.ctrl)
+		if got := p.backgroundTableID(); got != tc.want {
+			t.Errorf("%d: Got %d, wanted %d; ctrl=%08b", i, got, tc.want, p.ctrl)
+		}
+	}
+}
+
 func TestTileMapAddr(t *testing.T) {
 	cases := []struct {
 		addr uint16
