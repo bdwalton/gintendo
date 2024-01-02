@@ -508,6 +508,7 @@ func (p *PPU) Tick() {
 
 		if p.renderLine() && p.fetchCycle() {
 			if p.renderBackground() {
+				// update the shifters
 				p.bgSPLo <<= 1
 				p.bgSPHi <<= 1
 
