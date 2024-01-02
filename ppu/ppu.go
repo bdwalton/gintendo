@@ -437,9 +437,24 @@ func (p *PPU) renderLine() bool {
 	return p.visibleLine() || p.prerenderLine()
 }
 
+func (p *PPU) incrementScan() {
+	p.scandot++
+	if p.scandot >= 341 {
+		p.scandot = 0
+		p.scanline += 1
+		if p.scanline > 261 {
+			p.scanline = 0
+			p.frame++
+			p.oddFrame = !p.oddFrame
+		}
+	}
+}
+
 // Tick executes a PPU cycle. We call it tick instead of step because
 // there is no real logic. It's just a fixed loop in the hardware.
 func (p *PPU) Tick() {
+	p.incrementScan()
+
 	// Documented at:
 	// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg.  Do
 	// the real work here
@@ -608,14 +623,5 @@ func (p *PPU) Tick() {
 	if p.scanline >= 0 && p.scanline < 240 && p.scandot >= 0 && p.scandot < 256 {
 		addr := uint16(0x3F00) + (uint16(bgPal) << 2) + uint16(bgPix)
 		p.pixels.Set(int(p.scandot), int(p.scanline), SYSTEM_PALETTE[p.read(addr)&0x3F])
-	}
-
-	p.scandot += 1
-	if p.scandot >= 341 {
-		p.scandot = 0
-		p.scanline += 1
-		if p.scanline > 261 {
-			p.scanline = 0
-		}
 	}
 }
