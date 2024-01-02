@@ -421,16 +421,27 @@ func (p *PPU) backgroundTableID() uint8 {
 	return p.ctrl & CTRL_BACKGROUND_PATTERN_ADDR >> 4
 }
 
+func (p *PPU) visibleLine() bool {
+	return p.scanline >= 0 && p.scanline < 240
+}
+
+func (p *PPU) prerenderLine() bool {
+	return p.scanline == 261
+}
+
+func (p *PPU) renderLine() bool {
+	return p.visibleLine() || p.prerenderLine()
+}
+
 // Tick executes a PPU cycle. We call it tick instead of step because
 // there is no real logic. It's just a fixed loop in the hardware.
 func (p *PPU) Tick() {
 	// Documented at:
-	// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg We use
-	// -1 - 260 instead of 0 - 261, with our pre-render being -1
-	// instead of 261. Do the real work here
+	// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg.  Do
+	// the real work here
 	switch {
-	case (p.scanline >= 0 && p.scanline < 240) || p.scanline == 261:
-		if p.scanline == 261 && p.scandot == 1 {
+	case p.renderLine():
+		if p.prerenderLine() && p.scandot == 1 {
 			p.clearVBlank()
 		}
 
