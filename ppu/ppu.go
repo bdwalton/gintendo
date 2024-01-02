@@ -132,8 +132,8 @@ type PPU struct {
 	status uint8
 	mask   uint8
 
-	scanline int16 // -1 through 261 (0 - 239 are visible)
-	scandot  int16 // 0 through 320 (1 - 256 are visible)
+	scanline uint16 // 0 through 261 (0 - 239 are visible)
+	scandot  uint16 // 0 through 320 (1 - 256 are visible)
 
 	// For reads from registers that are delayed due to cycle counts
 	bufferData uint8
@@ -429,8 +429,8 @@ func (p *PPU) Tick() {
 	// -1 - 260 instead of 0 - 261, with our pre-render being -1
 	// instead of 261. Do the real work here
 	switch {
-	case p.scanline >= -1 && p.scanline < 240:
-		if p.scanline == -1 && p.scandot == 1 {
+	case (p.scanline >= 0 && p.scanline < 240) || p.scanline == 261:
+		if p.scanline == 261 && p.scandot == 1 {
 			p.clearVBlank()
 		}
 
@@ -545,7 +545,7 @@ func (p *PPU) Tick() {
 				}
 			case p.scandot == 338 || p.scandot == 349:
 				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0xFFF))
-			case p.scanline == -1 && p.scandot >= 280 && p.scandot < 305:
+			case p.scanline == 261 && p.scandot >= 280 && p.scandot < 305:
 				// Only if rendering is enabled
 				if p.renderingEnabled() {
 					p.v.setFineY(p.t.fineY())
@@ -599,8 +599,8 @@ func (p *PPU) Tick() {
 	if p.scandot >= 341 {
 		p.scandot = 0
 		p.scanline += 1
-		if p.scanline >= 261 {
-			p.scanline = -1
+		if p.scanline > 261 {
+			p.scanline = 0
 		}
 	}
 }
