@@ -134,6 +134,8 @@ type PPU struct {
 
 	scanline uint16 // 0 through 261 (0 - 239 are visible)
 	scandot  uint16 // 0 through 320 (1 - 256 are visible)
+	frame    uint64
+	oddFrame bool
 
 	// For reads from registers that are delayed due to cycle counts
 	bufferData uint8
@@ -169,6 +171,8 @@ func New(b Bus) *PPU {
 func (p *PPU) Reset() {
 	p.scandot = 340
 	p.scanline = 240
+	p.frame = 0
+	p.oddFrame = false
 	p.ctrl = 0
 	p.mask = 0
 	p.status = 0
