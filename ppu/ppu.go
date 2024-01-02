@@ -429,6 +429,10 @@ func (p *PPU) visibleLine() bool {
 	return p.scanline >= 0 && p.scanline < 240
 }
 
+func (p *PPU) visibleDot() bool {
+	return p.scandot >= 1 && p.scandot <= 256
+}
+
 func (p *PPU) prerenderLine() bool {
 	return p.scanline == 261
 }
@@ -437,7 +441,23 @@ func (p *PPU) renderLine() bool {
 	return p.visibleLine() || p.prerenderLine()
 }
 
+func (p *PPU) prefetchCycle() bool {
+	return p.scandot >= 321 && p.scandot <= 336
+}
+
+func (p *PPU) fetchCycle() bool {
+	return p.visibleDot() || p.prefetchCycle()
+}
+
 func (p *PPU) incrementScan() {
+	if p.renderingEnabled() && p.oddFrame && p.prerenderLine() && p.scandot == 339 {
+		p.scandot = 0
+		p.scanline = 0
+		p.frame++
+		p.oddFrame = !p.oddFrame
+		return
+	}
+
 	p.scandot++
 	if p.scandot >= 341 {
 		p.scandot = 0
@@ -452,37 +472,45 @@ func (p *PPU) incrementScan() {
 
 // Tick executes a PPU cycle. We call it tick instead of step because
 // there is no real logic. It's just a fixed loop in the hardware.
+// Documented at:
+// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg.
 func (p *PPU) Tick() {
 	p.incrementScan()
 
-	// Documented at:
-	// https://www.nesdev.org/w/images/default/4/4f/Ppu.svg.  Do
-	// the real work here
-	switch {
-	case p.renderLine():
-		if p.prerenderLine() && p.scandot == 1 {
-			p.clearVBlank()
+	// handle background pixels
+	if p.renderingEnabled() {
+		if p.visibleLine() && p.visibleDot() { // render the pixel
+			var bgPix uint8 = 0x00 // 2 bit pixel to be rendered
+			var bgPal uint8 = 0x00 // 3 bit index of the palette used by the pixel
+			if p.renderBackground() {
+				var mux uint16 = (0x8000 >> p.x)
+
+				var p0Pix, p1Pix uint8
+
+				if p.bgSPLo&mux > 0 {
+					p0Pix = 1
+				}
+
+				if p.bgSPHi&mux > 0 {
+					p1Pix = 1
+				}
+
+				bgPix = (p1Pix << 1) | p0Pix
+
+				var bgPal0, bgPal1 uint8
+				if p.bgSALo&mux > 0 {
+					bgPal0 = 1
+				}
+				if p.bgSAHi&mux > 0 {
+					bgPal1 = 1
+				}
+				bgPal = (bgPal1 << 1) | bgPal0
+			}
+			addr := uint16(0x3F00) + (uint16(bgPal) << 2) + uint16(bgPix)
+			p.pixels.Set(int(p.scandot-1), int(p.scanline), SYSTEM_PALETTE[p.read(addr)&0x3F])
 		}
 
-		// From NESDev, frame timing: With rendering disabled
-		// (background and sprites disabled in PPUMASK
-		// ($2001)), each PPU frame is 341*262=89342 PPU
-		// clocks long. There is no skipped clock every other
-		// frame.  With rendering enabled, each odd PPU frame
-		// is one PPU clock shorter than normal. This is done
-		// by skipping the first idle tick on the first
-		// visible scanline (by jumping directly from
-		// (339,261) on the pre-render scanline to (0,0) on
-		// the first visible scanline and doing the last cycle
-		// of the last dummy nametable fetch there instead;
-		// see this diagram).
-		if p.scanline == 0 && p.scandot == 0 {
-			// May need to test this for "rendering
-			// enabled", but let's build out first.
-			p.scandot += 1
-		}
-
-		if (p.scandot >= 2 && p.scandot < 258) || (p.scandot >= 321 && p.scandot < 338) {
+		if p.renderLine() && p.fetchCycle() {
 			if p.renderBackground() {
 				p.bgSPLo <<= 1
 				p.bgSPHi <<= 1
@@ -491,8 +519,8 @@ func (p *PPU) Tick() {
 				p.bgSAHi <<= 1
 			}
 
-			switch (p.scandot - 1) % 8 {
-			case 0:
+			switch p.scandot % 8 {
+			case 0: // next tile
 				// Prime the next 8 pixels worth of tile data
 				p.loadBGShifters()
 				// The next tile is in the nametable
@@ -500,7 +528,18 @@ func (p *PPU) Tick() {
 				// v register are useful for
 				// discovering it.
 				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0x0FFF))
-			case 2:
+			case 1: // nametable byte
+				// Increment X scroll, but only when rendering is enabled
+				// https://www.nesdev.org/wiki/PPU_scrolling
+				if p.renderingEnabled() {
+					if p.v.coarseX() == 31 {
+						p.v.resetCoarseX()
+						p.v.toggleNametableX()
+					} else {
+						p.v.incrementCoarseX()
+					}
+				}
+			case 3: // attribute table byte
 				coarseY := p.v.coarseY()
 				coarseX := p.v.coarseX()
 
@@ -520,108 +559,71 @@ func (p *PPU) Tick() {
 				}
 
 				p.bgNextTileAttrib &= 0x03
-			case 4:
+			case 5: // bg tile lsb
 				a := (uint16(p.backgroundTableID()) << 12) +
 					(uint16(p.bgNextTileID) << 4) +
 					uint16(p.v.fineY())
 				p.bgNextTileLsb = p.read(a)
-			case 6:
+
+			case 7: // bg tile msb
 				a := (uint16(p.backgroundTableID()) << 12) +
 					(uint16(p.bgNextTileID) << 4) +
 					p.v.fineY() +
 					8 // Offset by 8 to select next plane
 				p.bgNextTileMsb = p.read(a)
-			case 7:
-				// Increment X scroll, but only when rendering is enabled
-				// https://www.nesdev.org/wiki/PPU_scrolling
-				if p.renderingEnabled() {
-					if p.v.coarseX() == 31 {
-						p.v.resetCoarseX()
-						p.v.toggleNametableX()
-					} else {
-						p.v.incrementCoarseX()
-					}
-				}
 			}
+		}
 
-			// We're now outside of visible dots on this line
-			switch {
-			case p.scandot == 256:
+		if p.prerenderLine() && p.scandot >= 280 && p.scandot <= 304 {
+			// copy Y
+			p.v.setFineY(p.t.fineY())
+			p.v.setNametableY(uint8(p.t.nametableY()))
+			p.v.setCoarseY(p.t.coarseY())
+		}
+
+		if p.renderLine() {
+			if p.fetchCycle() && p.scandot%8 == 0 {
+				// increment X
+			}
+			if p.scandot == 256 { // increment Y
 				// https://www.nesdev.org/wiki/PPU_scrolling
 				// Scroll Y, but only if rendering is enabled
-				if p.renderingEnabled() {
-					// If possible, just increment the fine y offset
-					if p.v.fineY() < 7 {
-						p.v.incrementFineY()
-					} else {
-						p.v.resetFineY()
-						switch p.v.coarseY() {
-						case 29:
-							p.v.resetCoarseY()
-							p.v.toggleNametableY()
-						case 31:
-							p.v.resetCoarseY()
-						default:
-							p.v.incrementCoarseY()
-						}
+				// If possible, just increment the fine y offset
+				if p.v.fineY() < 7 {
+					p.v.incrementFineY()
+				} else {
+					p.v.resetFineY()
+					switch p.v.coarseY() {
+					case 29:
+						p.v.resetCoarseY()
+						p.v.toggleNametableY()
+					case 31:
+						p.v.resetCoarseY()
+					default:
+						p.v.incrementCoarseY()
 					}
 				}
-			case p.scandot == 257:
+
+			}
+			if p.scandot == 257 {
 				p.loadBGShifters()
 				// Only if rendering is enabled
 				if p.renderingEnabled() {
 					p.v.setNametableX(uint8(p.t.nametableX()))
 					p.v.setCoarseX(p.t.coarseX())
 				}
-			case p.scandot == 338 || p.scandot == 349:
-				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0xFFF))
-			case p.scanline == 261 && p.scandot >= 280 && p.scandot < 305:
-				// Only if rendering is enabled
-				if p.renderingEnabled() {
-					p.v.setFineY(p.t.fineY())
-					p.v.setNametableY(uint8(p.t.nametableY()))
-					p.v.setCoarseY(p.t.coarseY())
-				}
-			}
-		}
-	case p.scanline >= 241 && p.scanline < 261:
-		if p.scanline == 241 && p.scandot == 1 {
-			p.setVBlank()
-			if p.nmiEnabled() {
-				p.bus.TriggerNMI()
 			}
 		}
 	}
 
-	var bgPix uint8 = 0x00 // 2 bit pixel to be rendered
-	var bgPal uint8 = 0x00 // 3 bit index of the palette used by the pixel
-	if p.renderBackground() {
-		var mux uint16 = (0x8000 >> p.x)
-
-		var p0Pix, p1Pix uint8
-
-		if p.bgSPLo&mux > 0 {
-			p0Pix = 1
+	if p.scanline == 241 && p.scandot == 1 {
+		p.setVBlank()
+		if p.nmiEnabled() {
+			p.bus.TriggerNMI()
 		}
-
-		if p.bgSPHi&mux > 0 {
-			p1Pix = 1
-		}
-
-		bgPix = (p1Pix << 1) | p0Pix
-
-		var bgPal0, bgPal1 uint8
-		if p.bgSALo&mux > 0 {
-			bgPal0 = 1
-		}
-		if p.bgSAHi&mux > 0 {
-			bgPal1 = 1
-		}
-		bgPal = (bgPal1 << 1) | bgPal0
 	}
 
-	if p.scanline >= 0 && p.scanline < 240 && p.scandot >= 0 && p.scandot < 256 {
-		addr := uint16(0x3F00) + (uint16(bgPal) << 2) + uint16(bgPix)
-		p.pixels.Set(int(p.scandot), int(p.scanline), SYSTEM_PALETTE[p.read(addr)&0x3F])
+	if p.prerenderLine() && p.scandot == 1 {
+		p.clearVBlank()
 	}
 }
