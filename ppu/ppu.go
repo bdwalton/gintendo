@@ -457,7 +457,7 @@ func (p *PPU) incrementScan() {
 	p.scandot++
 	if p.scandot >= 341 {
 		p.scandot = 0
-		p.scanline += 1
+		p.scanline++
 		if p.scanline > 261 {
 			p.scanline = 0
 			p.frame++
