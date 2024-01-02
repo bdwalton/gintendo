@@ -520,12 +520,7 @@ func (p *PPU) Tick() {
 			case 0: // next tile
 				// Prime the next 8 pixels worth of tile data
 				p.loadBGShifters()
-				// The next tile is in the nametable
-				// data but only 12 bits of the loopy
-				// v register are useful for
-				// discovering it.
-				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0x0FFF))
-			case 1: // nametable byte
+
 				// Increment X scroll, but only when rendering is enabled
 				// https://www.nesdev.org/wiki/PPU_scrolling
 				if p.renderingEnabled() {
@@ -536,6 +531,12 @@ func (p *PPU) Tick() {
 						p.v.incrementCoarseX()
 					}
 				}
+			case 1: // nametable byte
+				// The next tile is in the nametable
+				// data but only 12 bits of the loopy
+				// v register are useful for
+				// discovering it.
+				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0x0FFF))
 			case 3: // attribute table byte
 				coarseY := p.v.coarseY()
 				coarseX := p.v.coarseX()
