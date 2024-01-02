@@ -28,7 +28,7 @@ func (tb *testBus) reset() {
 func TestBackgroundTableID(t *testing.T) {
 	cases := []struct {
 		ctrl uint8
-		want uint8
+		want uint16
 	}{
 		{0b00010000, 1},
 		{0b00111100, 1},

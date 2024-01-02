@@ -417,8 +417,8 @@ func (p *PPU) loadBGShifters() {
 	}
 }
 
-func (p *PPU) backgroundTableID() uint8 {
-	return p.ctrl & CTRL_BACKGROUND_PATTERN_ADDR >> 4
+func (p *PPU) backgroundTableID() uint16 {
+	return uint16(p.ctrl&CTRL_BACKGROUND_PATTERN_ADDR) >> 4
 }
 
 func (p *PPU) visibleLine() bool {
@@ -557,13 +557,12 @@ func (p *PPU) Tick() {
 
 				p.bgNextTileAttrib &= 0x03
 			case 5: // bg tile lsb
-				a := (uint16(p.backgroundTableID()) << 12) +
+				a := (p.backgroundTableID() << 12) +
 					(uint16(p.bgNextTileID) << 4) +
 					uint16(p.v.fineY())
 				p.bgNextTileLsb = p.read(a)
-
 			case 7: // bg tile msb
-				a := (uint16(p.backgroundTableID()) << 12) +
+				a := (p.backgroundTableID() << 12) +
 					(uint16(p.bgNextTileID) << 4) +
 					p.v.fineY() +
 					8 // Offset by 8 to select next plane
