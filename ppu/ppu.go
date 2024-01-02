@@ -520,17 +520,6 @@ func (p *PPU) Tick() {
 			case 0: // next tile
 				// Prime the next 8 pixels worth of tile data
 				p.loadBGShifters()
-
-				// Increment X scroll, but only when rendering is enabled
-				// https://www.nesdev.org/wiki/PPU_scrolling
-				if p.renderingEnabled() {
-					if p.v.coarseX() == 31 {
-						p.v.resetCoarseX()
-						p.v.toggleNametableX()
-					} else {
-						p.v.incrementCoarseX()
-					}
-				}
 			case 1: // nametable byte
 				// The next tile is in the nametable
 				// data but only 12 bits of the loopy
@@ -579,12 +568,17 @@ func (p *PPU) Tick() {
 		}
 
 		if p.renderLine() {
-			if p.fetchCycle() && p.scandot%8 == 0 {
-				// increment X
+			if p.fetchCycle() && p.scandot%8 == 0 { // increment X
+				// https://www.nesdev.org/wiki/PPU_scrolling
+				if p.v.coarseX() == 31 {
+					p.v.resetCoarseX()
+					p.v.toggleNametableX()
+				} else {
+					p.v.incrementCoarseX()
+				}
 			}
 			if p.scandot == 256 { // increment Y
 				// https://www.nesdev.org/wiki/PPU_scrolling
-				// Scroll Y, but only if rendering is enabled
 				// If possible, just increment the fine y offset
 				if p.v.fineY() < 7 {
 					p.v.incrementFineY()
