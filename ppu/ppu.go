@@ -378,10 +378,6 @@ func (p *PPU) write(addr uint16, val uint8) {
 	}
 }
 
-func (p *PPU) generateNMI() bool {
-	return p.ctrl&CTRL_GENERATE_NMI > 0
-}
-
 func (p *PPU) clearVBlank() {
 	p.status &^= STATUS_VERTICAL_BLANK
 }
