@@ -155,11 +155,23 @@ func New(b Bus) *PPU {
 	for i := 0; i < ps; i++ {
 		px[i] = color.RGBA{0, 0, 0, 0xFF} // Black
 	}
-	return &PPU{
+
+	ppu := &PPU{
 		bus:        b,
 		pixels:     image.NewRGBA(image.Rect(0, 0, NES_RES_WIDTH, NES_RES_HEIGHT)),
 		mirrorMode: b.MirrorMode(),
 	}
+	ppu.Reset()
+
+	return ppu
+}
+
+func (p *PPU) Reset() {
+	p.scandot = 340
+	p.scanline = 240
+	p.ctrl = 0
+	p.mask = 0
+	p.status = 0
 }
 
 func (p *PPU) String() string {
