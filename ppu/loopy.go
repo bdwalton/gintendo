@@ -57,21 +57,12 @@ func (l *loopy) nametableX() uint16 {
 	return uint16(*l) & 0x0400 >> 10
 }
 
-func clearBit(n, pos uint16) uint16 {
-	return n &^ (uint16(1) << (pos - 1))
-}
-
 func (l *loopy) setNametableX(val uint8) {
-	*l = loopy(clearBit(uint16(*l), 11))
-	*l = loopy(uint16(*l) | ((uint16(val) & 0x01) << 10))
+	*l = *l&0xFBFF | loopy((uint16(val&0x01) << 10))
 }
 
 func (l *loopy) toggleNametableX() {
-	if l.nametableX() == 1 {
-		*l = loopy(clearBit(uint16(*l), 11))
-	} else {
-		*l = loopy(uint16(*l) | (uint16(1) << 10))
-	}
+	*l ^= 0x0400
 }
 
 func (l *loopy) nametableY() uint16 {
@@ -79,16 +70,11 @@ func (l *loopy) nametableY() uint16 {
 }
 
 func (l *loopy) toggleNametableY() {
-	if l.nametableY() == 1 {
-		*l = loopy(clearBit(uint16(*l), 12))
-	} else {
-		*l = loopy(uint16(*l) | (uint16(1) << 11))
-	}
+	*l ^= 0x0800
 }
 
 func (l *loopy) setNametableY(val uint8) {
-	*l = loopy(clearBit(uint16(*l), 12))
-	*l = loopy(uint16(*l) | ((uint16(val) & 0x01) << 11))
+	*l = *l&0xF7FF | loopy((uint16(val&0x1) << 11))
 }
 
 func (l *loopy) fineY() uint16 {
