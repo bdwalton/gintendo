@@ -180,7 +180,7 @@ func (p *PPU) Reset() {
 }
 
 func (p *PPU) String() string {
-	return fmt.Sprintf("x=%d, y=%d, v=%s fineX=%03b (t=%s), ctrl=%08b,mask=%08b,status=%08b ", p.scandot, p.scanline, p.v.String(), p.x, p.t.String(), p.ctrl, p.mask, p.status)
+	return fmt.Sprintf("x=%d, y=%d, v=%s fineX=%03b (t=%s), ctrl=%08b,mask=%08b,status=%08b,w=%d ", p.scandot, p.scanline, p.v.String(), p.x, p.t.String(), p.ctrl, p.mask, p.status, p.wLatch)
 }
 
 func (p *PPU) GetPixels() *image.RGBA {
