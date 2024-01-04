@@ -438,6 +438,10 @@ func (p *PPU) renderLine() bool {
 	return p.visibleLine() || p.prerenderLine()
 }
 
+func (p *PPU) vblankLine() bool {
+	return !p.renderLine()
+}
+
 func (p *PPU) prefetchCycle() bool {
 	return p.scandot >= 321 && p.scandot <= 336
 }
