@@ -25,6 +25,31 @@ func (tb *testBus) reset() {
 	tb.nmiTriggered = false
 }
 
+func TestVramIncrement(t *testing.T) {
+	cases := []struct {
+		v    loopy
+		ctrl uint8
+		want loopy
+	}{
+		{loopy(0), 0b00010000, loopy(1)},
+		{loopy(1), 0b00010000, loopy(2)},
+		{loopy(33), 0b00010000, loopy(34)},
+		{loopy(0), 0b00111100, loopy(32)},
+		{loopy(32), 0b00111100, loopy(64)},
+		{loopy(65), 0b00111100, loopy(97)},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.v = tc.v
+		p.WriteReg(PPUCTRL, tc.ctrl)
+		p.vramIncrement()
+		if p.v != loopy(tc.want) {
+			t.Errorf("%d: Got %v, wanted %v", i, p.v, tc.want)
+		}
+	}
+}
+
 func TestBackgroundTableID(t *testing.T) {
 	cases := []struct {
 		ctrl uint8

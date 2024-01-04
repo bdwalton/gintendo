@@ -251,7 +251,7 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 }
 
 func (p *PPU) vramIncrement() {
-	switch p.ctrl * CTRL_VRAM_ADD_INCREMENT >> 2 {
+	switch (p.ctrl & CTRL_VRAM_ADD_INCREMENT) >> 2 {
 	case 0:
 		p.v.incrementCoarseX() // Move across (== p.v++)
 	case 1:
