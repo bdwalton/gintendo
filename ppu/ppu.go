@@ -141,14 +141,11 @@ type PPU struct {
 	bufferData uint8
 
 	// rendering variables for the background
-	bgNextTileID     uint8  // next bg tile id
-	bgNextTileAttrib uint8  // next bg tile attribute
-	bgNextTileLsb    uint8  // next bg tile least significant byte
-	bgNextTileMsb    uint8  // next bg tile most significant byte
-	bgSPLo           uint16 // shift pattern low
-	bgSPHi           uint16 // shift pattern high
-	bgSALo           uint16 // shift attribute low
-	bgSAHi           uint16 // shift attribute low
+	bgSPLo, bgSPHi               uint16 // next tile data for rendering
+	bgSALo, bgSAHi               uint16 // next tile attrib data for rendering
+	bgNextTile                   uint8  // next tile id
+	bgNextAttrib                 uint8  // next attribute data
+	bgNextTileLSB, bgNextTileMSB uint8  // LSB and MSB of next tile
 }
 
 func New(b Bus) *PPU {
@@ -393,21 +390,6 @@ func (p *PPU) renderingEnabled() bool {
 	return p.renderBackground() || p.renderForeground()
 }
 
-func (p *PPU) loadBGShifters() {
-	p.bgSPLo = (p.bgSPLo & 0xFF00) | uint16(p.bgNextTileLsb)
-	p.bgSPHi = (p.bgSPHi & 0xFF00) | uint16(p.bgNextTileMsb)
-
-	p.bgSALo = p.bgSALo & 0xFF00
-	if p.bgNextTileAttrib&0x01 == 1 {
-		p.bgSALo |= 0xFF
-	}
-
-	p.bgSAHi = p.bgSAHi & 0xFF00
-	if p.bgNextTileAttrib&0x02 > 0 {
-		p.bgSAHi |= 0xFF
-	}
-}
-
 func (p *PPU) backgroundTableID() uint16 {
 	return uint16(p.ctrl&CTRL_BACKGROUND_PATTERN_ADDR) >> 4
 }
@@ -461,6 +443,144 @@ func (p *PPU) incrementScan() {
 	}
 }
 
+func (p *PPU) updateBG() {
+	// Every clock tick, we shift our previously fetched CHR ROM
+	// data along one bit. We're always using the top bits (and
+	// then adjusting for fine X) during rendering.
+	p.updateBGShifters()
+
+	switch p.scandot % 8 {
+	case 1: // Nametable byte lookup. Read from nametable space,
+		// using 12 bits of loopy v (exclude fine y). This
+		// byte represents the CHR tile for the current pixel
+		// being rendered. It can be 0-255 (a byte!) which
+		// corresponds with the maximum number of CHR images
+		// that can be referenced in the ROM. (ROMs may
+		// support hardward mapping to swap out tiles
+		// transparently to the PPU)
+		p.bgNextTile = p.read(BASE_NAMETABLE | (uint16(p.v) & 0xFFF))
+	case 3: // Attribute table lookup. Read from nametable space,
+		// but only in the offset to attribute table
+		// data. Recall that the nametable is 4096 bytes
+		// (32x32 x 2 - 2 nametables, with mirroring into a
+		// physical 2048 bytes). The bottom of this table (32
+		// bytes) is attribute data which represents mappings
+		// into the palettes that are stored in
+		// PALETTE_RAM. Each attribute byte represents 4
+		// blocks worth of palette indexing. This makes each
+		// block (2x2 tiles) use a single palette which
+		// restricts it to 4 colors.
+		p.bgNextAttrib = p.read(BASE_NAMETABLE |
+			ATTRIBUTE_OFFSET |
+			p.v.nametableY()<<11 |
+			p.v.nametableX()<<10 |
+			(p.v.coarseY()>>2)<<3 |
+			(p.v.coarseX() >> 2))
+
+		if p.v.coarseY()&0x02 > 0 {
+			p.bgNextAttrib >>= 4
+		}
+		if p.v.coarseX()&0x02 > 0 {
+			p.bgNextAttrib >>= 2
+		}
+		p.bgNextAttrib &= 0x03
+	case 5: // Background CHR least significant byte
+		// CHR data is 16 bytes for a single tile
+		// with a layout that stores bytes 1-8 as the first
+		// plane and then bytes 9-16 as the second plane. When
+		// compositing them, we need to take the high bit from
+		// the bottom planes (stored here) and the high bit
+		// from the top plane (retrieved below with the +8),
+		// shifted by 1, to get the 2 bit palette index for
+		// the pixel.
+		addr := (uint16(p.backgroundTableID()) << 12) +
+			(uint16(p.bgNextTile) << 4) + // using tile id * 16 as index
+			p.v.fineY() // shifted fine Y bytes in to pull the right row of the tile
+		p.bgNextTileLSB = p.read(addr)
+	case 7: // Background CHR most significant byte
+		addr := (uint16(p.backgroundTableID()) << 12) +
+			uint16(p.bgNextTile)<<4 +
+			p.v.fineY() +
+			8 // next plane within the tile
+		p.bgNextTileMSB = p.read(addr)
+	case 0: // Shifters. These store the tile data (low and high
+		// plane, respectively) from CHR rom. Loading them
+		// means taking the LSB and MSB that we previously
+		// fetched from CHR ROM and putting it in the low 8
+		// bits of the appropriate shifter register. When we
+		// render, we're using the top bits (adjusted for fine
+		// X) from the bytes we've previously stuffed and
+		// shifted along in these registers.
+		p.loadBGShifters()
+	}
+}
+
+func (p *PPU) loadBGShifters() {
+	p.bgSPLo = (p.bgSPLo & 0xFF00) | uint16(p.bgNextTileLSB)
+	p.bgSPHi = (p.bgSPHi & 0xFF00) | uint16(p.bgNextTileMSB)
+
+	p.bgSALo = (p.bgSALo & 0xFF00)
+	if p.bgNextAttrib&0x01 == 1 {
+		p.bgSALo |= 0xFF
+	}
+
+	p.bgSAHi = (p.bgSAHi & 0xFF00)
+	if p.bgNextAttrib&0x02 == 2 {
+		p.bgSAHi |= 0xFF
+	}
+}
+
+func (p *PPU) updateBGShifters() {
+	if p.renderBackground() {
+		// Shifting background tile pattern row
+		p.bgSPLo <<= 1
+		p.bgSPHi <<= 1
+
+		// Shifting palette attributes by 1
+		p.bgSALo <<= 1
+		p.bgSAHi <<= 1
+	}
+}
+
+func (p *PPU) renderPixel() {
+	var pix, pal uint8 // 2 bit pixel to be rendered and 3 bit index of the palette used
+
+	if p.renderBackground() {
+		// We take the top bit of the shifter and adjust it based on fine X.
+		var fineX uint16 = 0x8000 >> uint16(p.x)
+
+		var p0, p1 uint8
+
+		// After the mux, if this value is still positive, we
+		// know the bit in the CHR rom was set. This is the
+		// low plane bit.
+		if p.bgSPLo&fineX > 0 {
+			p0 = 1
+		}
+
+		// And the high plane bit.
+		if p.bgSPHi&fineX > 0 {
+			p1 = 1
+		}
+
+		pix = (p1 << 1) | p0
+
+		// // Get palette - we apply the same fine X shifting logic.
+		var pa0, pa1 uint8
+		if p.bgSALo&fineX > 0 {
+			pa0 = 1
+		}
+		if p.bgSAHi&fineX > 0 {
+			pa1 = 1
+		}
+
+		pal = pa1<<1 | pa0
+	}
+
+	a := uint16(PALETTE_RAM) + (uint16(pal) << 2) + uint16(pix)
+	p.pixels.Set(int(p.scandot-1), int(p.scanline), SYSTEM_PALETTE[p.read(a)&0x3F])
+}
+
 // Tick executes a PPU cycle. We call it tick instead of step because
 // there is no real logic. It's just a fixed loop in the hardware.
 // Documented at:
@@ -468,148 +588,84 @@ func (p *PPU) incrementScan() {
 func (p *PPU) Tick() {
 	p.incrementScan()
 
-	// handle background pixels
-	if p.renderingEnabled() {
-		if p.visibleLine() && p.visibleDot() { // render the pixel
-			var bgPix uint8 = 0x00 // 2 bit pixel to be rendered
-			var bgPal uint8 = 0x00 // 3 bit index of the palette used by the pixel
-			if p.renderBackground() {
-				var mux uint16 = (0x8000 >> p.x)
-
-				var p0Pix, p1Pix uint8
-
-				if p.bgSPLo&mux > 0 {
-					p0Pix = 1
-				}
-
-				if p.bgSPHi&mux > 0 {
-					p1Pix = 1
-				}
-
-				bgPix = (p1Pix << 1) | p0Pix
-
-				var bgPal0, bgPal1 uint8
-				if p.bgSALo&mux > 0 {
-					bgPal0 = 1
-				}
-				if p.bgSAHi&mux > 0 {
-					bgPal1 = 1
-				}
-				bgPal = (bgPal1 << 1) | bgPal0
-			}
-			addr := uint16(0x3F00) + (uint16(bgPal) << 2) + uint16(bgPix)
-			p.pixels.Set(int(p.scandot-1), int(p.scanline), SYSTEM_PALETTE[p.read(addr)&0x3F])
+	if p.prerenderLine() {
+		if p.scandot == 1 {
+			p.clearVBlank()
 		}
 
-		if p.renderLine() && p.fetchCycle() {
-			if p.renderBackground() {
-				// update the shifters
-				p.bgSPLo <<= 1
-				p.bgSPHi <<= 1
-
-				p.bgSAHi <<= 1
-				p.bgSAHi <<= 1
+		if p.renderingEnabled() {
+			if p.fetchCycle() {
+				p.updateBG()
 			}
 
-			switch p.scandot % 8 {
-			case 0: // next tile
-				// Prime the next 8 pixels worth of tile data
-				p.loadBGShifters()
-			case 1: // nametable byte
-				// The next tile is in the nametable
-				// data but only 12 bits of the loopy
-				// v register are useful for
-				// discovering it.
-				p.bgNextTileID = p.read(BASE_NAMETABLE | (uint16(p.v) & 0x0FFF))
-			case 3: // attribute table byte
-				coarseY := p.v.coarseY()
-				coarseX := p.v.coarseX()
-
-				a := BASE_NAMETABLE |
-					ATTRIBUTE_OFFSET | // All with the attribute space of nametables
-					(p.v.nametableY() << 11) | // nametable select
-					(p.v.nametableX() << 10) | // nametable select
-					((coarseY >> 2) << 3) | // high 3 bits of coarse Y
-					(coarseX >> 2) // high 3 bits of coarse X
-				p.bgNextTileAttrib = p.read(a)
-
-				if coarseY&0x02 > 0 {
-					p.bgNextTileAttrib >>= 4
-				}
-				if coarseX&0x02 > 0 {
-					p.bgNextTileAttrib >>= 2
-				}
-
-				p.bgNextTileAttrib &= 0x03
-			case 5: // bg tile lsb
-				a := (p.backgroundTableID() << 12) +
-					(uint16(p.bgNextTileID) << 4) +
-					uint16(p.v.fineY())
-				p.bgNextTileLsb = p.read(a)
-			case 7: // bg tile msb
-				a := (p.backgroundTableID() << 12) +
-					(uint16(p.bgNextTileID) << 4) +
-					p.v.fineY() +
-					8 // Offset by 8 to select next plane
-				p.bgNextTileMsb = p.read(a)
-			}
-		}
-
-		if p.prerenderLine() && p.scandot >= 280 && p.scandot <= 304 {
-			// copy Y
-			p.v.setFineY(p.t.fineY())
-			p.v.setNametableY(uint8(p.t.nametableY()))
-			p.v.setCoarseY(p.t.coarseY())
-		}
-
-		if p.renderLine() {
-			if p.fetchCycle() && p.scandot%8 == 0 { // increment X
-				// https://www.nesdev.org/wiki/PPU_scrolling
-				if p.v.coarseX() == 31 {
-					p.v.resetCoarseX()
-					p.v.toggleNametableX()
-				} else {
-					p.v.incrementCoarseX()
-				}
-			}
-			if p.scandot == 256 { // increment Y
-				// https://www.nesdev.org/wiki/PPU_scrolling
-				// If possible, just increment the fine y offset
-				if p.v.fineY() < 7 {
-					p.v.incrementFineY()
-				} else {
-					p.v.resetFineY()
-					switch p.v.coarseY() {
-					case 29:
-						p.v.resetCoarseY()
-						p.v.toggleNametableY()
-					case 31:
-						p.v.resetCoarseY()
-					default:
-						p.v.incrementCoarseY()
-					}
-				}
-
-			}
-			if p.scandot == 257 {
-				p.loadBGShifters()
-				// Only if rendering is enabled
-				if p.renderingEnabled() {
-					p.v.setNametableX(uint8(p.t.nametableX()))
-					p.v.setCoarseX(p.t.coarseX())
-				}
+			if p.scandot >= 280 && p.scandot <= 304 {
+				p.v.setFineY(p.t.fineY())
+				p.v.setNametableY(uint8(p.t.nametableY()))
+				p.v.setCoarseY(p.t.coarseY())
 			}
 		}
 	}
 
-	if p.scanline == 241 && p.scandot == 1 {
-		p.setVBlank()
-		if p.nmiEnabled() {
-			p.bus.TriggerNMI()
+	if p.visibleLine() {
+		if p.visibleDot() {
+			p.renderPixel()
+		}
+
+		if p.fetchCycle() {
+			p.updateBG()
+		}
+
+	}
+
+	// Handle scroll here
+	if p.renderingEnabled() && p.renderLine() && p.fetchCycle() {
+		if p.scandot%8 == 0 {
+			// increment hori(v)
+			switch p.v.coarseX() {
+			case 31:
+				p.v.resetCoarseX()
+				p.v.toggleNametableX()
+			default:
+				p.v.incrementCoarseX()
+			}
+		}
+
+		if p.scandot == 256 {
+			// increment vert(v)
+			if p.v.fineY() < 7 {
+				p.v.incrementFineY()
+			} else {
+				p.v.resetFineY()
+				switch p.v.coarseY() {
+				case 29:
+					p.v.resetCoarseY()
+					p.v.toggleNametableY()
+				case 31:
+					p.v.resetCoarseY()
+				default:
+					p.v.incrementCoarseY()
+				}
+			}
+
+			p.loadBGShifters()
+		}
+
+	}
+
+	if p.renderingEnabled() && p.renderLine() {
+		if p.scandot == 257 {
+			//hori(v) == hori(t)
+			p.v.setCoarseX(p.t.coarseX())
+			p.v.setNametableX(uint8(p.t.nametableX()))
 		}
 	}
 
-	if p.prerenderLine() && p.scandot == 1 {
-		p.clearVBlank()
+	if p.vblankLine() {
+		if p.scanline == 241 && p.scandot == 1 {
+			p.setVBlank()
+			if p.nmiEnabled() {
+				p.bus.TriggerNMI()
+			}
+		}
 	}
 }
