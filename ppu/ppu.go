@@ -169,8 +169,8 @@ func New(b Bus) *PPU {
 }
 
 func (p *PPU) Reset() {
-	p.scandot = 340
-	p.scanline = 240
+	p.scandot = 0
+	p.scanline = 0
 	p.frame = 0
 	p.wLatch = 0
 	p.oddFrame = false
