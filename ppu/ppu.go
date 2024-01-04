@@ -364,18 +364,8 @@ func (p *PPU) write(addr uint16, val uint8) {
 	case a <= NAMETABLE_MIRROR_END:
 		p.vram[p.tileMapAddr((a&0x0FFF)+BASE_NAMETABLE)] = val
 	case a >= PALETTE_RAM && a <= PALETTE_MIRROR_END: // Palette Table
-		a &= 0x001F // handle mirroring
-		switch a {
-		case 0x0010:
-			a = 0x0000
-		case 0x0014:
-			a = 0x0004
-		case 0x0018:
-			a = 0x0008
-		case 0x001C:
-			a = 0x000C
-		}
-		p.paletteTable[a] = val
+		// handle mirroring by &'ing with the permissible range
+		p.paletteTable[a&0x001F] = val
 	}
 }
 
