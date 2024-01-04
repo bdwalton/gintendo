@@ -172,6 +172,7 @@ func (p *PPU) Reset() {
 	p.scandot = 340
 	p.scanline = 240
 	p.frame = 0
+	p.wLatch = 0
 	p.oddFrame = false
 	p.ctrl = 0
 	p.mask = 0
