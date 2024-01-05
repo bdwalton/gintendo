@@ -199,6 +199,9 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 		p.mask = val
 	case OAMADDR:
 		p.oamaddr = val
+	case OAMDATA:
+		p.oamData[p.oamaddr] = val
+		p.oamaddr++
 	case PPUSCROLL:
 		if p.wLatch == 0 {
 			p.t.setCoarseX(uint16(val) >> 3)

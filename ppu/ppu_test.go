@@ -208,6 +208,36 @@ func TestWriteRegOAMADDR(t *testing.T) {
 	}
 }
 
+func TestWriteRegOAMDATA(t *testing.T) {
+	fullOam := make([]uint8, 256, 256)
+	for i := 0; i < 256; i++ {
+		fullOam[i] = uint8(i*2 - 3)
+	}
+	cases := []struct {
+		data     []uint8 // elements to write
+		want     uint8   // the n-2th element in oamData
+		wantAddr uint8   // the expected value of p.oamaddr
+
+	}{
+		{[]uint8{1, 10, 11, 255, 3}, 255, 0x5},
+		{[]uint8{2, 3, 19, 254, 16, 22}, 16, 0x6},
+		{[]uint8{1, 2, 19, 26, 29, 0, 10, 1, 3, 99, 124, 18, 39}, 18, 0xD},
+		{fullOam, 0xf9, 0x0}, // oamaddr wraps
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.WriteReg(OAMADDR, 0x00)
+		for _, n := range tc.data {
+			p.WriteReg(OAMDATA, n)
+		}
+
+		if got := p.oamData[len(tc.data)-2]; p.oamaddr != tc.wantAddr || got != tc.want {
+			t.Errorf("%d: addr = 0x%02x, oamData[x] = 0x%02x, wanted 0x%02x, 0x%02x, ", i, p.oamaddr, got, tc.wantAddr, tc.want)
+		}
+	}
+}
+
 func TestWriteRegPPUADDR(t *testing.T) {
 	cases := []struct {
 		val    uint8
