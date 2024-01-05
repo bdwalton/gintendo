@@ -25,7 +25,6 @@ const (
 	PPUSCROLL = 0x2005
 	PPUADDR   = 0x2006
 	PPUDATA   = 0x2007
-	OAMDMA    = 0x4014
 )
 
 // PPUCTRL bit flags

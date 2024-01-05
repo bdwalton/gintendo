@@ -25,6 +25,10 @@ const (
 	MAX_SRAM             = 0x6000
 )
 
+const (
+	OAMDMA = 0x4014 // Triggers DMA from CPU memory to DMA
+)
+
 type Bus struct {
 	cpu    *mos6502.CPU
 	ppu    *ppu.PPU
