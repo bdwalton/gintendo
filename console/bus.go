@@ -42,7 +42,7 @@ func New(m mappers.Mapper) *Bus {
 	w, h := bus.ppu.GetResolution()
 	ebiten.SetWindowSize(w*2, h*2) // Start with 2x the screen size
 	ebiten.SetWindowTitle("Gintendo")
-	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	return bus
 }
