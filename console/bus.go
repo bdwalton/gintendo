@@ -15,11 +15,7 @@ import (
 )
 
 const (
-	NES_MODE = iota // act as an NES
-	REG_MODE        // act as a machine with 64k RAM directly connected, no ppu, etc
-
 	NES_BASE_MEMORY = 0x800 // 2KB built in RAM
-	REG_BASE_MEMORY = 0x10000
 
 	MAX_ADDRESS         = math.MaxUint16
 	MEM_SIZE            = MAX_ADDRESS + 1
@@ -33,19 +29,12 @@ type Bus struct {
 	cpu    *mos6502.CPU
 	ppu    *ppu.PPU
 	mapper mappers.Mapper
-	mode   int // NES or regular computer
 	ram    []uint8
 	ticks  uint64
 }
 
-func New(m mappers.Mapper, mode int) *Bus {
-	bus := &Bus{mapper: m, mode: mode}
-	switch mode {
-	case NES_MODE:
-		bus.ram = make([]uint8, NES_BASE_MEMORY)
-	default:
-		bus.ram = make([]uint8, REG_BASE_MEMORY)
-	}
+func New(m mappers.Mapper) *Bus {
+	bus := &Bus{mapper: m, ram: make([]uint8, NES_BASE_MEMORY)}
 
 	bus.cpu = mos6502.New(bus)
 	bus.ppu = ppu.New(bus)
@@ -97,7 +86,12 @@ func (b *Bus) TriggerNMI() {
 	b.cpu.TriggerNMI()
 }
 
-func (b *Bus) readNES(addr uint16) uint8 {
+// ChrRead is used by the PPU to access CHR-ROM in the loaded Mapper
+func (b *Bus) ChrRead(addr uint16) uint8 {
+	return b.mapper.ChrRead(addr)
+}
+
+func (b *Bus) Read(addr uint16) uint8 {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
 	case addr <= MAX_NES_BASE_RAM:
@@ -118,24 +112,11 @@ func (b *Bus) readNES(addr uint16) uint8 {
 	panic("should never happen") // hah, prod crashes await!
 }
 
-func (b *Bus) readReg(addr uint16) uint8 {
-	return b.ram[addr]
+func (b *Bus) ClearMem() {
+	b.ram = make([]uint8, len(b.ram))
 }
 
-// ChrRead is used by the PPU to access CHR-ROM in the loaded Mapper
-func (b *Bus) ChrRead(addr uint16) uint8 {
-	return b.mapper.ChrRead(addr)
-}
-
-func (b *Bus) Read(addr uint16) uint8 {
-	if b.mode == NES_MODE {
-		return b.readNES(addr)
-	}
-
-	return b.readReg(addr)
-}
-
-func (b *Bus) writeNES(addr uint16, val uint8) {
+func (b *Bus) Write(addr uint16, val uint8) {
 	// https://www.nesdev.org/wiki/CPU_memory_map
 	switch {
 	case addr <= MAX_NES_BASE_RAM:
@@ -150,27 +131,6 @@ func (b *Bus) writeNES(addr uint16, val uint8) {
 		// nothing for now
 	case addr <= MAX_ADDRESS:
 		b.mapper.PrgWrite(addr, val)
-	}
-}
-
-func (b *Bus) LoadMem(start uint16, mem []uint8) {
-	b.cpu.LoadMem(start, mem)
-}
-
-func (b *Bus) ClearMem() {
-	b.ram = make([]uint8, len(b.ram))
-}
-
-func (b *Bus) writeReg(addr uint16, val uint8) {
-	b.ram[addr] = val
-}
-
-func (b *Bus) Write(addr uint16, val uint8) {
-	switch b.mode {
-	case NES_MODE:
-		b.writeNES(addr, val)
-	default:
-		b.writeReg(addr, val)
 	}
 }
 

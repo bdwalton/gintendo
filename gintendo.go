@@ -12,41 +12,24 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-var (
-	romFile = flag.String("nes_rom", "", "Path to NES ROM to run.")
-	nesMode = flag.Bool("nes_mode", true, "If false, use the Dummy mapper with nes_rom treated as a 64k binary loaded at 0x000A")
-)
+var romFile = flag.String("nes_rom", "", "Path to NES ROM to run.")
 
 func main() {
 	flag.Parse()
 
 	var m mappers.Mapper
-	mode := console.NES_MODE
 	var gintendo *console.Bus
 
-	if *nesMode {
-		rom, err := nesrom.New(*romFile)
-		if err != nil {
-			log.Fatalf("Invalid ROM: %v", err)
-		}
-		m, err = mappers.Get(rom)
-		if err != nil {
-			log.Fatalf("Couldn't Get() mapper: %v", err)
-		}
-	} else {
-		mode = console.REG_MODE
-		m = mappers.Dummy
+	rom, err := nesrom.New(*romFile)
+	if err != nil {
+		log.Fatalf("Invalid ROM: %v", err)
+	}
+	m, err = mappers.Get(rom)
+	if err != nil {
+		log.Fatalf("Couldn't Get() mapper: %v", err)
 	}
 
-	gintendo = console.New(m, mode)
-
-	if !*nesMode {
-		bin, err := os.ReadFile(*romFile)
-		if err != nil {
-			log.Fatalf("Invalid ROM: %v", err)
-		}
-		gintendo.LoadMem(0x000A, bin)
-	}
+	gintendo = console.New(m)
 
 	go func() {
 		if err := ebiten.RunGame(gintendo); err != nil {
