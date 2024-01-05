@@ -130,7 +130,16 @@ func (b *Bus) Write(addr uint16, val uint8) {
 		// PPU registers are mirrored between 0x2000 and 0x4000
 		b.ppu.WriteReg(addr&0x2007, val)
 	case addr < MAX_IO_REG:
-		// handle joysticks
+		// Handle Joysticks, APU and PPU DMA
+		switch addr {
+		case OAMDMA:
+			// TODO: Smooth this out across PPU cycles
+			base := uint16(val) << 8
+			for addr := base; addr < base+256; addr++ {
+				b.ppu.WriteReg(ppu.OAMDATA, b.Read(addr))
+			}
+			b.cpu.AddDMACycles()
+		}
 	case addr <= MAX_SRAM:
 		// nothing for now
 	case addr <= MAX_ADDRESS:
