@@ -17,12 +17,12 @@ import (
 const (
 	NES_BASE_MEMORY = 0x800 // 2KB built in RAM
 
-	MAX_ADDRESS         = math.MaxUint16
-	MEM_SIZE            = MAX_ADDRESS + 1
-	MAX_NES_BASE_RAM    = 0x1FFF
-	MAX_IO_REG_MIRRORED = 0x3FFF
-	MAX_IO_REG          = 0x4020
-	MAX_SRAM            = 0x6000
+	MAX_ADDRESS          = math.MaxUint16
+	MEM_SIZE             = MAX_ADDRESS + 1
+	MAX_NES_BASE_RAM     = 0x1FFF
+	MAX_PPU_REG_MIRRORED = 0x3FFF
+	MAX_IO_REG           = 0x4020
+	MAX_SRAM             = 0x6000
 )
 
 type Bus struct {
@@ -97,7 +97,7 @@ func (b *Bus) Read(addr uint16) uint8 {
 	case addr <= MAX_NES_BASE_RAM:
 		// 0x800-0x1FFF mirrors 0x0000-0x07FF
 		return b.ram[addr&0x7FF]
-	case addr <= MAX_IO_REG_MIRRORED:
+	case addr <= MAX_PPU_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
 		return b.ppu.ReadReg(addr & 0x2007)
 	case addr < MAX_IO_REG:
@@ -122,7 +122,7 @@ func (b *Bus) Write(addr uint16, val uint8) {
 	case addr <= MAX_NES_BASE_RAM:
 		// 0x800-0x1FFF mirrors 0x0000-0x07FF
 		b.ram[addr&0x07FF] = val
-	case addr <= MAX_IO_REG_MIRRORED:
+	case addr <= MAX_PPU_REG_MIRRORED:
 		// PPU registers are mirrored between 0x2000 and 0x4000
 		b.ppu.WriteReg(addr&0x2007, val)
 	case addr < MAX_IO_REG:
