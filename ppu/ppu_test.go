@@ -189,6 +189,25 @@ func TestWriteRegPPUSCROLL(t *testing.T) {
 	}
 }
 
+func TestWriteRegOAMADDR(t *testing.T) {
+	cases := []struct {
+		val  uint8
+		want uint8
+	}{
+		{0x0, 0x0},
+		{0x1, 0x1},
+		{0xFF, 0xFF},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.WriteReg(OAMADDR, tc.val)
+		if p.oamaddr != tc.want {
+			t.Errorf("%d: OAMADDR = 0x%02x, wanted 0x%02x", i, p.oamaddr, tc.want)
+		}
+	}
+}
+
 func TestWriteRegPPUADDR(t *testing.T) {
 	cases := []struct {
 		val    uint8

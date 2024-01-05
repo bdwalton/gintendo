@@ -128,9 +128,10 @@ type PPU struct {
 	wLatch uint8 // first or second write toggle; 1 bit
 
 	// registers that maintain state not captured in v, t, etc.
-	ctrl   uint8
-	status uint8
-	mask   uint8
+	ctrl    uint8
+	status  uint8
+	mask    uint8
+	oamaddr uint8
 
 	scanline uint16 // 0 through 261 (0 - 239 are visible)
 	scandot  uint16 // 0 through 320 (1 - 256 are visible)
@@ -197,6 +198,8 @@ func (p *PPU) WriteReg(r uint16, val uint8) {
 		p.t.setNametableY(val >> 1)
 	case PPUMASK:
 		p.mask = val
+	case OAMADDR:
+		p.oamaddr = val
 	case PPUSCROLL:
 		if p.wLatch == 0 {
 			p.t.setCoarseX(uint16(val) >> 3)
