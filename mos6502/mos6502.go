@@ -208,6 +208,12 @@ func (c *CPU) TriggerIRQ() {
 	}
 }
 
+func (c *CPU) AddDMACycles() {
+	// TODO: Handle the extra cycle that might occur depending on
+	// timing of when the DMA call is triggered.
+	c.cycles += 513
+}
+
 func (c *CPU) Reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
