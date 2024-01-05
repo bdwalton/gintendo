@@ -253,7 +253,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 			i := 0
 			for {
 				m := b.cpu.StackAddr() + uint16(i)
-				fmt.Printf("0x%04x: 0x%02x ", m, b.cpu.Read(m))
+				fmt.Printf("0x%04x: 0x%02x ", m, b.Read(m))
 				if m == 0x01ff || i == 2 {
 					break
 				}
@@ -275,7 +275,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 			x := 1
 			i := low
 			for {
-				fmt.Printf("0x%04x: 0x%02x ", i, b.cpu.Read(i))
+				fmt.Printf("0x%04x: 0x%02x ", i, b.Read(i))
 				if x%5 == 0 {
 					fmt.Println()
 				}

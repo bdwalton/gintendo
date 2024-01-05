@@ -93,7 +93,7 @@ type CPU struct {
 }
 
 func (c *CPU) String() string {
-	return fmt.Sprintf("A,X,Y: 0x%02x, 0x%02x, 0x%02x; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.Read(c.pc)])
+	return fmt.Sprintf("A,X,Y: 0x%02x, 0x%02x, 0x%02x; PC: 0x%04x, SP: 0x%02x, P: %s; OP: %s", c.acc, c.x, c.y, c.pc, c.sp, statusString(c.status), opcodes[c.mem.Read(c.pc)])
 }
 
 func New(b Bus) *CPU {
@@ -113,7 +113,7 @@ func New(b Bus) *CPU {
 var invalidInstruction = errors.New("invalid instruction")
 
 func (c *CPU) getInst() (opcode, error) {
-	m := c.Read(c.pc)
+	m := c.mem.Read(c.pc)
 	op, ok := opcodes[m]
 	if !ok {
 		return opcode{}, fmt.Errorf("pc: 0x%04x, inst: 0x%02x - %w", c.pc, m, invalidInstruction)
@@ -127,22 +127,17 @@ func (c *CPU) getInst() (opcode, error) {
 func (c *CPU) memRange(low, high uint16) []uint8 {
 	ret := make([]uint8, high-low)
 	for i := low; i <= high; i += 1 {
-		ret = append(ret, c.Read(uint16(i)))
+		ret = append(ret, c.mem.Read(uint16(i)))
 	}
 
 	return ret
 }
 
-// Read returns the value stored in memory location addr
-func (c *CPU) Read(addr uint16) uint8 {
-	return c.mem.Read(addr)
-}
-
 // Read16 returns the two bytes from memory at addr (lower byte is
 // first).
 func (c *CPU) Read16(addr uint16) uint16 {
-	lsb := uint16(c.Read(addr))
-	msb := uint16(c.Read(addr + 1))
+	lsb := uint16(c.mem.Read(addr))
+	msb := uint16(c.mem.Read(addr + 1))
 
 	return (msb << 8) | lsb
 }
@@ -160,11 +155,11 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	case IMMEDIATE:
 		addr = c.pc
 	case ZERO_PAGE:
-		addr = uint16(c.Read(c.pc))
+		addr = uint16(c.mem.Read(c.pc))
 	case ZERO_PAGE_X:
-		return uint16(c.Read(c.pc) + c.x)
+		return uint16(c.mem.Read(c.pc) + c.x)
 	case ZERO_PAGE_Y:
-		return uint16(c.Read(c.pc) + c.y)
+		return uint16(c.mem.Read(c.pc) + c.y)
 	case ABSOLUTE:
 		return c.Read16(c.pc)
 	case ABSOLUTE_X:
@@ -178,9 +173,9 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	case INDIRECT:
 		return c.Read16(c.Read16(c.pc))
 	case INDIRECT_X:
-		return c.Read16(uint16(c.Read(c.pc) + c.x))
+		return c.Read16(uint16(c.mem.Read(c.pc) + c.x))
 	case INDIRECT_Y:
-		a := c.Read16(uint16(c.Read(c.pc)))
+		a := c.Read16(uint16(c.mem.Read(c.pc)))
 		addr = a + uint16(c.y)
 		c.cycles += extraCycles(a, addr)
 	case RELATIVE:
@@ -189,7 +184,7 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 		// from memory to decode the instruction, so we need
 		// to account for that here and step over the relative
 		// argument while calculating the new target address.
-		addr = (c.pc + 1) + uint16(int8(c.Read(c.pc)))
+		addr = (c.pc + 1) + uint16(int8(c.mem.Read(c.pc)))
 	default:
 		panic("Invalid addressing mode")
 	}
@@ -197,15 +192,10 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	return addr
 }
 
-// Write will store val in memory location addr
-func (c *CPU) Write(addr uint16, val uint8) {
-	c.mem.Write(addr, val)
-}
-
 // Write16 stores val at addr (lower byte is first).
 func (c *CPU) Write16(addr, val uint16) {
-	c.Write(addr, uint8(val&0x00FF))
-	c.Write(addr+1, uint8(val>>8))
+	c.mem.Write(addr, uint8(val&0x00FF))
+	c.mem.Write(addr+1, uint8(val>>8))
 }
 
 func (c *CPU) TriggerNMI() {
@@ -239,10 +229,10 @@ func (c *CPU) SetPC(addr uint16) {
 // for debugging utilities or (eg) a BIOS loop.
 func (c *CPU) Inst() string {
 	var sb strings.Builder
-	op := opcodes[c.Read(c.pc)]
+	op := opcodes[c.mem.Read(c.pc)]
 	for i := 0; i < int(op.bytes); i++ {
 		m := c.pc + uint16(i)
-		sb.WriteString(fmt.Sprintf("%04x: 0x%02x ", m, c.Read(m)))
+		sb.WriteString(fmt.Sprintf("%04x: 0x%02x ", m, c.mem.Read(m)))
 	}
 	return sb.String()
 }
@@ -251,7 +241,7 @@ func (c *CPU) Inst() string {
 // 'start'.
 func (c *CPU) LoadMem(start uint16, mem []uint8) {
 	for i, m := range mem {
-		c.Write(start+uint16(i), m)
+		c.mem.Write(start+uint16(i), m)
 	}
 }
 
@@ -333,13 +323,13 @@ func (c *CPU) StackAddr() uint16 {
 }
 
 func (c *CPU) pushStack(val uint8) {
-	c.Write(c.StackAddr(), val)
+	c.mem.Write(c.StackAddr(), val)
 	c.sp -= 1
 }
 
 func (c *CPU) popStack() uint8 {
 	c.sp += 1
-	return c.Read(c.StackAddr())
+	return c.mem.Read(c.StackAddr())
 }
 
 func (c *CPU) pushAddress(addr uint16) {
@@ -466,7 +456,7 @@ func (c *CPU) useDecimalMode() bool {
 }
 
 func (c *CPU) ADC(mode uint8) {
-	v := c.Read(c.getOperandAddr(mode))
+	v := c.mem.Read(c.getOperandAddr(mode))
 	switch c.useDecimalMode() {
 	case false:
 		c.addWithOverflow(v)
@@ -477,7 +467,7 @@ func (c *CPU) ADC(mode uint8) {
 }
 
 func (c *CPU) AND(mode uint8) {
-	c.acc = c.acc & c.Read(c.getOperandAddr(mode))
+	c.acc = c.acc & c.mem.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
@@ -490,9 +480,9 @@ func (c *CPU) ASL(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.Read(addr)
+		ov = c.mem.Read(addr)
 		nv = ov << 1
-		c.Write(addr, nv)
+		c.mem.Write(addr, nv)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -515,7 +505,7 @@ func (c *CPU) BEQ(mode uint8) {
 }
 
 func (c *CPU) BIT(mode uint8) {
-	o := c.Read(c.getOperandAddr(mode))
+	o := c.mem.Read(c.getOperandAddr(mode))
 
 	c.flagsOff(STATUS_FLAG_NEGATIVE | STATUS_FLAG_OVERFLOW | STATUS_FLAG_ZERO)
 	var flags uint8
@@ -572,21 +562,21 @@ func (c *CPU) CLV(mode uint8) {
 }
 
 func (c *CPU) CMP(mode uint8) {
-	c.baseCMP(c.acc, c.Read(c.getOperandAddr(mode)))
+	c.baseCMP(c.acc, c.mem.Read(c.getOperandAddr(mode)))
 }
 
 func (c *CPU) CPX(mode uint8) {
-	c.baseCMP(c.x, c.Read(c.getOperandAddr(mode)))
+	c.baseCMP(c.x, c.mem.Read(c.getOperandAddr(mode)))
 }
 
 func (c *CPU) CPY(mode uint8) {
-	c.baseCMP(c.y, c.Read(c.getOperandAddr(mode)))
+	c.baseCMP(c.y, c.mem.Read(c.getOperandAddr(mode)))
 }
 
 func (c *CPU) DEC(mode uint8) {
 	a := c.getOperandAddr(mode)
-	c.Write(a, c.Read(a)-1)
-	c.setNegativeAndZeroFlags(c.Read(a))
+	c.mem.Write(a, c.mem.Read(a)-1)
+	c.setNegativeAndZeroFlags(c.mem.Read(a))
 }
 
 func (c *CPU) DEX(mode uint8) {
@@ -600,14 +590,14 @@ func (c *CPU) DEY(mode uint8) {
 }
 
 func (c *CPU) EOR(mode uint8) {
-	c.acc = c.acc ^ c.Read(c.getOperandAddr(mode))
+	c.acc = c.acc ^ c.mem.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *CPU) INC(mode uint8) {
 	a := c.getOperandAddr(mode)
-	c.Write(a, c.Read(a)+1)
-	c.setNegativeAndZeroFlags(c.Read(a))
+	c.mem.Write(a, c.mem.Read(a)+1)
+	c.setNegativeAndZeroFlags(c.mem.Read(a))
 }
 
 func (c *CPU) INX(mode uint8) {
@@ -630,17 +620,17 @@ func (c *CPU) JSR(mode uint8) {
 }
 
 func (c *CPU) LDA(mode uint8) {
-	c.acc = c.Read(c.getOperandAddr(mode))
+	c.acc = c.mem.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
 func (c *CPU) LDX(mode uint8) {
-	c.x = c.Read(c.getOperandAddr(mode))
+	c.x = c.mem.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.x)
 }
 
 func (c *CPU) LDY(mode uint8) {
-	c.y = c.Read(c.getOperandAddr(mode))
+	c.y = c.mem.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.y)
 }
 
@@ -653,9 +643,9 @@ func (c *CPU) LSR(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.Read(addr)
+		ov = c.mem.Read(addr)
 		nv = ov >> 1
-		c.Write(addr, nv)
+		c.mem.Write(addr, nv)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -671,7 +661,7 @@ func (c *CPU) NOP(mode uint8) {
 }
 
 func (c *CPU) ORA(mode uint8) {
-	c.acc = c.acc | c.Read(c.getOperandAddr(mode))
+	c.acc = c.acc | c.mem.Read(c.getOperandAddr(mode))
 	c.setNegativeAndZeroFlags(c.acc)
 }
 
@@ -704,9 +694,9 @@ func (c *CPU) ROL(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.Read(addr)
-		c.Write(addr, ((ov << 1) | (c.status & STATUS_FLAG_CARRY)))
-		nv = c.Read(addr)
+		ov = c.mem.Read(addr)
+		c.mem.Write(addr, ((ov << 1) | (c.status & STATUS_FLAG_CARRY)))
+		nv = c.mem.Read(addr)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -725,9 +715,9 @@ func (c *CPU) ROR(mode uint8) {
 		nv = c.acc
 	default:
 		addr := c.getOperandAddr(mode)
-		ov = c.Read(addr)
-		c.Write(addr, ((ov >> 1) | ((c.status & STATUS_FLAG_CARRY) << 7)))
-		nv = c.Read(addr)
+		ov = c.mem.Read(addr)
+		c.mem.Write(addr, ((ov >> 1) | ((c.status & STATUS_FLAG_CARRY) << 7)))
+		nv = c.mem.Read(addr)
 	}
 
 	c.flagsOff(STATUS_FLAG_CARRY | STATUS_FLAG_NEGATIVE | STATUS_FLAG_ZERO)
@@ -747,7 +737,7 @@ func (c *CPU) RTS(mode uint8) {
 }
 
 func (c *CPU) SBC(mode uint8) {
-	v := c.Read(c.getOperandAddr(mode))
+	v := c.mem.Read(c.getOperandAddr(mode))
 	if c.useDecimalMode() {
 		c.subBCD(v)
 	} else {
@@ -768,15 +758,15 @@ func (c *CPU) SEI(mode uint8) {
 }
 
 func (c *CPU) STA(mode uint8) {
-	c.Write(c.getOperandAddr(mode), c.acc)
+	c.mem.Write(c.getOperandAddr(mode), c.acc)
 }
 
 func (c *CPU) STX(mode uint8) {
-	c.Write(c.getOperandAddr(mode), c.x)
+	c.mem.Write(c.getOperandAddr(mode), c.x)
 }
 
 func (c *CPU) STY(mode uint8) {
-	c.Write(c.getOperandAddr(mode), c.y)
+	c.mem.Write(c.getOperandAddr(mode), c.y)
 }
 
 func (c *CPU) TAX(mode uint8) {
