@@ -118,6 +118,7 @@ type PPU struct {
 	pixels       *image.RGBA
 	paletteTable [32]uint8
 	oamData      [256]uint8
+	secondaryOAM []oam       // temp OAM store for sprites on next scanline
 	vram         [2048]uint8 // 2k of video ram
 	mirrorMode   uint8
 
@@ -174,14 +175,15 @@ func (p *PPU) Reset() {
 	p.ctrl = 0
 	p.mask = 0
 	p.status = 0
+	p.secondaryOAM = make([]oam, 8, 8)
 }
 
 func (p *PPU) String() string {
 	return fmt.Sprintf("x=%d, y=%d, v=%s fineX=%03b (t=%s), ctrl=%08b,mask=%08b,status=%08b,w=%d ", p.scandot, p.scanline, p.v.String(), p.x, p.t.String(), p.ctrl, p.mask, p.status, p.wLatch)
 }
 
-func (p *PPU) GetOAM() []*oam {
-	oams := make([]*oam, 64, 64)
+func (p *PPU) GetOAM() []oam {
+	oams := make([]oam, 64, 64)
 	for i := 0; i < 64; i++ {
 		oams[i] = OAMFromBytes(p.oamData[i*4 : i*4+4])
 	}
@@ -248,7 +250,13 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 		p.clearVBlank()
 		p.wLatch = 0
 	case OAMDATA:
-		ret = p.oamData[p.oamaddr]
+		// While clearing OAM, reads of $2004 return 0xFF
+		// https://www.nesdev.org/wiki/PPU_sprite_evaluation#Details
+		if p.visibleLine() && p.scandot <= 64 {
+			ret = 0xFF
+		} else {
+			ret = p.oamData[p.oamaddr]
+		}
 	case PPUDATA:
 		ret = p.bufferData
 		p.bufferData = p.read(uint16(p.v))
