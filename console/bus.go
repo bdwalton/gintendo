@@ -187,6 +187,7 @@ func (b *Bus) BIOS(ctx context.Context) {
 		fmt.Println("(I)instruction - show instruction memory locations")
 		fmt.Println("(P)C - set program counter")
 		fmt.Println("PP(U) - show PPU status")
+		fmt.Println("(O)AM - Dump OAM data")
 		fmt.Println("(Q)uit - shutdown the gintentdo")
 		fmt.Printf("Choice: ")
 
@@ -239,6 +240,10 @@ func (b *Bus) BIOS(ctx context.Context) {
 			fmt.Println(b.ppu)
 		case 'e', 'E':
 			b.cpu.Reset()
+		case 'o', 'O':
+			for i, o := range b.ppu.GetOAM() {
+				fmt.Printf("%d: %v\n", i, o.String())
+			}
 		case 'm', 'M':
 			fmt.Println()
 			low := readAddress("Low address (eg f00d): ")
