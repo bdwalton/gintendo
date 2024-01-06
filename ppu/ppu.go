@@ -238,6 +238,8 @@ func (p *PPU) ReadReg(r uint16) uint8 {
 		ret = (p.status & 0xE0) | (p.bufferData & 0x1F)
 		p.clearVBlank()
 		p.wLatch = 0
+	case OAMDATA:
+		ret = p.oamData[p.oamaddr]
 	case PPUDATA:
 		ret = p.bufferData
 		p.bufferData = p.read(uint16(p.v))
