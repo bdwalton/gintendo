@@ -1,5 +1,7 @@
 package ppu
 
+import "fmt"
+
 type priority uint8
 
 const (
@@ -35,6 +37,10 @@ type oam struct {
 	// left-clipping through PPUMASK ($2001) can be used to
 	// simulate this effect.
 	x uint8
+}
+
+func (o *oam) String() string {
+	return fmt.Sprintf("%d,%d: %d, %08b", o.x, o.y, o.tileId, o.attributes())
 }
 
 func OAMFromBytes(in []uint8) oam {
