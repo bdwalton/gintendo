@@ -147,6 +147,11 @@ type PPU struct {
 	bgNextTile                   uint8  // next tile id
 	bgNextAttrib                 uint8  // next attribute data
 	bgNextTileLSB, bgNextTileMSB uint8  // LSB and MSB of next tile
+
+	// rendering variables for sprites
+	activeSprites  int
+	canZeroHit     bool     // true if we're going to include sprite 0 on next scanline
+	fgSPLo, fgSPHi [8]uint8 // 8 hi and low plane registers for the 8 oams
 }
 
 func New(b Bus) *PPU {
@@ -176,6 +181,8 @@ func (p *PPU) Reset() {
 	p.mask = 0
 	p.status = 0
 	p.secondaryOAM = make([]oam, 8, 8)
+	p.activeSprites = 0
+	p.canZeroHit = false
 	for i := range p.secondaryOAM {
 		// this is always below a scaline that will be drawn
 		p.secondaryOAM[i].y = 0xFF
@@ -717,7 +724,7 @@ func (p *PPU) Tick() {
 	// one shot instead of in a cycle accurate way.
 	if p.visibleLine() && p.scandot == 257 { // outside of visible pixels for the line
 		// Prime OAM counters for this scanline
-		nOam := 0
+		p.activeSprites = 0
 
 		for i := range p.secondaryOAM {
 			// this is always below a scaline that will be drawn
@@ -732,9 +739,9 @@ func (p *PPU) Tick() {
 			o := OAMFromBytes(p.oamData[oim : oim+4])
 			// oam visible on this line and we haven't overflowed
 			if d := int(p.scanline - uint16(o.y)); d >= 0 && d < ss {
-				if nOam < 8 {
-					p.secondaryOAM[nOam] = o
-					nOam++
+				if p.activeSprites < 8 {
+					p.secondaryOAM[p.activeSprites] = o
+					p.activeSprites++
 				} else {
 					p.status |= STATUS_SPRITE_OVERFLOW
 					break
