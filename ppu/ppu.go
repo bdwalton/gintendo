@@ -564,6 +564,19 @@ func (p *PPU) updateBG() {
 	}
 }
 
+func (p *PPU) updateFGShifters() {
+	if p.renderForeground() {
+		for i := 0; i < p.activeSprites; i++ {
+			if p.secondaryOAM[i].x > 0 {
+				p.secondaryOAM[i].x -= 1
+			} else {
+				p.fgSPLo[i] <<= 1
+				p.fgSPHi[i] <<= 1
+			}
+		}
+	}
+}
+
 func (p *PPU) loadBGShifters() {
 	p.bgSPLo = (p.bgSPLo & 0xFF00) | uint16(p.bgNextTileLSB)
 	p.bgSPHi = (p.bgSPHi & 0xFF00) | uint16(p.bgNextTileMSB)
@@ -640,6 +653,11 @@ func (p *PPU) Tick() {
 	if p.prerenderLine() {
 		if p.scandot == 1 {
 			p.clearVBlank()
+			// Clear Foreground Shifters
+			for i := 0; i < 8; i++ {
+				p.fgSPLo[i] = 0
+				p.fgSPHi[i] = 0
+			}
 		}
 
 		if p.renderingEnabled() {
@@ -658,6 +676,7 @@ func (p *PPU) Tick() {
 	if p.visibleLine() {
 		if p.visibleDot() {
 			p.renderPixel()
+			p.updateFGShifters()
 		}
 
 		if p.fetchCycle() {
