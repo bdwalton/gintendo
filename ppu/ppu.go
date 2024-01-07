@@ -605,8 +605,7 @@ func (p *PPU) updateBGShifters() {
 }
 
 func (p *PPU) renderPixel() {
-	var pix, pal uint8 // 2 bit pixel to be rendered and 3 bit index of the palette used
-
+	var bgPix, bgPal uint8 // 2 bit pixel to be rendered and 3 bit index of the palette used
 	if p.renderBackground() {
 		// We take the top bit of the shifter and adjust it based on fine X.
 		var fineX uint16 = 0x8000 >> uint16(p.x)
@@ -625,7 +624,7 @@ func (p *PPU) renderPixel() {
 			p1 = 1
 		}
 
-		pix = (p1 << 1) | p0
+		bgPix = (p1 << 1) | p0
 
 		// // Get palette - we apply the same fine X shifting logic.
 		var pa0, pa1 uint8
@@ -636,7 +635,61 @@ func (p *PPU) renderPixel() {
 			pa1 = 1
 		}
 
-		pal = pa1<<1 | pa0
+		bgPal = pa1<<1 | pa0
+	}
+
+	// Foreground
+	var fgPix, fgPal uint8
+	var fgPrio, renderZero bool
+	if p.renderForeground() {
+		for i := 0; i < p.activeSprites; i++ {
+			o := p.secondaryOAM[i]
+			if o.x == 0 {
+				fgPix = ((p.fgSPHi[i] & 0x80) >> 6) | (p.fgSPLo[i]&0x80)>>7
+				fgPal = o.palette + 0x04 // sprite palettes are the latter 4
+				if o.renderP == FRONT {
+					fgPrio = true
+				}
+
+				// We render this one and skip others
+				// because later sprites are lower
+				// priority.
+				if fgPix != 0 {
+					if i == 0 {
+						renderZero = true
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Now select the foreground or background pixel based on priority
+	var pix, pal uint8 = bgPix, bgPal // default to background
+	switch {
+	case bgPix == 0 && fgPix > 0:
+		pix = fgPix
+		pal = fgPal
+	case bgPix > 0 && fgPix > 0:
+		if fgPrio {
+			pix = fgPix
+			pal = fgPal
+		}
+
+		if p.canZeroHit && renderZero {
+			if p.renderBackground() && p.renderForeground() {
+				if p.mask&(MASK_SHOW_LEFT_TILES|MASK_SHOW_LEFT_SPRITES) > 0 {
+					if p.scandot >= 1 && p.scandot < 258 {
+						p.status |= STATUS_SPRITE_0_HIT
+					}
+
+				} else {
+					if p.scandot >= 9 && p.scandot < 258 {
+						p.status |= STATUS_SPRITE_0_HIT
+					}
+				}
+			}
+		}
 	}
 
 	a := uint16(PALETTE_RAM) + (uint16(pal) << 2) + uint16(pix)
