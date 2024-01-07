@@ -422,6 +422,10 @@ func (p *PPU) backgroundTableID() uint16 {
 	return uint16(p.ctrl&CTRL_BACKGROUND_PATTERN_ADDR) >> 4
 }
 
+func (p *PPU) spriteTableID() uint16 {
+	return uint16(p.ctrl&CTRL_SPRITE_PATTERN_ADDR) >> 3
+}
+
 func (p *PPU) visibleLine() bool {
 	return p.scanline >= 0 && p.scanline < 240
 }

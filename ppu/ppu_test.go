@@ -69,6 +69,25 @@ func TestBackgroundTableID(t *testing.T) {
 	}
 }
 
+func TestSpriteTableID(t *testing.T) {
+	cases := []struct {
+		ctrl uint8
+		want uint16
+	}{
+		{0b00010000, 0},
+		{0b00111100, 1},
+		{0b00101000, 1},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.WriteReg(PPUCTRL, tc.ctrl)
+		if got := p.spriteTableID(); got != tc.want {
+			t.Errorf("%d: Got %d, wanted %d; ctrl=%08b", i, got, tc.want, p.ctrl)
+		}
+	}
+}
+
 func TestTileMapAddr(t *testing.T) {
 	cases := []struct {
 		addr uint16
