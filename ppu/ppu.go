@@ -727,6 +727,7 @@ func (p *PPU) Tick() {
 		if p.scandot == 257 { // outside of visible pixels for the line
 			// Prime OAM counters for this scanline
 			p.activeSprites = 0
+			p.canZeroHit = false
 
 			for i := range p.secondaryOAM {
 				// this is always below a scaline that will be drawn
