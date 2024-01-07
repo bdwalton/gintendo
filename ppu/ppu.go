@@ -653,6 +653,10 @@ func (p *PPU) Tick() {
 	if p.prerenderLine() {
 		if p.scandot == 1 {
 			p.clearVBlank()
+
+			p.status &^= STATUS_SPRITE_OVERFLOW
+			p.status &^= STATUS_SPRITE_0_HIT
+
 			// Clear Foreground Shifters
 			for i := 0; i < 8; i++ {
 				p.fgSPLo[i] = 0
