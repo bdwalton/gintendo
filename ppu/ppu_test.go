@@ -88,6 +88,26 @@ func TestSpriteTableID(t *testing.T) {
 	}
 }
 
+func TestSpriteSize(t *testing.T) {
+	cases := []struct {
+		ctrl uint8
+		want int
+	}{
+		{0b00010000, 8},
+		{0b00111100, 16},
+		{0b00100000, 16},
+		{0b00000000, 8},
+	}
+
+	for i, tc := range cases {
+		p := New(&testBus{})
+		p.WriteReg(PPUCTRL, tc.ctrl)
+		if got := p.spriteSize(); got != tc.want {
+			t.Errorf("%d: Got %d, wanted %d; ctrl=%08b", i, got, tc.want, p.ctrl)
+		}
+	}
+}
+
 func TestTileMapAddr(t *testing.T) {
 	cases := []struct {
 		addr uint16

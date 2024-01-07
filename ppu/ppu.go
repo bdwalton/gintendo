@@ -426,6 +426,15 @@ func (p *PPU) spriteTableID() uint16 {
 	return uint16(p.ctrl&CTRL_SPRITE_PATTERN_ADDR) >> 3
 }
 
+func (p *PPU) spriteSize() int {
+	var ss int = 8
+	if (p.ctrl & CTRL_SPRITE_SIZE) > 0 {
+		ss = 16
+	}
+
+	return ss
+}
+
 func (p *PPU) visibleLine() bool {
 	return p.scanline >= 0 && p.scanline < 240
 }
@@ -715,18 +724,14 @@ func (p *PPU) Tick() {
 			p.secondaryOAM[i].y = 0xFF
 		}
 
-		spriteSize := 8
-		if (p.ctrl & CTRL_SPRITE_SIZE) > 0 {
-			spriteSize = 16
-		}
-
+		ss := p.spriteSize()
 		// Fill secondary oam. we don't implement the bug here
 		// (using tileid as y), but will add that later if it
 		// turns out to be needed by games.
 		for oim := 0; oim < 64; oim += 4 {
 			o := OAMFromBytes(p.oamData[oim : oim+4])
 			// oam visible on this line and we haven't overflowed
-			if d := int(p.scanline - uint16(o.y)); d >= 0 && d < spriteSize {
+			if d := int(p.scanline - uint16(o.y)); d >= 0 && d < ss {
 				if nOam < 8 {
 					p.secondaryOAM[nOam] = o
 					nOam++
