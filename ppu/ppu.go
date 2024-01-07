@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math/bits"
 )
 
 // Display constants
@@ -722,32 +723,90 @@ func (p *PPU) Tick() {
 	// incorporate the foreground aspects into renderPixel(), this
 	// should be fine.  We're going to (for now) do this all in
 	// one shot instead of in a cycle accurate way.
-	if p.visibleLine() && p.scandot == 257 { // outside of visible pixels for the line
-		// Prime OAM counters for this scanline
-		p.activeSprites = 0
+	if p.visibleLine() {
+		if p.scandot == 257 { // outside of visible pixels for the line
+			// Prime OAM counters for this scanline
+			p.activeSprites = 0
 
-		for i := range p.secondaryOAM {
-			// this is always below a scaline that will be drawn
-			p.secondaryOAM[i].y = 0xFF
-		}
+			for i := range p.secondaryOAM {
+				// this is always below a scaline that will be drawn
+				p.secondaryOAM[i].y = 0xFF
+			}
 
-		ss := p.spriteSize()
-		// Fill secondary oam. we don't implement the bug here
-		// (using tileid as y), but will add that later if it
-		// turns out to be needed by games.
-		for oim := 0; oim < 64; oim += 4 {
-			o := OAMFromBytes(p.oamData[oim : oim+4])
-			// oam visible on this line and we haven't overflowed
-			if d := int(p.scanline - uint16(o.y)); d >= 0 && d < ss {
-				if p.activeSprites < 8 {
-					p.secondaryOAM[p.activeSprites] = o
-					p.activeSprites++
-				} else {
-					p.status |= STATUS_SPRITE_OVERFLOW
-					break
+			ss := p.spriteSize()
+			// Fill secondary oam. we don't implement the bug here
+			// (using tileid as y), but will add that later if it
+			// turns out to be needed by games.
+			for oim := 0; oim < 64; oim += 4 {
+				o := OAMFromBytes(p.oamData[oim : oim+4])
+				// oam visible on this line and we haven't overflowed
+				if d := int(p.scanline - uint16(o.y)); d >= 0 && d < ss {
+					if oim == 0 {
+						p.canZeroHit = true
+					}
+					if p.activeSprites < 8 {
+						p.secondaryOAM[p.activeSprites] = o
+						p.activeSprites++
+					} else {
+						p.status |= STATUS_SPRITE_OVERFLOW
+						break
+					}
 				}
 			}
 		}
 
+		if p.scandot >= 320 {
+			for i, o := range p.secondaryOAM {
+				var addr uint16
+
+				// This looks like reading a background tile
+				// with the extra step of picking the line to
+				// read based on the y offset and handling
+				// vertical inversion.
+
+				// by default - 16 px sprites override both chrIdx and tile
+				var chrIdx uint16 = p.spriteTableID()
+				var tile uint16 = uint16(o.tileId)
+
+				// The &0x0007 is for 16px tiles, but doesn't
+				// hurt 8px tiles, so we generalize it.
+				var yoff uint16 = (p.scanline - uint16(o.y)) & 0x0007
+				if o.flipV {
+					yoff = 7 - yoff
+				}
+
+				if p.spriteSize() == 16 {
+					// When sprites are 16 pixels tall, a
+					// few things change:
+					//
+					// 1 - we don't use the control
+					// register to select the CHR bank, we
+					// use tile id to help with that.
+					//
+					// 2 - we need to know if we're past
+					// the first 8 lines of the sprite so
+					// we index into CHR for the adjacent
+					// tile.
+					chrIdx = uint16(o.tileId & 0x01)
+					tile &= 0x00FE
+					// top half of upside down tile or bottom half of normal orientation
+					if (o.flipV && p.scanline-uint16(o.y) < 8) || (!o.flipV && p.scanline-uint16(o.y) >= 8) {
+						tile++ // adjacent tile
+					}
+
+				}
+
+				addr = chrIdx<<12 | tile<<4 | yoff
+				p.fgSPLo[i] = p.read(addr)
+				// +8 gets us into the next plane of this CHR
+				// tile. Just like background rendering.
+				p.fgSPHi[i] = p.read(addr + 8)
+
+				if o.flipH {
+					p.fgSPLo[i] = bits.Reverse8(p.fgSPLo[i])
+					p.fgSPHi[i] = bits.Reverse8(p.fgSPHi[i])
+				}
+			}
+		}
 	}
 }
