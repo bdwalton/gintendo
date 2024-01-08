@@ -27,14 +27,17 @@ const (
 
 const (
 	OAMDMA = 0x4014 // Triggers DMA from CPU memory to DMA
+	CONT1  = 0x4016 // Player 1 controller
+	CONT2  = 0x4017 // Player 2 controller
 )
 
 type Bus struct {
-	cpu    *mos6502.CPU
-	ppu    *ppu.PPU
-	mapper mappers.Mapper
-	ram    []uint8
-	ticks  uint64
+	cpu         *mos6502.CPU
+	ppu         *ppu.PPU
+	mapper      mappers.Mapper
+	ram         []uint8
+	ticks       uint64
+	controllers [2]controller
 }
 
 func New(m mappers.Mapper) *Bus {
@@ -105,7 +108,12 @@ func (b *Bus) Read(addr uint16) uint8 {
 		// PPU registers are mirrored between 0x2000 and 0x4000
 		return b.ppu.ReadReg(addr & 0x2007)
 	case addr < MAX_IO_REG:
-		// handle joysticks
+		switch addr {
+		case CONT1:
+			return b.controllers[0].read()
+			// case CONT2:
+			// 	return b.controllers[1].read(addr)
+		}
 		return 0
 	case addr <= MAX_SRAM:
 		return 0
@@ -139,6 +147,10 @@ func (b *Bus) Write(addr uint16, val uint8) {
 				b.ppu.WriteReg(ppu.OAMDATA, b.Read(addr))
 			}
 			b.cpu.AddDMACycles()
+		case CONT1:
+			b.controllers[0].write(val)
+			// case CONT2:
+			// 	b.controllers[1].write(val)
 		}
 	case addr <= MAX_SRAM:
 		// nothing for now
