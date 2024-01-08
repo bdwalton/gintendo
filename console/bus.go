@@ -82,9 +82,14 @@ func (b *Bus) Draw(screen *ebiten.Image) {
 // Update is called by ebiten roughly every 1/60s and will be our
 // driver for the emulation.
 func (b *Bus) Update() error {
-	// We do work in a different goroutine and don't need ebiten
-	// to drive this. We have to be implemented and called though
-	// as it's part of the required interface.
+	for i := 0; i < 357954; i++ {
+		b.ppu.Tick()
+		if b.ticks%3 == 0 {
+			b.cpu.Tick()
+		}
+		b.ticks += 1
+	}
+
 	return nil
 }
 

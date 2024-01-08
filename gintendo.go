@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"os"
@@ -17,26 +16,18 @@ var romFile = flag.String("nes_rom", "", "Path to NES ROM to run.")
 func main() {
 	flag.Parse()
 
-	var m mappers.Mapper
-	var gintendo *console.Bus
-
 	rom, err := nesrom.New(*romFile)
 	if err != nil {
 		log.Fatalf("Invalid ROM: %v", err)
 	}
-	m, err = mappers.Get(rom)
+
+	m, err := mappers.Get(rom)
 	if err != nil {
 		log.Fatalf("Couldn't Get() mapper: %v", err)
 	}
 
-	gintendo = console.New(m)
-
-	go func() {
-		if err := ebiten.RunGame(gintendo); err != nil {
-			log.Fatal(err)
-		}
-		os.Exit(0)
-	}()
-
-	gintendo.BIOS(context.Background())
+	if err := ebiten.RunGame(console.New(m)); err != nil {
+		log.Fatal(err)
+	}
+	os.Exit(0)
 }
