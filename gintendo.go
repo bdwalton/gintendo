@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
@@ -26,8 +27,18 @@ func main() {
 		log.Fatalf("Couldn't Get() mapper: %v", err)
 	}
 
-	if err := ebiten.RunGame(console.New(m)); err != nil {
+	gintendo := console.New(m)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func(ctx context.Context) {
+		gintendo.Run(ctx)
+	}(ctx)
+
+	if err := ebiten.RunGame(gintendo); err != nil {
 		log.Fatal(err)
+
 	}
+
+	cancel()
 	os.Exit(0)
 }

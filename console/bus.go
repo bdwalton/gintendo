@@ -82,12 +82,8 @@ func (b *Bus) Draw(screen *ebiten.Image) {
 // Update is called by ebiten roughly every 1/60s and will be our
 // driver for the emulation.
 func (b *Bus) Update() error {
-	for i := 0; i < 357954; i++ {
-		b.ppu.Tick()
-		if b.ticks%3 == 0 {
-			b.cpu.Tick()
-		}
-		b.ticks += 1
+	for _, c := range b.controllers {
+		c.poll()
 	}
 
 	return nil
