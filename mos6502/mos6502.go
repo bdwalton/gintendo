@@ -106,7 +106,7 @@ func New(b Bus) *CPU {
 		mem:    b,
 		status: UNUSED_STATUS_FLAG | STATUS_FLAG_BREAK | STATUS_FLAG_INTERRUPT_DISABLE,
 	}
-	c.pc = c.Read16(INT_RESET)
+	c.pc = c.Read16(INT_RESET, ABSOLUTE)
 	return c
 }
 
@@ -134,10 +134,18 @@ func (c *CPU) memRange(low, high uint16) []uint8 {
 }
 
 // Read16 returns the two bytes from memory at addr (lower byte is
-// first).
-func (c *CPU) Read16(addr uint16) uint16 {
+// first). The mode parameter helps handle wrapping cases in certain
+// usecases.
+func (c *CPU) Read16(addr uint16, mode uint8) uint16 {
 	lsb := uint16(c.mem.Read(addr))
-	msb := uint16(c.mem.Read(addr + 1))
+
+	addr++
+
+	if mode == INDIRECT_X || mode == INDIRECT_Y { // handle wrapping
+		addr &= 0x00FF
+	}
+
+	msb := uint16(c.mem.Read(addr))
 
 	return (msb << 8) | lsb
 }
@@ -161,21 +169,21 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 	case ZERO_PAGE_Y:
 		return uint16(c.mem.Read(c.pc) + c.y)
 	case ABSOLUTE:
-		return c.Read16(c.pc)
+		return c.Read16(c.pc, mode)
 	case ABSOLUTE_X:
-		a := c.Read16(c.pc)
+		a := c.Read16(c.pc, mode)
 		addr = a + uint16(c.x)
 		c.cycles += extraCycles(a, addr)
 	case ABSOLUTE_Y:
-		a := c.Read16(c.pc)
+		a := c.Read16(c.pc, mode)
 		addr = a + uint16(c.y)
 		c.cycles += extraCycles(a, addr)
 	case INDIRECT:
-		return c.Read16(c.Read16(c.pc))
+		return c.Read16(c.Read16(c.pc, mode), mode)
 	case INDIRECT_X:
-		return c.Read16(uint16(c.mem.Read(c.pc) + c.x))
+		return c.Read16(uint16(c.mem.Read(c.pc)+c.x), mode)
 	case INDIRECT_Y:
-		a := c.Read16(uint16(c.mem.Read(c.pc)))
+		a := c.Read16(uint16(c.mem.Read(c.pc)), mode)
 		addr = a + uint16(c.y)
 		c.cycles += extraCycles(a, addr)
 	case RELATIVE:
@@ -217,7 +225,7 @@ func (c *CPU) AddDMACycles() {
 func (c *CPU) Reset() {
 	// Reset is the only time we should ever touch the unused flag
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE | UNUSED_STATUS_FLAG)
-	c.pc = c.Read16(INT_RESET)
+	c.pc = c.Read16(INT_RESET, ABSOLUTE)
 	c.cycles = 0
 }
 
@@ -271,7 +279,7 @@ func (c *CPU) Step() int {
 	if c.pendingInterrupt != INT_NONE {
 		c.pushAddress(c.pc)
 		c.pushStack(c.status)
-		c.pc = c.Read16(uint16(c.pendingInterrupt))
+		c.pc = c.Read16(uint16(c.pendingInterrupt), ABSOLUTE)
 		c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 		switch c.pendingInterrupt {
 		case INT_NMI:
@@ -539,7 +547,7 @@ func (c *CPU) BRK(mode uint8) {
 	// BRK is 2 bytes
 	c.pushAddress(c.pc + 1)
 	c.pushStack(c.status | STATUS_FLAG_BREAK)
-	c.pc = c.Read16(INT_BRK)
+	c.pc = c.Read16(INT_BRK, ABSOLUTE)
 	c.flagsOn(STATUS_FLAG_INTERRUPT_DISABLE)
 }
 

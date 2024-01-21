@@ -146,19 +146,28 @@ func TestMemWrite(t *testing.T) {
 
 func TestMemRead16(t *testing.T) {
 	c := cpu
+	memInit(c, 0x00)
+
+	c.mem.Write(0x0000, 0xFF)
+	c.mem.Write(0x0001, 0x11)
+	c.mem.Write(0x00FE, 0x33)
+	c.mem.Write(0x00FF, 0x22)
+
 	cases := []struct {
-		mem1, mem2 uint8
-		want       uint16
+		addr uint16
+		mode uint8
+		want uint16
 	}{
-		{0xFF, 0x11, 0x11FF},
-		{0xFF, 0x11, 0x11FF},
+		{0x00, ABSOLUTE, 0x11FF},
+		{0x01, ABSOLUTE, 0x0011},
+		{0xFF, INDIRECT_X, 0xFF22},
+		{0xFE, INDIRECT_X, 0x2233},
+		{0xFF, INDIRECT_Y, 0xFF22},
+		{0xFE, INDIRECT_Y, 0x2233},
 	}
 
 	for i, tc := range cases {
-		c.mem.Write(uint16(i), tc.mem1)
-		c.mem.Write(uint16(i+1), tc.mem2)
-		c.pc = uint16(i)
-		if got := c.Read16(c.pc); got != tc.want {
+		if got := c.Read16(tc.addr, tc.mode); got != tc.want {
 			t.Errorf("%d: Got 0x%04x, want 0x%04x", i, got, tc.want)
 		}
 	}
