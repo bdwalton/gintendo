@@ -86,6 +86,7 @@ const (
 	TXA        // Transfer X to Accumulator
 	TXS        // Transfer X to Stack Pointer
 	TYA        // Transfer Y to Accumulator
+	LAX        // Load ACC and X from memory, undocumented
 )
 
 type opcode struct {
@@ -275,4 +276,10 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0x8A: opcode{TXA, "TXA", IMPLICIT, 1, 2},
 	0x9A: opcode{TXS, "TXS", IMPLICIT, 1, 2},
 	0x98: opcode{TYA, "TYA", IMPLICIT, 1, 2},
+	0xA3: opcode{LAX, "LAX", INDIRECT_X, 2, 6},
+	0xB3: opcode{LAX, "LAX", INDIRECT_Y, 2, 5},
+	0xBF: opcode{LAX, "LAX", ABSOLUTE_Y, 3, 4},
+	0xAF: opcode{LAX, "LAX", ABSOLUTE, 3, 4},
+	0xB7: opcode{LAX, "LAX", ZERO_PAGE_Y, 2, 4},
+	0xA7: opcode{LAX, "LAX", ZERO_PAGE_Y, 2, 3},
 }

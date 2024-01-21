@@ -1817,6 +1817,42 @@ func TestOpTYA(t *testing.T) {
 	}
 }
 
+// Undocumented opcode here
+
+func TestOpLAX(t *testing.T) {
+	c := cpu
+	memInit(c, 0x00)
+
+	cases := []struct {
+		pc   uint16
+		mode uint8
+		want uint8
+	}{
+		{0x0, ZERO_PAGE, 0x05},
+		{0x1, INDIRECT_X, 0x81}, // cumulative
+	}
+
+	c.mem.Write(0x0000, 0x10)
+	c.mem.Write(0x0001, 0x00)
+	c.mem.Write(0x0005, 0x07)
+	c.mem.Write(0x0006, 0x00)
+	c.mem.Write(0x0007, 0x81)
+	c.mem.Write(0x0010, 0x05)
+
+	c.x = 0
+	c.acc = 0
+
+	for i, tc := range cases {
+		c.SetPC(tc.pc)
+		c.LAX(tc.mode)
+		if c.acc != tc.want || c.x != tc.want {
+			t.Errorf("%d: Got acc=%02x, x=%02x, wanted %02x", i, c.acc, c.x, tc.want)
+		}
+	}
+}
+
+// Functional tests
+
 func TestFunctionsBin(t *testing.T) {
 	tf := "../testdata/6502_functional_test.bin"
 	bin, err := os.ReadFile(tf)

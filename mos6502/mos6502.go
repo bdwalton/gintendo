@@ -811,3 +811,11 @@ func (c *CPU) TYA(mode uint8) {
 	c.acc = c.y
 	c.setNegativeAndZeroFlags(c.acc)
 }
+
+// Undocumented op codes below
+
+func (c *CPU) LAX(mode uint8) {
+	m := c.mem.Read(c.getOperandAddr(mode))
+	c.acc = m
+	c.x = m
+}
