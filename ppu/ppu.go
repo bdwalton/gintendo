@@ -300,8 +300,6 @@ const (
 )
 
 const (
-	PATTERN_TABLE_0      = 0x0000
-	PATTERN_TABLE_1      = 0x1000
 	BASE_NAMETABLE       = 0x2000
 	ATTRIBUTE_OFFSET     = 0x03C0 // each nametable has attribute data at the end of it
 	NAMETABLE_END        = 0x2FFF
