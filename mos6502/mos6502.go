@@ -819,3 +819,8 @@ func (c *CPU) LAX(mode uint8) {
 	c.acc = m
 	c.x = m
 }
+
+func (c *CPU) SAX(mode uint8) {
+	// TODO: Handle carry flag here. Overflow ignored. Carry not used during subtraction.
+	c.x = (c.acc & c.x) - c.mem.Read(c.getOperandAddr(mode))
+}

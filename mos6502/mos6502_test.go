@@ -1851,6 +1851,28 @@ func TestOpLAX(t *testing.T) {
 	}
 }
 
+func TestOpSAX(t *testing.T) {
+	c := cpu
+	cases := []struct {
+		acc, x, op1 uint8
+		want        uint8
+	}{
+		{0xFF, 0x01, 0x01, 0x00},
+		{0x42, 0x40, 0x01, 0x3F},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0x7780
+		c.acc = tc.acc
+		c.x = tc.x
+		c.mem.Write(c.pc, tc.op1)
+
+		if c.SAX(IMMEDIATE); c.x != tc.want {
+			t.Errorf("%d: Got 0x%02x, wanted 0x%02x", i, c.x, tc.want)
+		}
+	}
+}
+
 // Functional tests
 
 func TestFunctionsBin(t *testing.T) {

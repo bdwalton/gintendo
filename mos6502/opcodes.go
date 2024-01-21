@@ -87,6 +87,7 @@ const (
 	TXS        // Transfer X to Stack Pointer
 	TYA        // Transfer Y to Accumulator
 	LAX        // Load ACC and X from memory, undocumented
+	SAX        // And X = (ACC & X) - immediate value, undocumented
 )
 
 type opcode struct {
@@ -282,4 +283,5 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0xAF: opcode{LAX, "LAX", ABSOLUTE, 3, 4},
 	0xB7: opcode{LAX, "LAX", ZERO_PAGE_Y, 2, 4},
 	0xA7: opcode{LAX, "LAX", ZERO_PAGE_Y, 2, 3},
+	0x83: opcode{SAX, "SAX", IMMEDIATE, 2, 2},
 }
