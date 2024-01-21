@@ -198,7 +198,28 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0x56: opcode{LSR, "LSR", ZERO_PAGE_X, 2, 6},
 	0x4E: opcode{LSR, "LSR", ABSOLUTE, 3, 6},
 	0x5E: opcode{LSR, "LSR", ABSOLUTE_X, 3, 7},
+	0x04: opcode{NOP, "NOP", ZERO_PAGE, 2, 2},   // undocumented
+	0x44: opcode{NOP, "NOP", ZERO_PAGE, 2, 2},   // undocumented
+	0x64: opcode{NOP, "NOP", ZERO_PAGE, 2, 2},   // undocumented
+	0x0c: opcode{NOP, "NOP", ABSOLUTE, 2, 2},    // undocumented
+	0x14: opcode{NOP, "NOP", ZERO_PAGE_X, 2, 2}, // undocumented
+	0x34: opcode{NOP, "NOP", ZERO_PAGE_X, 2, 2}, // undocumented
+	0x54: opcode{NOP, "NOP", ZERO_PAGE_X, 2, 2}, // undocumented
+	0x74: opcode{NOP, "NOP", ZERO_PAGE_X, 2, 2}, // undocumented
+	0xD4: opcode{NOP, "NOP", ZERO_PAGE_X, 2, 2}, // undocumented
+	0xF4: opcode{NOP, "NOP", ZERO_PAGE_X, 2, 2}, // undocumented
 	0xEA: opcode{NOP, "NOP", IMPLICIT, 1, 2},
+	0x1A: opcode{NOP, "NOP", IMPLICIT, 2, 2},   // undocumented
+	0x3A: opcode{NOP, "NOP", IMPLICIT, 2, 2},   // undocumented
+	0x5A: opcode{NOP, "NOP", IMPLICIT, 2, 2},   // undocumented
+	0xDA: opcode{NOP, "NOP", IMPLICIT, 2, 2},   // undocumented
+	0x80: opcode{NOP, "NOP", IMPLICIT, 2, 2},   // undocumented
+	0x1C: opcode{NOP, "NOP", ABSOLUTE_X, 2, 2}, // undocumented
+	0x3C: opcode{NOP, "NOP", ABSOLUTE_X, 2, 2}, // undocumented
+	0x5C: opcode{NOP, "NOP", ABSOLUTE_X, 2, 2}, // undocumented
+	0x7C: opcode{NOP, "NOP", ABSOLUTE_X, 2, 2}, // undocumented
+	0xDC: opcode{NOP, "NOP", ABSOLUTE_X, 2, 2}, // undocumented
+	0xFC: opcode{NOP, "NOP", ABSOLUTE_X, 2, 2}, // undocumented
 	0x09: opcode{ORA, "ORA", IMMEDIATE, 2, 2},
 	0x05: opcode{ORA, "ORA", ZERO_PAGE, 2, 3},
 	0x15: opcode{ORA, "ORA", ZERO_PAGE_X, 2, 4},
@@ -224,6 +245,7 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0x40: opcode{RTI, "RTI", IMPLICIT, 1, 6},
 	0x60: opcode{RTS, "RTS", IMPLICIT, 1, 6},
 	0xE9: opcode{SBC, "SBC", IMMEDIATE, 2, 2},
+	0xEB: opcode{SBC, "SBC", IMMEDIATE, 2, 2}, // undocumented
 	0xE5: opcode{SBC, "SBC", ZERO_PAGE, 2, 3},
 	0xF5: opcode{SBC, "SBC", ZERO_PAGE_X, 2, 4},
 	0xED: opcode{SBC, "SBC", ABSOLUTE, 3, 4},
