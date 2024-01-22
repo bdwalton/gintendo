@@ -90,6 +90,7 @@ const (
 	LAX        // Load ACC and X from memory, undocumented
 	SAX        // And X = (ACC & X) - immediate value, undocumented
 	DCM        // m--; cmp acc w/m - undocumented
+	ISB        // m++; acc - m - undocumented
 )
 
 type opcode struct {
@@ -296,4 +297,11 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0xD7: opcode{DCM, "DCM", ZERO_PAGE_X, 2, 6},
 	0xC3: opcode{DCM, "DCM", INDIRECT_X, 2, 8},
 	0xD3: opcode{DCM, "DCM", INDIRECT_Y, 2, 8},
+	0xEF: opcode{ISB, "ISB", ABSOLUTE, 3, 6},
+	0xFF: opcode{ISB, "ISB", ABSOLUTE_X, 3, 7},
+	0xFB: opcode{ISB, "ISB", ABSOLUTE_Y, 3, 7},
+	0xE7: opcode{ISB, "ISB", ZERO_PAGE, 2, 5},
+	0xF7: opcode{ISB, "ISB", ZERO_PAGE_X, 2, 6},
+	0xE3: opcode{ISB, "ISB", INDIRECT_X, 2, 8},
+	0xF3: opcode{ISB, "ISB", INDIRECT_Y, 2, 8},
 }

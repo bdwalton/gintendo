@@ -1900,6 +1900,36 @@ func TestOpDCM(t *testing.T) {
 	}
 }
 
+func TestOpISB(t *testing.T) {
+	c := cpu
+	cases := []struct {
+		acc, m, status          uint8
+		want, wantM, wantStatus uint8
+	}{
+		// Decimal subtraction
+		{0xFF, 0x00, 0x01, 0xFE, 0x01, 0x81},
+		{0x42, 0x00, 0x01, 0x41, 0x01, 0x01},
+		{0x42, 0x41, 0x01, 0x00, 0x42, 0x03 /* ZERO, CARRY */},
+		// BCD subtraction
+		{0x54, 0x98, 0x09 /* DECIMAL, CARRY */, 0x55, 0x99, 0x08 /* DECIMAL */},
+	}
+
+	var addr uint16 = 0x6600
+
+	for i, tc := range cases {
+		c.pc = 0x7780
+		c.acc = tc.acc
+		c.status = tc.status
+		c.Write16(c.pc, addr)
+		c.mem.Write(addr, tc.m)
+		c.ISB(ABSOLUTE)
+		m := c.mem.Read(addr)
+		if c.acc != tc.want || c.status != tc.wantStatus || m != tc.wantM {
+			t.Errorf("%d: Got 0x%02x m=0x%02x (status 0x%02x), wanted 0x%02x m=0x%02x (status 0x%02x)", i, c.acc, m, c.status, tc.want, tc.wantM, tc.wantStatus)
+		}
+	}
+}
+
 // Functional tests
 
 func TestFunctionsBin(t *testing.T) {

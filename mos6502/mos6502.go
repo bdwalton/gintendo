@@ -832,3 +832,9 @@ func (c *CPU) DCM(mode uint8) {
 	c.mem.Write(addr, v)
 	c.baseCMP(c.acc, v)
 }
+
+func (c *CPU) ISB(mode uint8) {
+	addr := c.getOperandAddr(mode)
+	c.mem.Write(addr, c.mem.Read(addr)+1)
+	c.SBC(mode)
+}
