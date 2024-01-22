@@ -824,3 +824,11 @@ func (c *CPU) SAX(mode uint8) {
 	// TODO: Handle carry flag here. Overflow ignored. Carry not used during subtraction.
 	c.x = (c.acc & c.x) - c.mem.Read(c.getOperandAddr(mode))
 }
+
+func (c *CPU) DCM(mode uint8) {
+	addr := c.getOperandAddr(mode)
+	v := c.mem.Read(addr)
+	v--
+	c.mem.Write(addr, v)
+	c.baseCMP(c.acc, v)
+}

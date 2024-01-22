@@ -1875,6 +1875,31 @@ func TestOpSAX(t *testing.T) {
 	}
 }
 
+func TestOpDCM(t *testing.T) {
+	c := cpu
+	cases := []struct {
+		acc, m            uint8
+		wantStatus, wantM uint8
+	}{
+		{0x41, 0x42, 0x03 /* ZERO, CARRY */, 0x41},
+		{0x41, 0x43, 0x80 /* NEGATIVE */, 0x42},
+		{0x10, 0x01, 0x01 /* CARRY */, 0x00},
+		{0x10, 0x02, 0x01 /* CARRY */, 0x01},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0
+		c.status = 0 // Clear processor init defaults
+		c.acc = tc.acc
+		c.mem.Write(c.pc, tc.m)
+		c.DCM(IMMEDIATE)
+		m := c.mem.Read(c.pc)
+		if c.status != tc.wantStatus || m != tc.wantM {
+			t.Errorf("%d: Got 0x%02x m=0x%02x, wanted 0x%02x m=0x%02x", i, c.status, m, tc.wantStatus, tc.wantM)
+		}
+	}
+}
+
 // Functional tests
 
 func TestFunctionsBin(t *testing.T) {

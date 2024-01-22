@@ -89,6 +89,7 @@ const (
 	TYA        // Transfer Y to Accumulator
 	LAX        // Load ACC and X from memory, undocumented
 	SAX        // And X = (ACC & X) - immediate value, undocumented
+	DCM        // m--; cmp acc w/m - undocumented
 )
 
 type opcode struct {
@@ -288,4 +289,11 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0x87: opcode{SAX, "SAX", ZERO_PAGE, 2, 3},
 	0x8f: opcode{SAX, "SAX", ABSOLUTE, 2, 4},
 	0x97: opcode{SAX, "SAX", ZERO_PAGE_X_BUT_Y, 2, 4},
+	0xCF: opcode{DCM, "DCM", ABSOLUTE, 3, 6},
+	0xDF: opcode{DCM, "DCM", ABSOLUTE_X, 3, 7},
+	0xDB: opcode{DCM, "DCM", ABSOLUTE_Y, 3, 7},
+	0xC7: opcode{DCM, "DCM", ZERO_PAGE, 2, 5},
+	0xD7: opcode{DCM, "DCM", ZERO_PAGE_X, 2, 6},
+	0xC3: opcode{DCM, "DCM", INDIRECT_X, 2, 8},
+	0xD3: opcode{DCM, "DCM", INDIRECT_Y, 2, 8},
 }
