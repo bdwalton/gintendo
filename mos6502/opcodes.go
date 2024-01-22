@@ -285,4 +285,7 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0xB7: opcode{LAX, "LAX", ZERO_PAGE_Y, 2, 4},
 	0xA7: opcode{LAX, "LAX", ZERO_PAGE_Y, 2, 3},
 	0x83: opcode{SAX, "SAX", IMMEDIATE, 2, 2},
+	0x87: opcode{SAX, "SAX", ZERO_PAGE, 2, 3},
+	0x8f: opcode{SAX, "SAX", ABSOLUTE, 2, 4},
+	0x97: opcode{SAX, "SAX", ZERO_PAGE_X_BUT_Y, 2, 4},
 }
