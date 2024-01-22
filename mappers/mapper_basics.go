@@ -18,9 +18,15 @@ func RegisterMapper(id uint16, m Mapper) {
 	allMappers[id] = m
 }
 
-// Get returns a mapper with the specified id or an error if we don't
-// have a mapper for that id yet.
-func Get(rom *nesrom.ROM) (Mapper, error) {
+// Load will instantiate an nesrom.Rom from romFile and return a
+// mapper with the specified id or an error if we can't load the ROM
+// or don't have a mapper for that id yet.
+func Load(romFile string) (Mapper, error) {
+	rom, err := nesrom.New(romFile)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't load ROM: %v", err)
+	}
+
 	id := rom.MapperNum()
 	m, ok := allMappers[id]
 	if !ok {
