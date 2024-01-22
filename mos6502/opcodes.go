@@ -12,6 +12,7 @@ const (
 	IMMEDIATE
 	ZERO_PAGE
 	ZERO_PAGE_X
+	ZERO_PAGE_X_BUT_Y // undocumented mode; https://www.nesdev.org/6502_cpu.txt
 	ZERO_PAGE_Y
 	RELATIVE
 	ABSOLUTE

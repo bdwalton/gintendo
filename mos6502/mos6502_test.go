@@ -251,6 +251,7 @@ func TestGetOperandAddr(t *testing.T) {
 	c.Write16(0x001F, 0x0055)
 	c.Write16(0x110F, 0xBBFA)
 	c.mem.Write(0xFF66, 0x82)
+	c.mem.Write(0x0110, 0x23)
 	c.x = 0x10
 	c.y = 0xAC
 
@@ -259,18 +260,19 @@ func TestGetOperandAddr(t *testing.T) {
 		mode uint8
 		want uint16
 	}{
-		{0x0064, IMMEDIATE, 0x64},     // Should just return program counter
-		{0x0064, ZERO_PAGE, 0x000F},   // mem[pc]
-		{0x0064, ZERO_PAGE_X, 0x001F}, // mem[pc] + x
-		{0x0064, ZERO_PAGE_Y, 0x00BB}, // mem[pc] + y
-		{0x0064, RELATIVE, 0x74},      // pc + int8(mem[pc])
-		{0xFF66, RELATIVE, 0xFEE9},    // pc - int8(mem[pc])
-		{0x0064, ABSOLUTE, 0x110F},    // mem[pc+1] << 8 + mem[pc]
-		{0x0064, ABSOLUTE_X, 0x111F},  // (mem[pc+1] << 8 + mem[pc]) + x
-		{0x0064, ABSOLUTE_Y, 0x11BB},  // (mem[pc+1] << 8 + mem[pc]) + y
-		{0x0064, INDIRECT, 0xBBFA},    // a = (mem[pc+1] << 8 + mem[pc]); (mem[a+1] + mem[a])
-		{0x0064, INDIRECT_X, 0x0055},  // mem[mem[pc] + x] (mem[pc] + x is wrapped in uint8)
-		{0x0064, INDIRECT_Y, 0x55F0},  // m = mem[pc]; (mem[m+1] << 8 + mem[m]) + y
+		{0x0064, IMMEDIATE, 0x64},           // Should just return program counter
+		{0x0064, ZERO_PAGE, 0x000F},         // mem[pc]
+		{0x0064, ZERO_PAGE_X, 0x001F},       // mem[pc] + x
+		{0x0064, ZERO_PAGE_X_BUT_Y, 0x00BB}, // mem[pc] + y
+		{0x0064, ZERO_PAGE_Y, 0x00BB},       // mem[pc] + y
+		{0x0064, RELATIVE, 0x74},            // pc + int8(mem[pc])
+		{0xFF66, RELATIVE, 0xFEE9},          // pc - int8(mem[pc])
+		{0x0064, ABSOLUTE, 0x110F},          // mem[pc+1] << 8 + mem[pc]
+		{0x0064, ABSOLUTE_X, 0x111F},        // (mem[pc+1] << 8 + mem[pc]) + x
+		{0x0064, ABSOLUTE_Y, 0x11BB},        // (mem[pc+1] << 8 + mem[pc]) + y
+		{0x0064, INDIRECT, 0xBBFA},          // a = (mem[pc+1] << 8 + mem[pc]); (mem[a+1] + mem[a])
+		{0x0064, INDIRECT_X, 0x0055},        // mem[mem[pc] + x] (mem[pc] + x is wrapped in uint8)
+		{0x0064, INDIRECT_Y, 0x55F0},        // m = mem[pc]; (mem[m+1] << 8 + mem[m]) + y
 	}
 
 	for i, tc := range cases {

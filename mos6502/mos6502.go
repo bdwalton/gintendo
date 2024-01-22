@@ -166,7 +166,7 @@ func (c *CPU) getOperandAddr(mode uint8) uint16 {
 		addr = uint16(c.mem.Read(c.pc))
 	case ZERO_PAGE_X:
 		return uint16(c.mem.Read(c.pc) + c.x)
-	case ZERO_PAGE_Y:
+	case ZERO_PAGE_Y, ZERO_PAGE_X_BUT_Y:
 		return uint16(c.mem.Read(c.pc) + c.y)
 	case ABSOLUTE:
 		return c.Read16(c.pc, mode)
