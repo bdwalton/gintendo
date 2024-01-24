@@ -91,6 +91,7 @@ const (
 	SAX        // And X = (ACC & X) - immediate value, undocumented
 	DCM        // m--; cmp acc w/m - undocumented
 	ISB        // m++; acc - m - undocumented
+	SLO        // ASL(m); ACC || m - undocumented
 )
 
 type opcode struct {
@@ -304,4 +305,11 @@ var opcodes map[uint8]opcode = map[uint8]opcode{
 	0xF7: opcode{ISB, "ISB", ZERO_PAGE_X, 2, 6},
 	0xE3: opcode{ISB, "ISB", INDIRECT_X, 2, 8},
 	0xF3: opcode{ISB, "ISB", INDIRECT_Y, 2, 8},
+	0x0F: opcode{SLO, "SLO", ABSOLUTE, 3, 6},
+	0x1F: opcode{SLO, "SLO", ABSOLUTE_X, 3, 7},
+	0x1B: opcode{SLO, "SLO", ABSOLUTE_Y, 3, 7},
+	0x07: opcode{SLO, "SLO", ZERO_PAGE, 2, 5},
+	0x17: opcode{SLO, "SLO", ZERO_PAGE_X, 2, 6},
+	0x03: opcode{SLO, "SLO", INDIRECT_X, 2, 8},
+	0x13: opcode{SLO, "SLO", INDIRECT_Y, 2, 8},
 }

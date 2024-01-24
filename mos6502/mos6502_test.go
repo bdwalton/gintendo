@@ -1930,6 +1930,33 @@ func TestOpISB(t *testing.T) {
 	}
 }
 
+func TestOpSLO(t *testing.T) {
+	c := cpu
+	cases := []struct {
+		val, acc                uint8
+		want, wantM, wantStatus uint8
+	}{
+		{0x01, 0x00, 0x02, 0x02, 0x00},
+		{0x81, 0x40, 0x42, 0x02, 0x01},
+		{0xD1, 0x01, 0xA3, 0xA2, 0x81},
+	}
+
+	for i, tc := range cases {
+		c.pc = 0x000F
+		c.acc = tc.acc
+		c.status = 0 // Clear processor init defaults
+		c.mem.Write(c.getOperandAddr(ZERO_PAGE), tc.val)
+
+		c.SLO(ZERO_PAGE)
+
+		gotM := c.mem.Read(c.getOperandAddr(ZERO_PAGE))
+
+		if c.acc != tc.want || gotM != tc.wantM || c.status != tc.wantStatus {
+			t.Errorf("%d: Got 0x%02x, status 0x%02x (m=0x%02x); Want 0x%02x, status 0x%02x (m=0x%02x)", i, c.acc, c.status, gotM, tc.want, tc.wantStatus, tc.wantM)
+		}
+	}
+}
+
 // Functional tests
 
 func TestFunctionsBin(t *testing.T) {
